@@ -3,7 +3,7 @@
 '''
 Created on Dec 5, 2022
 
-@author: harrywang
+@author: harry.wang0210
 '''
 # This Python file uses the following encoding: utf-8
 import sys
@@ -52,7 +52,7 @@ class SpikeSorter2(Ui_MainWindow):
         #     self.settings = QtCore.QSettings(organization, application)
 
         geom = QtWidgets.QDesktopWidget().availableGeometry()
-        self.resize(geom.width() / 1.5, geom.bottom() / 1.5)
+        self.resize(int(geom.width()), int(geom.bottom()))
         # self.move(geom.topLeft().x(), geom.topLeft().y())
 
         self.setup()
