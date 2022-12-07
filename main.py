@@ -54,16 +54,17 @@ class SpikeSorter2(Ui_MainWindow):
         geom = QtWidgets.QDesktopWidget().availableGeometry()
         self.resize(int(geom.width()), int(geom.bottom()))
         # self.move(geom.topLeft().x(), geom.topLeft().y())
-
+        
+        self.load_style()
         self.setup()
 
-
-
     def setup(self):
+        pass
+    
+    def load_style(self):
         style_file = '/home/user/qt-material/examples/exporter/dark_teal.qss'
         style_sheet = QSSLoader.read_qss_file(style_file)
         self.setStyleSheet(style_sheet)
-
 
     def closeEvent(self, event):
         super().closeEvent(event)

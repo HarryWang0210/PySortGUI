@@ -33,4 +33,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.show()
         self.raise_()
 
+    def generate_dock(self, ):
+        pass
         
