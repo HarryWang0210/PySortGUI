@@ -16,7 +16,7 @@ from PyQt5 import QtCore, QtWidgets
 #     pyside2-uic form.ui -o ui_form.py
 
 # Load Widgets
-from MainWindow import Ui_MainWindow
+from MainWindow import MainWindow
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class QSSLoader:
         with open(qss_file_name, 'r',  encoding='UTF-8') as file:
             return file.read()
 
-class SpikeSorter2(Ui_MainWindow):
+class SpikeSorter2(MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         # if not hasattr(self, 'settings'):
@@ -55,11 +55,17 @@ class SpikeSorter2(Ui_MainWindow):
         self.resize(int(geom.width()), int(geom.bottom()))
         # self.move(geom.topLeft().x(), geom.topLeft().y())
         
-        self.load_style()
+        # self.load_style()
         self.setup()
 
     def setup(self):
-        pass
+        self.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks |
+                            QtWidgets.QMainWindow.AllowNestedDocks |
+                            QtWidgets.QMainWindow.AllowTabbedDocks  # |
+                            # QtGui.QMainWindow.ForceTabbedDocks
+                            )
+        
+
     
     def load_style(self):
         style_file = '/home/user/qt-material/examples/exporter/dark_teal.qss'
