@@ -17,6 +17,7 @@ from PyQt5 import QtCore, QtWidgets
 
 # Load Widgets
 from MainWindowDocks import MainWindowDocks
+from TimelineView import GLWidget
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +70,14 @@ class SpikeSorter2(MainWindowDocks):
         #                     QtWidgets.QMainWindow.AllowTabbedDocks  # |
         #                     # QtGui.QMainWindow.ForceTabbedDocks
         #                     )
-        self.generate_dock(GLRawScopeMain, attr_name='raw_widget',
-                           position=QtCore.Qt.BottomDockWidgetArea)
-        pass
+        self.generate_dock(GLWidget, attr_name='raw_widget',
+                           position=QtCore.Qt.LeftDockWidgetArea)
+        self.generate_dock(GLWidget, attr_name='raw_widget',
+                           position=QtCore.Qt.LeftDockWidgetArea)
+        self.generate_dock(GLWidget, attr_name='raw_widget',
+                           position=QtCore.Qt.LeftDockWidgetArea)
+
+        self.generate_right_tool_widget(GLWidget, attr_name='raw_widget')
 
     def load_style(self):
         """

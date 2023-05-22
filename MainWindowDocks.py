@@ -6,7 +6,6 @@ Created on Dec 5, 2022
 @author: harrywang
 '''
 from PyQt5 import QtGui, QtCore, QtWidgets
-
 organization = 'None'
 application = 'MainWindowDocks'
 
@@ -27,6 +26,15 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks |
                             QtWidgets.QMainWindow.AllowNestedDocks |
                             QtWidgets.QMainWindow.AllowTabbedDocks)
+
+        self.setCorner(QtCore.Qt.TopRightCorner,
+                       QtCore.Qt.RightDockWidgetArea)
+        self.setCorner(QtCore.Qt.BottomRightCorner,
+                       QtCore.Qt.RightDockWidgetArea)
+        self.setCorner(QtCore.Qt.TopLeftCorner,
+                       QtCore.Qt.LeftDockWidgetArea)
+        self.setCorner(QtCore.Qt.BottomLeftCorner,
+                       QtCore.Qt.BottomDockWidgetArea)
 
         if not hasattr(self, 'settings'):
             self.settings = QtCore.QSettings(organization, application)
@@ -75,7 +83,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         # file_utilities.addAction('Sync Data...(rsync)').triggered.connect(self.sync_data)
         #    file_utilities.addAction(ExitAction)
 
-        #ToolsMenu = MenuBar.addMenu('&Tools')
+        # ToolsMenu = MenuBar.addMenu('&Tools')
         # ToolsMenu.addAction(
         #    'Jupyter Console').triggered.connect(self.add_widget)
         # ToolsMenu.addAction(ExitAction)
@@ -112,12 +120,44 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         dock = QtWidgets.QDockWidget(name, None)
         dock.setWidget(obj)
         dock.setObjectName(name)
+        dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea)
+        dock.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
+                         QtWidgets.QDockWidget.DockWidgetMovable)
 
         self.children_dict[attr_name] = obj
         self.children_dict[attr_name + '_dock'] = dock
 
         if position:
             self.addDockWidget(position, dock)
+
+    def generate_right_tool_widget(self, widget_class=None, name=None, attr_name=None, **kwargs):
+        """
+        Generate the right side tool dock object.
+        :param widget_class: class name of widget
+        :param name: dock title
+        :param attr_name: key save in children_dict
+        :param position: default position of the  dock
+        """
+
+        if widget_class is None:
+            return
+
+        if name is None:
+            name = widget_class.__name__
+
+        if attr_name is None:
+            attr_name = widget_class.__name__
+
+        obj = widget_class(**kwargs)
+        dock = QtWidgets.QDockWidget(name, None)
+        dock.setWidget(obj)
+        dock.setObjectName(name)
+        dock.setAllowedAreas(QtCore.Qt.RightDockWidgetArea)
+        dock.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures)
+
+        self.children_dict[attr_name] = obj
+        self.children_dict[attr_name + '_dock'] = dock
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
 
     def save_layout(self):
         """Save the layout changes."""
