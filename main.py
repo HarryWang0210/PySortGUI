@@ -18,7 +18,7 @@ from PyQt5 import QtCore, QtWidgets
 # Load Widgets
 from MainWindowDocks import MainWindowDocks
 from TimelineView import GLWidget
-
+from UnitSelection import UnitSelection
 logger = logging.getLogger(__name__)
 
 organization = 'NYCU'
@@ -77,7 +77,7 @@ class SpikeSorter2(MainWindowDocks):
         self.generate_dock(GLWidget, attr_name='raw_widget',
                            position=QtCore.Qt.LeftDockWidgetArea)
 
-        self.generate_right_tool_widget(GLWidget, attr_name='raw_widget')
+        self.generate_right_tool_widget(UnitSelection, attr_name='raw_widget')
 
     def load_style(self):
         """
