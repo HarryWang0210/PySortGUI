@@ -24,6 +24,8 @@ class GLWidget(QOpenGLWidget):
         self.offset = 0
         self.scale_x = 1.0
         self.scale_y = 1.0
+        self.setMinimumWidth(100)
+        self.setMinimumHeight(100)
 
     def initializeGL(self):
         glClearColor(0.35, 0.35, 0.35, 0.8)  # background color
