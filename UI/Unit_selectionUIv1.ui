@@ -12,7 +12,7 @@
   </property>
   <property name="font">
    <font>
-    <pointsize>10</pointsize>
+    <pointsize>12</pointsize>
    </font>
   </property>
   <property name="windowTitle">
@@ -33,7 +33,7 @@
     <widget class="QLabel" name="label">
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>14</pointsize>
        <weight>75</weight>
        <bold>true</bold>
       </font>
@@ -105,7 +105,7 @@
     <widget class="QLabel" name="label_2">
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>14</pointsize>
        <weight>75</weight>
        <bold>true</bold>
       </font>
@@ -157,7 +157,7 @@
      <item>
       <widget class="QComboBox" name="comboBox_2">
        <property name="currentText">
-        <string>PCA3</string>
+        <string>PCA1</string>
        </property>
        <item>
         <property name="text">
@@ -194,7 +194,7 @@
      <item>
       <widget class="QComboBox" name="comboBox_4">
        <property name="currentText">
-        <string>PCA2</string>
+        <string>PCA1</string>
        </property>
        <item>
         <property name="text">
@@ -251,7 +251,7 @@
     <widget class="QLabel" name="label_3">
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>14</pointsize>
        <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
@@ -260,7 +260,7 @@
       </font>
      </property>
      <property name="text">
-      <string>Selection:</string>
+      <string>Selection</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
