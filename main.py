@@ -19,6 +19,7 @@ from PyQt5 import QtCore, QtWidgets
 from MainWindowDocks import MainWindowDocks
 from TimelineView import GLWidget
 from UnitSelection import UnitSelection
+from ChannelDetail import ChannelDetail
 logger = logging.getLogger(__name__)
 
 organization = 'NYCU'
@@ -59,32 +60,37 @@ class SpikeSorter2(MainWindowDocks):
 
         geom = QtWidgets.QDesktopWidget().availableGeometry()
         self.resize(int(geom.width()), int(geom.bottom()))
-        # self.move(geom.topLeft().x(), geom.topLeft().y())
+        self.move(geom.topLeft().x(), geom.topLeft().y())
+        self.load_style()
 
-        # self.load_style()
         self.setup()
+        # self.restore_layout()
 
     def setup(self):
-        # self.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks |
-        #                     QtWidgets.QMainWindow.AllowNestedDocks |
-        #                     QtWidgets.QMainWindow.AllowTabbedDocks  # |
-        #                     # QtGui.QMainWindow.ForceTabbedDocks
-        #                     )
-        self.generate_dock(GLWidget, attr_name='raw_widget',
-                           position=QtCore.Qt.LeftDockWidgetArea)
-        self.generate_dock(GLWidget, attr_name='raw_widget',
-                           position=QtCore.Qt.LeftDockWidgetArea)
-        self.generate_dock(GLWidget, attr_name='raw_widget',
-                           position=QtCore.Qt.LeftDockWidgetArea)
+        self.generate_dock(ChannelDetail, attr_name='channel_detail')
+        self.generate_dock(GLWidget, attr_name='B')
+        self.generate_dock(GLWidget, attr_name='C')
 
-        self.generate_right_tool_widget(UnitSelection, attr_name='raw_widget')
+        self.generate_dock(GLWidget, attr_name='D')
+
+        self.generate_right_tool_widget(
+            UnitSelection, attr_name='unit_selection')
+
+        self.resizeDocks([self.children_dict["channel_detail_dock"],
+                          self.children_dict["unit_selection_dock"]],
+                         [2, 1], QtCore.Qt.Horizontal)
+
+        self.splitDockWidget(self.children_dict["channel_detail_dock"],
+                             self.children_dict["B_dock"], QtCore.Qt.Horizontal)
+        self.splitDockWidget(self.children_dict["B_dock"],
+                             self.children_dict["C_dock"], QtCore.Qt.Horizontal)
 
     def load_style(self):
         """
         Load the QSS format app style.
         """
         # style_file = '/home/user/qt-material/examples/exporter/dark_teal.qss'
-        style_file = None
+        style_file = 'UI/style.qss'
         style_sheet = QSSLoader.read_qss_file(style_file)
         self.setStyleSheet(style_sheet)
 
@@ -97,4 +103,5 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = SpikeSorter2()
     window.show()
+
     sys.exit(app.exec())
