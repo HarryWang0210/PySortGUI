@@ -67,23 +67,23 @@ class SpikeSorter2(MainWindowDocks):
         # self.restore_layout()
 
     def setup(self):
-        self.generate_dock(ChannelDetail, attr_name='channel_detail')
         self.generate_dock(GLWidget, attr_name='B')
         self.generate_dock(GLWidget, attr_name='C')
-
+        self.generate_dock(ChannelDetail, attr_name='channel_detail')
         self.generate_dock(GLWidget, attr_name='D')
-
         self.generate_right_tool_widget(
             UnitSelection, attr_name='unit_selection')
 
-        self.resizeDocks([self.children_dict["channel_detail_dock"],
-                          self.children_dict["unit_selection_dock"]],
-                         [2, 1], QtCore.Qt.Horizontal)
-
+        geom = QtWidgets.QDesktopWidget().availableGeometry()
+        self.resizeDocks([self.children_dict["unit_selection_dock"]],
+                         [int(geom.width() / 2)], QtCore.Qt.Horizontal)
         self.splitDockWidget(self.children_dict["channel_detail_dock"],
                              self.children_dict["B_dock"], QtCore.Qt.Horizontal)
         self.splitDockWidget(self.children_dict["B_dock"],
                              self.children_dict["C_dock"], QtCore.Qt.Horizontal)
+        self.resizeDocks([self.children_dict["B_dock"],
+                          self.children_dict["D_dock"]],
+                         [int(geom.bottom() / 3) * 2, int(geom.bottom() / 3)], QtCore.Qt.Vertical)
 
     def load_style(self):
         """

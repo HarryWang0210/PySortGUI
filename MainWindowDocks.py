@@ -29,14 +29,14 @@ class MainWindowDocks(QtWidgets.QMainWindow):
                             QtWidgets.QMainWindow.AllowNestedDocks |
                             QtWidgets.QMainWindow.AllowTabbedDocks)
 
-        self.setCorner(QtCore.Qt.TopRightCorner,
-                       QtCore.Qt.RightDockWidgetArea)
-        self.setCorner(QtCore.Qt.BottomRightCorner,
-                       QtCore.Qt.RightDockWidgetArea)
-        self.setCorner(QtCore.Qt.TopLeftCorner,
-                       QtCore.Qt.LeftDockWidgetArea)
-        self.setCorner(QtCore.Qt.BottomLeftCorner,
-                       QtCore.Qt.BottomDockWidgetArea)
+        # self.setCorner(QtCore.Qt.TopRightCorner,
+        #                QtCore.Qt.RightDockWidgetArea)
+        # self.setCorner(QtCore.Qt.BottomRightCorner,
+        #                QtCore.Qt.RightDockWidgetArea)
+        # self.setCorner(QtCore.Qt.TopLeftCorner,
+        #                QtCore.Qt.LeftDockWidgetArea)
+        # self.setCorner(QtCore.Qt.BottomLeftCorner,
+        #                QtCore.Qt.BottomDockWidgetArea)
 
         if not hasattr(self, 'settings'):
             self.settings = QtCore.QSettings(organization, application)
@@ -61,24 +61,28 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         MenuBar = self.children_dict['menu_bar']
         self.setMenuBar(MenuBar)
 
-        # Open
+        # File Menu
         OpenAction = QtWidgets.QAction('&Open File...', self)
         OpenAction.setShortcut('Ctrl+O')
+        OpenAction.setAutoRepeat(False)
         OpenAction.setStatusTip('Load H5 File')
         OpenAction.triggered.connect(self.open_file)
 
         SaveAction = QtWidgets.QAction('&Save', self)
         SaveAction.setShortcut('Ctrl+S')
+        SaveAction.setAutoRepeat(False)
         SaveAction.setStatusTip('Save current channel')
         SaveAction.triggered.connect(self.save_channel)
 
         SaveAllAction = QtWidgets.QAction('&Save All', self)
         SaveAllAction.setShortcut('Ctrl+Alt+S')
+        SaveAllAction.setAutoRepeat(False)
         SaveAllAction.setStatusTip('Save all channels')
         SaveAllAction.triggered.connect(self.save_all)
 
         ExitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
         ExitAction.setShortcut('Ctrl+Q')
+        ExitAction.setAutoRepeat(False)
         ExitAction.setStatusTip('Exit application')
         ExitAction.triggered.connect(self.close)
 
@@ -88,48 +92,42 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         FileMenu.addAction(SaveAllAction)
         FileMenu.addAction(ExitAction)
 
-        # Edit
+        # Edit Menu
         UndoAction = QtWidgets.QAction('&Undo', self)
         UndoAction.setShortcut('Ctrl+Z')
+        UndoAction.setAutoRepeat(False)
         UndoAction.triggered.connect(self.undo)
 
         RedoAction = QtWidgets.QAction('&Redo', self)
         RedoAction.setShortcut('Ctrl+Y')
+        RedoAction.setAutoRepeat(False)
         RedoAction.triggered.connect(self.redo)
 
         EditMenu = MenuBar.addMenu('&Edit')
         EditMenu.addAction(UndoAction)
         EditMenu.addAction(RedoAction)
 
-        # utilities = MenuBar.addMenu('&Utilities')
-        # utilities.addAction('Refresh batch analysis').triggered.connect(self.refresh_batch)
-
-        # file_utilities = MenuBar.addMenu('&File Utilities')
-        # file_utilities.addAction('Sync Data...(rsync)').triggered.connect(self.sync_data)
-        #    file_utilities.addAction(ExitAction)
-
-        # ToolsMenu = MenuBar.addMenu('&Tools')
-        # ToolsMenu.addAction(
-        #    'Jupyter Console').triggered.connect(self.add_widget)
-        # ToolsMenu.addAction(ExitAction)
-
         # View
         ViewMenu = MenuBar.addMenu('&View')
         ChannelDetailAction = QtWidgets.QAction('&Channel Detail', self)
         ChannelDetailAction.setCheckable(True)
-        ChannelDetailAction.triggered.connect(self.ViewTest)
+        ChannelDetailAction.toggled[bool].connect(
+            self.control_view, QtCore.Qt.UniqueConnection)
         ViewMenu.addAction(ChannelDetailAction)
         WaveformsViewAction = QtWidgets.QAction('&Waveforms View', self)
         WaveformsViewAction.setCheckable(True)
-        WaveformsViewAction.triggered.connect(self.ViewTest)
+        WaveformsViewAction.toggled[bool].connect(
+            self.control_view, QtCore.Qt.UniqueConnection)
         ViewMenu.addAction(WaveformsViewAction)
         ClustersViewAction = QtWidgets.QAction('&Clusters View', self)
         ClustersViewAction.setCheckable(True)
-        ChannelDetailAction.triggered.connect(self.ViewTest)
+        ClustersViewAction.toggled[bool].connect(
+            self.control_view, QtCore.Qt.UniqueConnection)
         ViewMenu.addAction(ClustersViewAction)
         TimelineViewAction = QtWidgets.QAction('&Timeline View', self)
         TimelineViewAction.setCheckable(True)
-        TimelineViewAction.triggered.connect(self.ViewTest)
+        TimelineViewAction.toggled[bool].connect(
+            self.control_view, QtCore.Qt.UniqueConnection)
         ViewMenu.addAction(TimelineViewAction)
 
         # Setting
@@ -156,13 +154,11 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         if name is None:
             name = widget_class.__name__
-
+        name = attr_name
         if attr_name is None:
             attr_name = widget_class.__name__
 
         obj = widget_class(**kwargs)
-        obj.setMinimumWidth(400)
-        obj.setMinimumHeight(50)
 
         dock = QtWidgets.QDockWidget(name, None)
         dock.setWidget(obj)
@@ -220,14 +216,17 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
     def undo(self):
         """Undo the last change."""
+        print("undo")
         pass
 
     def redo(self):
         """Redo the change."""
         pass
 
-    def ViewTest(self):
-        """Temporary function"""
+    def control_view(self, checked=False):
+        """Control View widget show or close."""
+        print(checked)
+        print(self.sender().text())
         pass
 
     def save_layout(self, id=0):
