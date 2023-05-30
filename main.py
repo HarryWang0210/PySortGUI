@@ -17,9 +17,7 @@ from PyQt5 import QtCore, QtWidgets
 
 # Load Widgets
 from MainWindowDocks import MainWindowDocks
-from TimelineView import GLWidget
-from UnitSelection import UnitSelection
-from ChannelDetail import ChannelDetail
+
 logger = logging.getLogger(__name__)
 
 organization = 'NYCU'
@@ -55,35 +53,16 @@ class QSSLoader:
 class SpikeSorter2(MainWindowDocks):
     def __init__(self, parent=None):
         super().__init__(parent)
-        # if not hasattr(self, 'settings'):
-        #     self.settings = QtCore.QSettings(organization, application)
+        if not hasattr(self, 'settings'):
+            self.settings = QtCore.QSettings(organization, application)
 
         geom = QtWidgets.QDesktopWidget().availableGeometry()
         self.resize(int(geom.width()), int(geom.bottom()))
         self.move(geom.topLeft().x(), geom.topLeft().y())
         self.load_style()
-
-        self.setup()
+        self.setupUi()
+        self.connect_menu_actions()
         # self.restore_layout()
-
-    def setup(self):
-        self.generate_dock(GLWidget, attr_name='B')
-        self.generate_dock(GLWidget, attr_name='C')
-        self.generate_dock(ChannelDetail, attr_name='channel_detail')
-        self.generate_dock(GLWidget, attr_name='D')
-        self.generate_right_tool_widget(
-            UnitSelection, attr_name='unit_selection')
-
-        geom = QtWidgets.QDesktopWidget().availableGeometry()
-        self.resizeDocks([self.children_dict["unit_selection_dock"]],
-                         [int(geom.width() / 2)], QtCore.Qt.Horizontal)
-        self.splitDockWidget(self.children_dict["channel_detail_dock"],
-                             self.children_dict["B_dock"], QtCore.Qt.Horizontal)
-        self.splitDockWidget(self.children_dict["B_dock"],
-                             self.children_dict["C_dock"], QtCore.Qt.Horizontal)
-        self.resizeDocks([self.children_dict["B_dock"],
-                          self.children_dict["D_dock"]],
-                         [int(geom.bottom() / 3) * 2, int(geom.bottom() / 3)], QtCore.Qt.Vertical)
 
     def load_style(self):
         """
@@ -93,6 +72,94 @@ class SpikeSorter2(MainWindowDocks):
         style_file = 'UI/style.qss'
         style_sheet = QSSLoader.read_qss_file(style_file)
         self.setStyleSheet(style_sheet)
+
+    def connect_menu_actions(self):
+        """Connect slots to actions on menu bar."""
+
+        self.children_dict['FileMenu']["Open"].triggered.connect(
+            self.open_file, QtCore.Qt.UniqueConnection)
+        self.children_dict['FileMenu']["Save"].triggered.connect(
+            self.save_channel)
+        self.children_dict['FileMenu']["SaveAll"].triggered.connect(
+            self.save_all)
+        self.children_dict['FileMenu']["Exit"].triggered.connect(
+            self.close)
+
+        self.children_dict['EditMenu']["Undo"].triggered.connect(
+            self.undo)
+        self.children_dict['EditMenu']["Redo"].triggered.connect(
+            self.redo)
+
+        [action.triggered.connect(self.control_view, QtCore.Qt.UniqueConnection)
+         for action in self.children_dict['ViewMenu'].values()]
+
+        self.children_dict['SettingMenu']["SaveLayout"].triggered.connect(
+            self.save_layout)
+        self.children_dict['SettingMenu']["RestoreLayout"].triggered.connect(
+            self.restore_layout)
+
+        # self.children_dict['HelpMenu'].triggered.connect(
+        #     self.help)
+
+    def open_file(self):
+        """Open file manager and load selected file."""
+        # self.type_dict = {"openephy": "Open Ephys Format (*.continuous)",
+        #                   "h5": "h5 format (*.h5)"}  # File types to load
+        # filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
+        #                                                            ";;".join(self.type_dict.values()))                 # start path
+        pass
+
+    def save_channel(self):
+        """Save single channel."""
+        print("save_channel")
+        pass
+
+    def save_all(self):
+        """Save all channels."""
+        print("save_all")
+        self.save_channel()
+        pass
+
+    def undo(self):
+        """Undo the last change."""
+        print("undo")
+        pass
+
+    def redo(self):
+        """Redo the change."""
+        print("redo")
+        pass
+
+    def control_view(self, checked=False):
+        """Control View widget show or close."""
+        print(checked)
+        print(self.sender().text())
+        pass
+
+    def save_layout(self, id=0):
+        """Save the layout changes."""
+        self.settings.setValue(
+            "geometry_{:d}".format(id), self.saveGeometry())
+        self.settings.setValue(
+            "windowState_{:d}".format(id), self.saveState())
+
+    def restore_layout(self, id=0):
+        """Rstore_ the layout changes."""
+        if not self.settings.value("geometry_{:d}".format(id)) is None:
+            self.restoreGeometry(
+                self.settings.value("geometry_{:d}".format(id)))
+        # else:
+        #     geom = QtGui.QDesktopWidget().availableGeometry()
+        #     self.resize(geom.width(), geom.bottom())
+        #     self.move(geom.topLeft().x(), geom.topLeft().y())
+
+        if not self.settings.value("windowState_{:d}".format(id)) is None:
+            self.restoreState(
+                self.settings.value("windowState_{:d}".format(id)))
+
+    def help(self):
+        """Show help documentation."""
+        print("help")
 
     def closeEvent(self, event):
         """Close app."""

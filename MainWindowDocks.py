@@ -6,6 +6,9 @@ Created on Dec 5, 2022
 @author: harrywang
 '''
 from PyQt5 import QtGui, QtCore, QtWidgets
+from TimelineView import GLWidget
+from UnitSelection import UnitSelection
+from ChannelDetail import ChannelDetail
 organization = 'None'
 application = 'MainWindowDocks'
 
@@ -13,41 +16,23 @@ application = 'MainWindowDocks'
 class MainWindowDocks(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        self._setup()
-        self._setup_app_menu()
-        self._setup_status_bar()
-
-    def _setup(self):
-        if not hasattr(self, 'settings'):
-            self.settings = QtCore.QSettings(organization, application)
-
         if not hasattr(self, 'children_dict'):
             self.children_dict = dict()
 
+    def setupUi(self):
         self.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks |
                             QtWidgets.QMainWindow.AllowNestedDocks |
                             QtWidgets.QMainWindow.AllowTabbedDocks)
-
-        # self.setCorner(QtCore.Qt.TopRightCorner,
-        #                QtCore.Qt.RightDockWidgetArea)
-        # self.setCorner(QtCore.Qt.BottomRightCorner,
-        #                QtCore.Qt.RightDockWidgetArea)
-        # self.setCorner(QtCore.Qt.TopLeftCorner,
-        #                QtCore.Qt.LeftDockWidgetArea)
-        # self.setCorner(QtCore.Qt.BottomLeftCorner,
-        #                QtCore.Qt.BottomDockWidgetArea)
-
-        if not hasattr(self, 'settings'):
-            self.settings = QtCore.QSettings(organization, application)
-
+        self._setup_app_menu()
+        self._setup_status_bar()
+        self._init_docks()
         self.show()
         self.raise_()
 
     def _setup_status_bar(self):
         """Generate status bar."""
-        self.children_dict['status_bar'] = QtWidgets.QStatusBar()
-        status_bar = self.children_dict['status_bar']
+        status_bar = QtWidgets.QStatusBar()
+        self.children_dict['status_bar'] = status_bar
         self.setStatusBar(status_bar)
 
         # status_bar.children_dict = dict()
@@ -57,90 +42,146 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
     def _setup_app_menu(self):
         """Generate menu bar."""
-        self.children_dict['menu_bar'] = QtWidgets.QMenuBar()
-        MenuBar = self.children_dict['menu_bar']
-        self.setMenuBar(MenuBar)
+        self.menu_bar = QtWidgets.QMenuBar()
+        self.children_dict['menu_bar'] = self.menu_bar
+        self.setMenuBar(self.menu_bar)
+        self._add_file_menu()
+        self._add_edit_menu()
+        self._add_view_menu()
+        self._add_setting_menu()
+        self._add_help_menu()
 
+    def _add_file_menu(self):
         # File Menu
+        FileMenu = self.menu_bar.addMenu('&File')
+        FileMenu_dict = dict()
+
         OpenAction = QtWidgets.QAction('&Open File...', self)
         OpenAction.setShortcut('Ctrl+O')
         OpenAction.setAutoRepeat(False)
         OpenAction.setStatusTip('Load H5 File')
-        OpenAction.triggered.connect(self.open_file)
+        FileMenu.addAction(OpenAction)
+        FileMenu_dict["Open"] = OpenAction
 
         SaveAction = QtWidgets.QAction('&Save', self)
         SaveAction.setShortcut('Ctrl+S')
         SaveAction.setAutoRepeat(False)
         SaveAction.setStatusTip('Save current channel')
-        SaveAction.triggered.connect(self.save_channel)
+        FileMenu.addAction(SaveAction)
+        FileMenu_dict["Save"] = SaveAction
 
         SaveAllAction = QtWidgets.QAction('&Save All', self)
         SaveAllAction.setShortcut('Ctrl+Alt+S')
         SaveAllAction.setAutoRepeat(False)
         SaveAllAction.setStatusTip('Save all channels')
-        SaveAllAction.triggered.connect(self.save_all)
+        FileMenu.addAction(SaveAllAction)
+        FileMenu_dict["SaveAll"] = SaveAllAction
 
         ExitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
         ExitAction.setShortcut('Ctrl+Q')
         ExitAction.setAutoRepeat(False)
         ExitAction.setStatusTip('Exit application')
-        ExitAction.triggered.connect(self.close)
-
-        FileMenu = MenuBar.addMenu('&File')
-        FileMenu.addAction(OpenAction)
-        FileMenu.addAction(SaveAction)
-        FileMenu.addAction(SaveAllAction)
         FileMenu.addAction(ExitAction)
+        FileMenu_dict["Exit"] = ExitAction
 
+        self.children_dict["FileMenu"] = FileMenu_dict
+
+    def _add_edit_menu(self):
         # Edit Menu
+        EditMenu = self.menu_bar.addMenu('&Edit')
+        EditMenu_dict = dict()
+
         UndoAction = QtWidgets.QAction('&Undo', self)
         UndoAction.setShortcut('Ctrl+Z')
         UndoAction.setAutoRepeat(False)
-        UndoAction.triggered.connect(self.undo)
+        EditMenu.addAction(UndoAction)
+        EditMenu_dict["Undo"] = UndoAction
 
         RedoAction = QtWidgets.QAction('&Redo', self)
         RedoAction.setShortcut('Ctrl+Y')
         RedoAction.setAutoRepeat(False)
-        RedoAction.triggered.connect(self.redo)
-
-        EditMenu = MenuBar.addMenu('&Edit')
-        EditMenu.addAction(UndoAction)
         EditMenu.addAction(RedoAction)
+        EditMenu_dict["Redo"] = RedoAction
 
+        self.children_dict["EditMenu"] = EditMenu_dict
+
+    def _add_view_menu(self):
         # View
-        ViewMenu = MenuBar.addMenu('&View')
+        ViewMenu = self.menu_bar.addMenu('&View')
+        ViewMenu_dict = dict()
+
         ChannelDetailAction = QtWidgets.QAction('&Channel Detail', self)
         ChannelDetailAction.setCheckable(True)
-        ChannelDetailAction.toggled[bool].connect(
-            self.control_view, QtCore.Qt.UniqueConnection)
         ViewMenu.addAction(ChannelDetailAction)
+        ViewMenu_dict["ChannelDetail"] = ChannelDetailAction
+
         WaveformsViewAction = QtWidgets.QAction('&Waveforms View', self)
         WaveformsViewAction.setCheckable(True)
-        WaveformsViewAction.toggled[bool].connect(
-            self.control_view, QtCore.Qt.UniqueConnection)
         ViewMenu.addAction(WaveformsViewAction)
+        ViewMenu_dict["WaveformsView"] = WaveformsViewAction
+
         ClustersViewAction = QtWidgets.QAction('&Clusters View', self)
         ClustersViewAction.setCheckable(True)
-        ClustersViewAction.toggled[bool].connect(
-            self.control_view, QtCore.Qt.UniqueConnection)
         ViewMenu.addAction(ClustersViewAction)
+        ViewMenu_dict["ClustersView"] = ClustersViewAction
+
         TimelineViewAction = QtWidgets.QAction('&Timeline View', self)
         TimelineViewAction.setCheckable(True)
-        TimelineViewAction.toggled[bool].connect(
-            self.control_view, QtCore.Qt.UniqueConnection)
         ViewMenu.addAction(TimelineViewAction)
+        ViewMenu_dict["TimelineView"] = TimelineViewAction
 
+        ISIViewAction = QtWidgets.QAction('&ISI View', self)
+        ISIViewAction.setCheckable(True)
+        ViewMenu.addAction(ISIViewAction)
+        ViewMenu_dict["ISIView"] = ISIViewAction
+
+        self.children_dict["ViewMenu"] = ViewMenu_dict
+
+    def _add_setting_menu(self):
         # Setting
-        SettingMenu = MenuBar.addMenu('&Setting')
-        SettingMenu.addAction(
-            'Save layout').triggered.connect(self.save_layout)
-        SettingMenu.addAction('Restore layout').triggered.connect(
-            self.restore_layout)
+        SettingMenu = self.menu_bar.addMenu('&Setting')
+        SettingMenu_dict = dict()
 
+        SaveLayoutAction = QtWidgets.QAction('&Save layout', self)
+        SettingMenu.addAction(SaveLayoutAction)
+        SettingMenu_dict["SaveLayout"] = SaveLayoutAction
+
+        RestoreLayoutAction = QtWidgets.QAction('&Restore layout', self)
+        SettingMenu.addAction(RestoreLayoutAction)
+        SettingMenu_dict["RestoreLayout"] = RestoreLayoutAction
+
+        self.children_dict["SettingMenu"] = SettingMenu_dict
+
+    def _add_help_menu(self):
         # Help
-        HelpMenu = MenuBar.addMenu('&Help')
+        HelpMenu = self.menu_bar.addMenu('&Help')
+        self.children_dict["HelpMenu"] = HelpMenu
 
-    def generate_dock(self, widget_class=None, name=None, attr_name=None, **kwargs):
+    def _init_docks(self):
+        self._generate_dock(ChannelDetail, attr_name='channel_detail')
+        self._generate_dock(GLWidget, attr_name='B')
+        self._generate_dock(GLWidget, attr_name='C')
+
+        self._generate_dock(GLWidget, attr_name='D')
+        self._generate_right_tool_widget(
+            UnitSelection, attr_name='unit_selection')
+
+        geom = QtWidgets.QDesktopWidget().availableGeometry()
+        self.splitDockWidget(self.children_dict["channel_detail_dock"],
+                             self.children_dict["B_dock"], QtCore.Qt.Horizontal)
+        self.splitDockWidget(self.children_dict["B_dock"],
+                             self.children_dict["C_dock"], QtCore.Qt.Horizontal)
+        self.resizeDocks([self.children_dict["unit_selection_dock"],
+                          self.children_dict["B_dock"],
+                          self.children_dict["C_dock"],
+                          self.children_dict["unit_selection_dock"]],
+                         [int(geom.width() / 6), int(geom.width() / 3),
+                          int(geom.width() / 3), int(geom.width() / 6)], QtCore.Qt.Horizontal)
+        self.resizeDocks([self.children_dict["B_dock"],
+                          self.children_dict["D_dock"]],
+                         [int(geom.bottom() / 3) * 2, int(geom.bottom() / 3)], QtCore.Qt.Vertical)
+
+    def _generate_dock(self, widget_class=None, name=None, attr_name=None, **kwargs):
         """
         Generate the dock object.
         :param widget_class: class name of widget
@@ -154,7 +195,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         if name is None:
             name = widget_class.__name__
-        name = attr_name
+        # name = attr_name
         if attr_name is None:
             attr_name = widget_class.__name__
 
@@ -172,7 +213,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock)
 
-    def generate_right_tool_widget(self, widget_class=None, name=None, attr_name=None, **kwargs):
+    def _generate_right_tool_widget(self, widget_class=None, name=None, attr_name=None, **kwargs):
         """
         Generate the right side tool dock object.
         :param widget_class: class name of widget
@@ -201,55 +242,3 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self.children_dict[attr_name] = obj
         self.children_dict[attr_name + '_dock'] = dock
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
-
-    def open_file(self):
-        """Open file manager and load selected file."""
-        pass
-
-    def save_channel(self):
-        """Save single channel."""
-        pass
-
-    def save_all(self):
-        """Save all channels."""
-        pass
-
-    def undo(self):
-        """Undo the last change."""
-        print("undo")
-        pass
-
-    def redo(self):
-        """Redo the change."""
-        pass
-
-    def control_view(self, checked=False):
-        """Control View widget show or close."""
-        print(checked)
-        print(self.sender().text())
-        pass
-
-    def save_layout(self, id=0):
-        """Save the layout changes."""
-        self.settings.setValue(
-            "geometry_{:d}".format(id), self.saveGeometry())
-        self.settings.setValue(
-            "windowState_{:d}".format(id), self.saveState())
-
-    def restore_layout(self, id=0):
-        """Rstore_ the layout changes."""
-        if not self.settings.value("geometry_{:d}".format(id)) is None:
-            self.restoreGeometry(
-                self.settings.value("geometry_{:d}".format(id)))
-        # else:
-        #     geom = QtGui.QDesktopWidget().availableGeometry()
-        #     self.resize(geom.width(), geom.bottom())
-        #     self.move(geom.topLeft().x(), geom.topLeft().y())
-
-        if not self.settings.value("windowState_{:d}".format(id)) is None:
-            self.restoreState(
-                self.settings.value("windowState_{:d}".format(id)))
-
-    def closeEvent(self, event):
-        """Close app."""
-        super().closeEvent(event)
