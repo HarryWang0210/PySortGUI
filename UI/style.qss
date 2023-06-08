@@ -1,3 +1,7 @@
 QDockWidget::title {
     text-align: center
 }
+
+QTabWidget::tab-bar {
+    alignment: center;
+}
