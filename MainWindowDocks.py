@@ -6,9 +6,14 @@ Created on Dec 5, 2022
 @author: harrywang
 '''
 from PyQt5 import QtGui, QtCore, QtWidgets
-from TimelineView import GLWidget
-from UnitSelection import UnitSelection
-from ChannelDetail import ChannelDetail
+from Widgets.ChannelDetail import ChannelDetail
+from Widgets.WaveformsView import WaveformsView
+from Widgets.ClustersView import ClustersView
+from Widgets.TimelineView import TimelineView
+from Widgets.UnitOperateTools import UnitOperateTools
+
+from Widgets.extend.ISIView import ISIView
+
 organization = 'None'
 application = 'MainWindowDocks'
 
@@ -112,26 +117,31 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         ChannelDetailAction = QtWidgets.QAction('&Channel Detail', self)
         ChannelDetailAction.setCheckable(True)
+        ChannelDetailAction.setChecked(True)
         ViewMenu.addAction(ChannelDetailAction)
         ViewMenu_dict["ChannelDetail"] = ChannelDetailAction
 
         WaveformsViewAction = QtWidgets.QAction('&Waveforms View', self)
         WaveformsViewAction.setCheckable(True)
+        WaveformsViewAction.setChecked(True)
         ViewMenu.addAction(WaveformsViewAction)
         ViewMenu_dict["WaveformsView"] = WaveformsViewAction
 
         ClustersViewAction = QtWidgets.QAction('&Clusters View', self)
         ClustersViewAction.setCheckable(True)
+        ClustersViewAction.setChecked(True)
         ViewMenu.addAction(ClustersViewAction)
         ViewMenu_dict["ClustersView"] = ClustersViewAction
 
         TimelineViewAction = QtWidgets.QAction('&Timeline View', self)
         TimelineViewAction.setCheckable(True)
+        TimelineViewAction.setChecked(True)
         ViewMenu.addAction(TimelineViewAction)
         ViewMenu_dict["TimelineView"] = TimelineViewAction
 
         ISIViewAction = QtWidgets.QAction('&ISI View', self)
         ISIViewAction.setCheckable(True)
+        ISIViewAction.setChecked(True)
         ViewMenu.addAction(ISIViewAction)
         ViewMenu_dict["ISIView"] = ISIViewAction
 
@@ -158,27 +168,29 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self.children_dict["HelpMenu"] = HelpMenu
 
     def _init_docks(self):
-        self._generate_dock(ChannelDetail, attr_name='channel_detail')
-        self._generate_dock(GLWidget, attr_name='B')
-        self._generate_dock(GLWidget, attr_name='C')
+        self._generate_dock(ChannelDetail)
+        self._generate_dock(WaveformsView)
+        self._generate_dock(ISIView)
+        self._generate_dock(ClustersView)
 
-        self._generate_dock(GLWidget, attr_name='D')
-        self._generate_right_tool_widget(
-            UnitSelection, attr_name='unit_selection')
+        self._generate_dock(TimelineView)
+        self._generate_right_tool_widget(UnitOperateTools)
 
         geom = QtWidgets.QDesktopWidget().availableGeometry()
-        self.splitDockWidget(self.children_dict["channel_detail_dock"],
-                             self.children_dict["B_dock"], QtCore.Qt.Horizontal)
-        self.splitDockWidget(self.children_dict["B_dock"],
-                             self.children_dict["C_dock"], QtCore.Qt.Horizontal)
-        self.resizeDocks([self.children_dict["unit_selection_dock"],
-                          self.children_dict["B_dock"],
-                          self.children_dict["C_dock"],
-                          self.children_dict["unit_selection_dock"]],
+        self.splitDockWidget(self.children_dict["ChannelDetail_dock"],
+                             self.children_dict["ISIView_dock"], QtCore.Qt.Horizontal)
+        self.splitDockWidget(self.children_dict["ISIView_dock"],
+                             self.children_dict["ClustersView_dock"], QtCore.Qt.Horizontal)
+        self.resizeDocks([self.children_dict["ChannelDetail_dock"],
+                          self.children_dict["ISIView_dock"],
+                          self.children_dict["ClustersView_dock"],
+                          self.children_dict["UnitOperateTools_dock"]],
                          [int(geom.width() / 6), int(geom.width() / 3),
                           int(geom.width() / 3), int(geom.width() / 6)], QtCore.Qt.Horizontal)
-        self.resizeDocks([self.children_dict["B_dock"],
-                          self.children_dict["D_dock"]],
+        self.tabifyDockWidget(
+            self.children_dict["ISIView_dock"], self.children_dict["WaveformsView_dock"])
+        self.resizeDocks([self.children_dict["ChannelDetail_dock"],
+                          self.children_dict["TimelineView_dock"]],
                          [int(geom.bottom() / 3) * 2, int(geom.bottom() / 3)], QtCore.Qt.Vertical)
 
     def _generate_dock(self, widget_class=None, name=None, attr_name=None, **kwargs):
@@ -187,19 +199,17 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         :param widget_class: class name of widget
         :param name: dock title
         :param attr_name: key save in children_dict
-        :param position: default position of the  dock
         """
 
         if widget_class is None:
             return
+        obj = widget_class(**kwargs)
 
         if name is None:
-            name = widget_class.__name__
-        # name = attr_name
+            name = obj.window_title
+
         if attr_name is None:
             attr_name = widget_class.__name__
-
-        obj = widget_class(**kwargs)
 
         dock = QtWidgets.QDockWidget(name, None)
         dock.setWidget(obj)
@@ -219,19 +229,17 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         :param widget_class: class name of widget
         :param name: dock title
         :param attr_name: key save in children_dict
-        :param position: default position of the  dock
         """
 
         if widget_class is None:
             return
+        obj = widget_class(**kwargs)
 
         if name is None:
-            name = widget_class.__name__
+            name = obj.window_title
 
         if attr_name is None:
             attr_name = widget_class.__name__
-
-        obj = widget_class(**kwargs)
 
         dock = QtWidgets.QDockWidget(name, None)
         dock.setWidget(obj)
