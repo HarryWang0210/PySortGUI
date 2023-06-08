@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\harry\Desktop\Lab\Project_spikesorter\try\UI\Unit_selectionUIv2.ui'
+# Form implementation generated from reading ui file 'c:\Users\harry\Desktop\Lab\Project_spikesorter\try\UI\UnitOperateToolsUIv2.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
