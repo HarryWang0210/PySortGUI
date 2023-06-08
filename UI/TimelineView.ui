@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>TimelineView</class>
+ <widget class="QWidget" name="TimelineView">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -10,16 +10,17 @@
     <height>112</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <pointsize>12</pointsize>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <widget class="QOpenGLWidget" name="openGLWidget"/>
-     </item>
-    </layout>
+    <layout class="QVBoxLayout" name="openglLayout"/>
    </item>
    <item>
     <widget class="QGroupBox" name="groupBox">
@@ -46,7 +47,7 @@
        <number>0</number>
       </property>
       <item>
-       <widget class="QPushButton" name="pushButton_events">
+       <widget class="QPushButton" name="events_pushButton">
         <property name="text">
          <string>events</string>
         </property>
@@ -56,7 +57,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_thr">
+       <widget class="QPushButton" name="thr_pushButton">
         <property name="text">
          <string>threshold</string>
         </property>
@@ -66,12 +67,35 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_spikes">
+       <widget class="QPushButton" name="spikes_pushButton">
         <property name="text">
          <string>spikes</string>
         </property>
         <property name="checkable">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="raw_pushButton">
+        <property name="text">
+         <string>raw</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="autoDefault">
+         <bool>false</bool>
+        </property>
+        <property name="default">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
