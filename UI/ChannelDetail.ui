@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>161</width>
+    <width>186</width>
     <height>212</height>
    </rect>
   </property>
@@ -59,12 +59,7 @@
        </property>
        <item>
         <property name="text">
-         <string>label1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>label2</string>
+         <string>NewLabel1</string>
         </property>
        </item>
       </widget>
@@ -81,18 +76,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="ref_comboBox">
-       <item>
-        <property name="text">
-         <string>ch1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>ch2</string>
-        </property>
-       </item>
-      </widget>
+      <widget class="QComboBox" name="ref_comboBox"/>
      </item>
     </layout>
    </item>
