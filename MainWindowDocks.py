@@ -61,28 +61,28 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         FileMenu = self.menu_bar.addMenu('&File')
         FileMenu_dict = dict()
 
-        OpenAction = QtWidgets.QAction('&Open File...', self)
+        OpenAction = QtWidgets.QAction('Open File...', self)
         OpenAction.setShortcut('Ctrl+O')
         OpenAction.setAutoRepeat(False)
         OpenAction.setStatusTip('Load H5 File')
         FileMenu.addAction(OpenAction)
         FileMenu_dict["Open"] = OpenAction
 
-        SaveAction = QtWidgets.QAction('&Save', self)
+        SaveAction = QtWidgets.QAction('Save', self)
         SaveAction.setShortcut('Ctrl+S')
         SaveAction.setAutoRepeat(False)
         SaveAction.setStatusTip('Save current channel')
         FileMenu.addAction(SaveAction)
         FileMenu_dict["Save"] = SaveAction
 
-        SaveAllAction = QtWidgets.QAction('&Save All', self)
+        SaveAllAction = QtWidgets.QAction('Save All', self)
         SaveAllAction.setShortcut('Ctrl+Alt+S')
         SaveAllAction.setAutoRepeat(False)
         SaveAllAction.setStatusTip('Save all channels')
         FileMenu.addAction(SaveAllAction)
         FileMenu_dict["SaveAll"] = SaveAllAction
 
-        ExitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), '&Exit', self)
+        ExitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), 'Exit', self)
         ExitAction.setShortcut('Ctrl+Q')
         ExitAction.setAutoRepeat(False)
         ExitAction.setStatusTip('Exit application')
@@ -96,13 +96,13 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         EditMenu = self.menu_bar.addMenu('&Edit')
         EditMenu_dict = dict()
 
-        UndoAction = QtWidgets.QAction('&Undo', self)
+        UndoAction = QtWidgets.QAction('Undo', self)
         UndoAction.setShortcut('Ctrl+Z')
         UndoAction.setAutoRepeat(False)
         EditMenu.addAction(UndoAction)
         EditMenu_dict["Undo"] = UndoAction
 
-        RedoAction = QtWidgets.QAction('&Redo', self)
+        RedoAction = QtWidgets.QAction('Redo', self)
         RedoAction.setShortcut('Ctrl+Y')
         RedoAction.setAutoRepeat(False)
         EditMenu.addAction(RedoAction)
@@ -115,31 +115,31 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         ViewMenu = self.menu_bar.addMenu('&View')
         ViewMenu_dict = dict()
 
-        ChannelDetailAction = QtWidgets.QAction('&Channel Detail', self)
+        ChannelDetailAction = QtWidgets.QAction('Channel Detail', self)
         ChannelDetailAction.setCheckable(True)
         ChannelDetailAction.setChecked(True)
         ViewMenu.addAction(ChannelDetailAction)
         ViewMenu_dict["ChannelDetail"] = ChannelDetailAction
 
-        WaveformsViewAction = QtWidgets.QAction('&Waveforms View', self)
+        WaveformsViewAction = QtWidgets.QAction('Waveforms View', self)
         WaveformsViewAction.setCheckable(True)
         WaveformsViewAction.setChecked(True)
         ViewMenu.addAction(WaveformsViewAction)
         ViewMenu_dict["WaveformsView"] = WaveformsViewAction
 
-        ClustersViewAction = QtWidgets.QAction('&Clusters View', self)
+        ClustersViewAction = QtWidgets.QAction('Clusters View', self)
         ClustersViewAction.setCheckable(True)
         ClustersViewAction.setChecked(True)
         ViewMenu.addAction(ClustersViewAction)
         ViewMenu_dict["ClustersView"] = ClustersViewAction
 
-        TimelineViewAction = QtWidgets.QAction('&Timeline View', self)
+        TimelineViewAction = QtWidgets.QAction('Timeline View', self)
         TimelineViewAction.setCheckable(True)
         TimelineViewAction.setChecked(True)
         ViewMenu.addAction(TimelineViewAction)
         ViewMenu_dict["TimelineView"] = TimelineViewAction
 
-        ISIViewAction = QtWidgets.QAction('&ISI View', self)
+        ISIViewAction = QtWidgets.QAction('ISI View', self)
         ISIViewAction.setCheckable(True)
         ISIViewAction.setChecked(True)
         ViewMenu.addAction(ISIViewAction)
@@ -152,11 +152,11 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         SettingMenu = self.menu_bar.addMenu('&Setting')
         SettingMenu_dict = dict()
 
-        SaveLayoutAction = QtWidgets.QAction('&Save layout', self)
+        SaveLayoutAction = QtWidgets.QAction('Save layout', self)
         SettingMenu.addAction(SaveLayoutAction)
         SettingMenu_dict["SaveLayout"] = SaveLayoutAction
 
-        RestoreLayoutAction = QtWidgets.QAction('&Restore layout', self)
+        RestoreLayoutAction = QtWidgets.QAction('Restore layout', self)
         SettingMenu.addAction(RestoreLayoutAction)
         SettingMenu_dict["RestoreLayout"] = RestoreLayoutAction
 
