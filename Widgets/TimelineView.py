@@ -1,5 +1,6 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout
+from UI.TimelineView_ui import Ui_TimelineView
+from PyQt5 import QtCore, QtGui, QtWidgets
 # from PyQt5.QtGui import QOpenGLShader, QOpenGLShaderProgram, QOpenGLContext
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt
@@ -7,10 +8,20 @@ from OpenGL.GL import *
 import numpy as np
 import h5py
 
-
-class GLWidget(QOpenGLWidget):
+class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.window_title = "Timeline View"
+        self.setupUi(self)
+        self.openGLWidget = TimelineView_widget(self)
+        self.openglLayout.addWidget(self.openGLWidget)
+
+class TimelineView_widget(QOpenGLWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.window_title = "Timeline View"
+        self.setMinimumWidth(100)
+        self.setMinimumHeight(100)
 
         filename = "data/MX6-22_2020-06-17_17-07-48_no_ref.h5"
         f = h5py.File(filename, "r")
@@ -24,8 +35,7 @@ class GLWidget(QOpenGLWidget):
         self.offset = 0
         self.scale_x = 1.0
         self.scale_y = 1.0
-        self.setMinimumWidth(100)
-        self.setMinimumHeight(100)
+
 
     def initializeGL(self):
         glClearColor(0.35, 0.35, 0.35, 0.8)  # background color
@@ -141,23 +151,23 @@ class GLWidget(QOpenGLWidget):
             self.update()
 
 
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.gl_widget = GLWidget(self)
-        layout = QHBoxLayout()
-        layout.addWidget(self.gl_widget)
-        self.setLayout(layout)
-        self.setWindowTitle("Timeline View")
-        self.setGeometry(100, 100, 800, 600)
+# class MainWindow(QWidget):
+#     def __init__(self):
+#         super().__init__()
+#         self.gl_widget = TimelineView(self)
+#         layout = QHBoxLayout()
+#         layout.addWidget(self.gl_widget)
+#         self.setLayout(layout)
+#         self.setWindowTitle("Timeline View")
+#         self.setGeometry(100, 100, 800, 600)
 
-    def keyPressEvent(self, event):
-        self.gl_widget.keyPressEvent(event)
+#     # def keyPressEvent(self, event):
+#     #     self.gl_widget.keyPressEvent(event)
 
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    # context = QOpenGLContext()
-    widget = MainWindow()
-    widget.show()
-    sys.exit(app.exec_())
+# if __name__ == '__main__':
+#     app = QApplication(sys.argv)
+#     # context = QOpenGLContext()
+#     widget = MainWindow()
+#     widget.show()
+#     sys.exit(app.exec_())
