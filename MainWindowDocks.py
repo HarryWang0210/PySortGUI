@@ -28,9 +28,9 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks |
                             QtWidgets.QMainWindow.AllowNestedDocks |
                             QtWidgets.QMainWindow.AllowTabbedDocks)
+        self._init_docks()
         self._setup_app_menu()
         self._setup_status_bar()
-        self._init_docks()
         self.show()
         self.raise_()
 
@@ -115,33 +115,27 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         ViewMenu = self.menu_bar.addMenu('&View')
         ViewMenu_dict = dict()
 
-        ChannelDetailAction = QtWidgets.QAction('Channel Detail', self)
-        ChannelDetailAction.setCheckable(True)
-        ChannelDetailAction.setChecked(True)
+        ChannelDetailAction = self.children_dict['ChannelDetail_dock'].toggleViewAction(
+        )
         ViewMenu.addAction(ChannelDetailAction)
         ViewMenu_dict["ChannelDetail"] = ChannelDetailAction
 
-        WaveformsViewAction = QtWidgets.QAction('Waveforms View', self)
-        WaveformsViewAction.setCheckable(True)
-        WaveformsViewAction.setChecked(True)
+        WaveformsViewAction = self.children_dict['WaveformsView_dock'].toggleViewAction(
+        )
         ViewMenu.addAction(WaveformsViewAction)
         ViewMenu_dict["WaveformsView"] = WaveformsViewAction
 
-        ClustersViewAction = QtWidgets.QAction('Clusters View', self)
-        ClustersViewAction.setCheckable(True)
-        ClustersViewAction.setChecked(True)
+        ClustersViewAction = self.children_dict['ClustersView_dock'].toggleViewAction(
+        )
         ViewMenu.addAction(ClustersViewAction)
         ViewMenu_dict["ClustersView"] = ClustersViewAction
 
-        TimelineViewAction = QtWidgets.QAction('Timeline View', self)
-        TimelineViewAction.setCheckable(True)
-        TimelineViewAction.setChecked(True)
+        TimelineViewAction = self.children_dict['TimelineView_dock'].toggleViewAction(
+        )
         ViewMenu.addAction(TimelineViewAction)
         ViewMenu_dict["TimelineView"] = TimelineViewAction
 
-        ISIViewAction = QtWidgets.QAction('ISI View', self)
-        ISIViewAction.setCheckable(True)
-        ISIViewAction.setChecked(True)
+        ISIViewAction = self.children_dict['ISIView_dock'].toggleViewAction()
         ViewMenu.addAction(ISIViewAction)
         ViewMenu_dict["ISIView"] = ISIViewAction
 
@@ -164,8 +158,9 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
     def _add_help_menu(self):
         # Help
-        HelpMenu = self.menu_bar.addMenu('&Help')
-        self.children_dict["HelpMenu"] = HelpMenu
+        HelpAction = QtWidgets.QAction('&Help', self)
+        self.menu_bar.addAction(HelpAction)
+        self.children_dict["Help"] = HelpAction
 
     def _init_docks(self):
         self._generate_dock(ChannelDetail)

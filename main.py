@@ -62,7 +62,8 @@ class SpikeSorter2(MainWindowDocks):
         self.load_style()
         self.setupUi()
         self.connect_menu_actions()
-        # self.restore_layout()
+        self.setWindowTitle("SpikeSorterGL")
+        self.restore_layout()
 
     def load_style(self):
         """
@@ -90,23 +91,19 @@ class SpikeSorter2(MainWindowDocks):
         self.children_dict['EditMenu']["Redo"].triggered.connect(
             self.redo)
 
-        [action.triggered.connect(self.control_view, QtCore.Qt.UniqueConnection)
-         for action in self.children_dict['ViewMenu'].values()]
-
         self.children_dict['SettingMenu']["SaveLayout"].triggered.connect(
             self.save_layout)
         self.children_dict['SettingMenu']["RestoreLayout"].triggered.connect(
             self.restore_layout)
 
-        # self.children_dict['HelpMenu'].triggered.connect(
-        #     self.help)
+        self.children_dict['Help'].triggered.connect(self.help)
 
     def open_file(self):
         """Open file manager and load selected file."""
-        # self.type_dict = {"openephy": "Open Ephys Format (*.continuous)",
-        #                   "h5": "h5 format (*.h5)"}  # File types to load
-        # filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
-        #                                                            ";;".join(self.type_dict.values()))                 # start path
+        self.type_dict = {  # "openephy": "Open Ephys Format (*.continuous)",
+            "pyephys": "pyephys format (*.h5)"}  # File types to load
+        filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
+                                                                   ";;".join(self.type_dict.values()))                 # start path
         pass
 
     def save_channel(self):
@@ -128,12 +125,6 @@ class SpikeSorter2(MainWindowDocks):
     def redo(self):
         """Redo the change."""
         print("redo")
-        pass
-
-    def control_view(self, checked=False):
-        """Control View widget show or close."""
-        print(checked)
-        print(self.sender().text())
         pass
 
     def save_layout(self, id=0):
