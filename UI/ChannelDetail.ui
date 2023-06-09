@@ -27,7 +27,7 @@
      <item>
       <widget class="QLineEdit" name="file_name_lineEdit">
        <property name="text">
-        <string>file_name</string>
+        <string/>
        </property>
       </widget>
      </item>
@@ -57,11 +57,6 @@
        <property name="editable">
         <bool>true</bool>
        </property>
-       <item>
-        <property name="text">
-         <string>NewLabel1</string>
-        </property>
-       </item>
       </widget>
      </item>
     </layout>

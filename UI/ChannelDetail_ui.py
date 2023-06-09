@@ -24,6 +24,7 @@ class Ui_ChannelDetail(object):
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.file_name_lineEdit = QtWidgets.QLineEdit(ChannelDetail)
+        self.file_name_lineEdit.setText("")
         self.file_name_lineEdit.setObjectName("file_name_lineEdit")
         self.horizontalLayout.addWidget(self.file_name_lineEdit)
         self.open_file_toolButton = QtWidgets.QToolButton(ChannelDetail)
@@ -41,7 +42,6 @@ class Ui_ChannelDetail(object):
         self.sortin_type_comboBox = QtWidgets.QComboBox(ChannelDetail)
         self.sortin_type_comboBox.setEditable(True)
         self.sortin_type_comboBox.setObjectName("sortin_type_comboBox")
-        self.sortin_type_comboBox.addItem("")
         self.horizontalLayout_2.addWidget(self.sortin_type_comboBox)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
@@ -89,10 +89,8 @@ class Ui_ChannelDetail(object):
     def retranslateUi(self, ChannelDetail):
         _translate = QtCore.QCoreApplication.translate
         ChannelDetail.setWindowTitle(_translate("ChannelDetail", "Form"))
-        self.file_name_lineEdit.setText(_translate("ChannelDetail", "file_name"))
         self.open_file_toolButton.setText(_translate("ChannelDetail", "..."))
         self.sorting_type_label.setText(_translate("ChannelDetail", "Sorting type"))
-        self.sortin_type_comboBox.setItemText(0, _translate("ChannelDetail", "NewLabel1"))
         self.ref_checkBox.setText(_translate("ChannelDetail", "Reference to"))
         self.filter_checkBox.setText(_translate("ChannelDetail", "Filter raw"))
         self.extract_wav_pushButton.setText(_translate("ChannelDetail", "Extract Waveform"))
