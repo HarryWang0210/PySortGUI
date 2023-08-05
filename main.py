@@ -17,7 +17,7 @@ from PyQt5 import QtCore, QtWidgets
 
 # Load Widgets
 from MainWindowDocks import MainWindowDocks
-
+from DataStructure.data import SpikeSorterData
 logger = logging.getLogger(__name__)
 
 organization = 'NYCU'
@@ -62,6 +62,7 @@ class SpikeSorter2(MainWindowDocks):
         self.load_style()
         self.setupUi()
         self.connect_menu_actions()
+        self.connect_widgets()
         self.setWindowTitle("SpikeSorterGL")
         self.restore_layout()
 
@@ -98,13 +99,13 @@ class SpikeSorter2(MainWindowDocks):
 
         self.children_dict['Help'].triggered.connect(self.help)
 
+    def connect_widgets(self):
+        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+            self.children_dict["TimelineView"].spike_chan_changed)
+
     def open_file(self):
         """Open file manager and load selected file."""
-        self.type_dict = {  # "openephy": "Open Ephys Format (*.continuous)",
-            "pyephys": "pyephys format (*.h5)"}  # File types to load
-        filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
-                                                                   ";;".join(self.type_dict.values()))                 # start path
-        pass
+        self.children_dict["ChannelDetail"].open_file()
 
     def save_channel(self):
         """Save single channel."""
