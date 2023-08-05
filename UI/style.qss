@@ -5,3 +5,11 @@ QDockWidget::title {
 QTabWidget::tab-bar {
     alignment: center;
 }
+
+QTreeView {
+    font-size: 9pt
+}
+
+QTreeView QHeaderView::section {
+    font-size: 9pt
+}
