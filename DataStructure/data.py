@@ -99,8 +99,6 @@ class SpikeSorterData():
             chan_info.index.levels[1].map(bytes.decode), level=1)
 
         # round float
-        # chan_info[["NumUnits", "ReferenceID"]].round(0).astype(int)
-
         chan_info["Threshold"] = chan_info["Threshold"].round(3)
 
         chan_info = chan_info.replace([np.NaN], [None])
