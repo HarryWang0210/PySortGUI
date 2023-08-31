@@ -15,7 +15,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         super().__init__(parent)
         self.window_title = "Channel Detail"
         self.setupUi(self)
-        self.data = ""
+        self.data = None
 
         self.treeView.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setup_connections()
@@ -25,16 +25,17 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
     def open_file(self):
         """Open file manager and load selected file. """
-        self.type_dict = {  # "openephy": "Open Ephys Format (*.continuous)",
+        self.file_type_dict = {  # "openephy": "Open Ephys Format (*.continuous)",
             "pyephys": "pyephys format (*.h5)"}  # File types to load
         filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
-                                                                   ";;".join(self.type_dict.values()))  # start path
+                                                                   ";;".join(self.file_type_dict.values()))  # start path
         if filename == "":
             return
 
         self.data = SpikeSorterData(filename)
         self.chan_info = self.data.chan_info
         self.generate_data_model(self.chan_info)
+        self.init_spike_info(self.chan_info, init_id=True)
         self.file_name_lineEdit.setText(filename)
 
     def test_signal(self):
@@ -43,7 +44,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     def generate_data_model(self, df):
         model = QStandardItemModel()
         df = self.get_group(df)
-        # Set headers (index names)
 
         if 'Spikes' in df.index.get_level_values('Group'):
             group_item = QStandardItem(str('Spikes'))  # Top level, Group
@@ -93,8 +93,17 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         selection_model = self.treeView.selectionModel()
         selection_model.selectionChanged.connect(self.on_selection_changed)
 
-        ID_list = df.index.get_level_values('ID').unique()
-        self.ref_comboBox.addItems(ID_list.map(str))
+    def init_spike_info(self, df=None, init_id=False):
+        # init label
+        self.sorting_label_comboBox.clear()
+        # init ref
+        if init_id:
+            ID_list = df.index.get_level_values('ID').unique()
+            self.ref_comboBox.clear()
+            self.ref_comboBox.addItems(ID_list.map(str))
+        self.ref_checkBox.setChecked(False)
+        # init filter
+        self.filter_checkBox.setChecked(False)
 
     def on_selection_changed(self, selected, deselected):
         model = self.treeView.model()
@@ -104,9 +113,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         indexes = selected.indexes()
         items = [model.itemFromIndex(ind) for ind in indexes]
 
-        if items[0].parent() == None:  # root
+        if items[0].parent() == None:  # Group
+            self.init_spike_info(init_id=False)
             return
-        elif items[0].parent().parent() != None:  # label
+        elif items[0].parent().parent() != None:  # Label
             items[0] = items[0].parent()
 
         meta_data = [item.text() for item in items]
@@ -137,6 +147,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if ref == "None":
             self.ref_checkBox.setChecked(False)
         else:
+            try:
+                ref = str(int(float(ref)))
+            except ValueError:
+                pass
             self.ref_checkBox.setChecked(True)
             self.ref_comboBox.setCurrentText(ref)
 
