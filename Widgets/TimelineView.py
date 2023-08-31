@@ -21,16 +21,12 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
         self.openglLayout.addWidget(self.openGLWidget)
 
     def spike_chan_changed(self, data):
-        self.openGLWidget.get_info(data)
+        self.openGLWidget.init_info(data)
         self.openGLWidget.raw_visible = True
         self.openGLWidget.update()
-        # self.opengl_widget.makeCurrent()
-        # self.opengl_widget.paintGL()
-        # self.opengl_widget.swapBuffers()
 
 
 class TimelineView_widget(QOpenGLWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumWidth(100)
@@ -40,12 +36,11 @@ class TimelineView_widget(QOpenGLWidget):
     def initializeGL(self):
         glClearColor(0.35, 0.35, 0.35, 0.8)  # background color
 
-    def get_info(self, data):
+    def init_info(self, data):
         self.data = data
         # initial scale data between -1 and 1 to fit the window
         self.data_scale = np.median(np.abs(self.data)) * 10
-
-        # self.data = np.random.random(100)
+        # the thrshold line shows in plot
         self.thr = - np.median(np.abs(self.data))
         self.num_data_show = 1000  # initial number of data points show in window
         self.offset = 0
@@ -55,7 +50,6 @@ class TimelineView_widget(QOpenGLWidget):
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         if self.raw_visible:
-
             glColor3f(1.0, 1.0, 1.0)
             data_scale = self.data_scale / self.scale_y
             num_data_show = int(self.num_data_show / self.scale_x)
@@ -65,20 +59,15 @@ class TimelineView_widget(QOpenGLWidget):
 
                 line_strip_data.extend([x, y / data_scale])
             self.draw_line_strip(line_strip_data)
-            # glPopMatrix()
             glViewport(0, 0, self.width(), self.height())
 
             # threshold
             thr = self.thr / data_scale
             glColor3f(0.0, 1.0, 0.0)
-            # self.shader_program.setUniformValue(color_location, 0.0, 1.0, 0.0)
             self.draw_line_strip([-1.0, thr, 1.0, thr], True)
-
-            # self.shader_program.release()
 
     def draw_line_strip(self, data, is_line=False):
         # 畫出範圍內的圖
-
         glEnableClientState(GL_VERTEX_ARRAY)
         glVertexPointer(2, GL_FLOAT, 0, data)
         if is_line:
