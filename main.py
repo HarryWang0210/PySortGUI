@@ -100,6 +100,8 @@ class SpikeSorter2(MainWindowDocks):
         self.children_dict['Help'].triggered.connect(self.help)
 
     def connect_widgets(self):
+        self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
+            self.children_dict["TimelineView"].data_file_name_changed)
         self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
             self.children_dict["TimelineView"].spike_chan_changed)
 
