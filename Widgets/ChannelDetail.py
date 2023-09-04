@@ -8,7 +8,7 @@ import numpy as np
 
 
 class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
-    signal_data_file_name_changed = QtCore.pyqtSignal(str)
+    signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     signal_spike_chan_changed = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
@@ -32,7 +32,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if filename == "":
             return
 
+        if isinstance(self.data, SpikeSorterData):
+            if filename == self.data.filename:
+                return
+
         self.data = SpikeSorterData(filename)
+        self.signal_data_file_name_changed.emit(self.data)
+
         self.chan_info = self.data.chan_info
         self.generate_data_model(self.chan_info)
         self.init_spike_info(self.chan_info, init_id=True)
@@ -125,8 +131,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.update_label(meta_data)
         self.update_ref(meta_data)
         self.update_filter(meta_data)
-        self.signal_spike_chan_changed.emit(
-            self.data.get_raw(chan_ID=int(meta_data['ID'])))
+        self.signal_spike_chan_changed.emit(meta_data)
 
     def get_group(self, df):
         df = df.copy()
