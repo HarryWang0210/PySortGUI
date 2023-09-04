@@ -70,7 +70,7 @@ import tables
 import os
 import pandas as pd
 import numpy as np
-from DataStructure.pyephys import load_pyephys, load_raws
+from DataStructure.pyephys import load_pyephys, load_raws, load_spikes
 # from pyephys import load_pyephys, load_raws
 
 
@@ -87,6 +87,7 @@ class SpikeSorterData():
         self.__chan_info.set_index(['ID', 'Label'], inplace=True)
         self.__chan_info.sort_index(inplace=True)
         self.__raw_data = dict()
+        self.__unit_data = dict()
 
     @property
     def chan_info(self):
@@ -109,6 +110,12 @@ class SpikeSorterData():
             self.__raw_data[chan_ID] = load_raws(self.filename, chan_ID)
 
         return self.__raw_data[chan_ID]
+
+    def get_spikes(self, chan_ID, label):
+        if chan_ID not in self.__unit_data.keys():
+            self.__unit_data[chan_ID] = load_spikes(
+                self.filename, chan_ID, label)
+        return self.__unit_data[chan_ID]
 
 
 if __name__ == '__main__':

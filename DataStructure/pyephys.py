@@ -13,7 +13,7 @@ def load_pyephys(filename):
         # FileHeader = file.get_node("/FileHeader")
         if "/RawsHeader" in file.root:
             RawsHeader = file.get_node("/RawsHeader")
-            ChanInfo = pd.DataFrame(RawsHeader.read())[
+            chan_info = pd.DataFrame(RawsHeader.read())[
                 ['ID', 'Name', 'NumRecords', 'SamplingFreq', 'SigUnits']]
         else:
             raise
@@ -22,12 +22,12 @@ def load_pyephys(filename):
                           'ReferenceID', 'LowCutOff', 'HighCutOff', 'Threshold']
         if "/SpikesHeader" in file.root:
             SpikesHeader = file.get_node("/SpikesHeader")
-            SpikesInfo = pd.DataFrame(SpikesHeader.read())
+            spikes_info = pd.DataFrame(SpikesHeader.read())
 
-            if "Label" not in SpikesInfo.columns:
-                SpikesInfo = SpikesInfo[[
+            if "Label" not in spikes_info.columns:
+                spikes_info = spikes_info[[
                     col for col in spikes_columns if col != 'Label']]
-                SpikesInfo['Label'] = b"default"
+                spikes_info['Label'] = b"default"
 
             # multi-label test ----------------------------------------------------------------
             test_append = [{
@@ -39,14 +39,14 @@ def load_pyephys(filename):
                 'HighCutOff': .0,
                 'Threshold': .0,
             }]
-            SpikesInfo = pd.concat(
-                [SpikesInfo, pd.DataFrame.from_records(test_append)])
+            spikes_info = pd.concat(
+                [spikes_info, pd.DataFrame.from_records(test_append)])
             #  ----------------------------------------------------------------
-            SpikesInfo = SpikesInfo[spikes_columns]
-            data = pd.merge(ChanInfo, SpikesInfo, how="left", on="ID")
+            spikes_info = spikes_info[spikes_columns]
+            data = pd.merge(chan_info, spikes_info, how="left", on="ID")
 
         else:
-            data = ChanInfo.copy()
+            data = chan_info.copy()
             data[[col for col in spikes_columns if col != 'ID']] = [
                 np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
@@ -68,3 +68,41 @@ def load_raws(filename, chan_ID):
                 return data[:]
         else:
             raise
+
+
+def load_spikes(filename, chan_ID, label):
+    basename, extname = os.path.splitext(filename)
+    if extname == "h5raw":
+        filename = ".".join(basename, "h5")
+
+    with tables.open_file(filename, mode="r") as file:
+        if "/Spikes" in file.root:
+            Spikes = file.get_node("/Spikes")
+
+            try:
+                spike_chan = Spikes._f_get_child(
+                    "spike" + str(chan_ID).zfill(3))
+                units_info = pd.DataFrame(
+                    spike_chan._f_get_child("UnitsHeader").read())
+                timestamps = spike_chan._f_get_child("TimeStamps").read()
+                waveforms = spike_chan._f_get_child("Waveforms").read()
+            except tables.NodeError:
+                print("The /Spikes node does not contain the spike" +
+                      str(chan_ID).zfill(3) + " node.")
+                return {"units_info": None,
+                        "units_id": None,
+                        "timestamps": None,
+                        "waveforms": None}
+            # get units id
+            units_id = np.zeros(len(timestamps))
+            not_zero_units = units_info[units_info["NumRecords"] > 0]
+            for unit in not_zero_units.index:
+                unit_h5_name = "/".join([not_zero_units.loc[unit, "H5Location"].decode(
+                ), not_zero_units.loc[unit, "H5Name"].decode()])
+                ind = file.get_node(unit_h5_name).read()
+                units_id[ind] = not_zero_units.loc[unit, "ID"]
+
+            return {"units_info": units_info,
+                    "units_id": units_id,
+                    "timestamps": timestamps,
+                    "waveforms": waveforms}
