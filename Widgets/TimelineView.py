@@ -123,10 +123,10 @@ class TimelineViewGL(GLWidget):
             if self.has_thr and self.show_thr:
                 self.draw_thr()
 
-            if self.show_events and self.show_events:
+            if self.has_events and self.show_events:
                 self.draw_events()
 
-            if self.show_spikes and self.show_spikes:
+            if self.has_spikes and self.show_spikes:
                 self.draw_spikes()
             # 解綁
             self.shader_program.release()
@@ -175,6 +175,7 @@ class TimelineViewGL(GLWidget):
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         thr = np.array([[-1.0, self.thr / self.data_scale, 0.0],
                         [1.0, self.thr / self.data_scale, 0.0]])
+
         thr_color = np.array([0.0, 1.0, 0.0])
         vertices_data = np.hstack(
             (thr, np.tile(thr_color, (thr.shape[0], 1)))).flatten().astype(np.float32)
@@ -221,7 +222,7 @@ class TimelineViewGL(GLWidget):
         glVertexAttribPointer(color, 3, GL_FLOAT, GL_FALSE,
                               6 * 4, ctypes.c_void_p(3 * 4))
 
-        for i in range(len(vertices_data) // 12):
+        for i in range(len(vertices_data) // (6 * 2)):
             glDrawArrays(GL_LINES, 0 + i * 2, 2)
 
         self.shader_program.disableAttributeArray(position)
@@ -234,14 +235,15 @@ class TimelineViewGL(GLWidget):
         xticks = np.linspace(-1.0, 1.0, num=int(self.num_data_show))
 
         position = []
-        color = []
         if data_type == "spikes":
             for x in ts[ts_mask]:
                 position.append(np.array([[xticks[x - self.offset], -1.0, 0.0],
                                           [xticks[x - self.offset], self.thr / self.data_scale, 0.0]]))
+        color = []
         for c in color_id[ts_mask]:
             color.append(
-                np.array([self.color_palette[int(c)], self.color_palette[int(c)]]))
+                np.array([self.color_palette[int(c)],
+                          self.color_palette[int(c)]]))
         position = np.vstack(position)
         color = np.vstack(color)
         vertices_data = np.hstack(
@@ -258,7 +260,6 @@ class TimelineViewGL(GLWidget):
         elif (modifiers == (Qt.AltModifier | Qt.ShiftModifier)):
             self.y_scale = 1 + wheel_event.angleDelta().x() / 1000
             self.data_scale /= self.y_scale
-            print(self.y_scale)
 
         else:
             # wheel_event.pixelDelta 只能用在MacOS觸控板
