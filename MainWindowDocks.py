@@ -7,9 +7,12 @@ Created on Dec 5, 2022
 '''
 from PyQt5 import QtGui, QtCore, QtWidgets
 from Widgets.ChannelDetail import ChannelDetail
-from Widgets.WaveformsView import WaveformsView
+# from Widgets.WaveformsView import WaveformsView
+from Widgets.WaveformsView_graph import WaveformsView
+
 from Widgets.ClustersView import ClustersView
-from Widgets.TimelineView import TimelineView
+# from Widgets.TimelineView import TimelineView
+from Widgets.TimelineView_graph import TimelineView
 from Widgets.UnitOperateTools import UnitOperateTools
 
 from Widgets.extend.ISIView import ISIView
