@@ -25,7 +25,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.color_palette_list = sns.color_palette(None, 64)
 
         self.init_plotItem()
-        # self.set_data()
 
     def init_plotItem(self):
         background_color = (0.35, 0.35, 0.35)
@@ -91,6 +90,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.scatter.setData(pos=self.pca,
                                  size=3,
                                  color=self.point_color)
+        self.scatter.setVisible(self.visible)
 
     def get_color(self):
         n = self.spikes["waveforms"].shape[0]
