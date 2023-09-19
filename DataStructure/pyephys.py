@@ -52,10 +52,13 @@ def load_pyephys(filename):
 
         data['Label'].fillna(b"default", inplace=True)
 
+        data['ReferenceID'] = data['ReferenceID'].apply(lambda x: str(
+            x) if np.isnan(x) else str(int(x)))
     return data
 
 
 def load_raws(filename, chan_ID):
+    chan_ID = int(chan_ID)
     basename, extname = os.path.splitext(filename)
     if extname == "h5raw":
         filename = ".".join(basename, "h5")
@@ -71,6 +74,7 @@ def load_raws(filename, chan_ID):
 
 
 def load_spikes(filename, chan_ID, label):
+    chan_ID = int(chan_ID)
     basename, extname = os.path.splitext(filename)
     if extname == "h5raw":
         filename = ".".join(basename, "h5")
