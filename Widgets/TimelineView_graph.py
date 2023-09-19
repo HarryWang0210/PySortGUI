@@ -88,6 +88,9 @@ class TimelineViewGL(pg.PlotWidget):
 
     def get_raw(self, raw):
         self.raw = raw
+        x = np.arange(len(raw))
+        y = raw
+        self.raw_item.setData(x=x, y=y)
 
     def get_thr(self, thr):
         try:
@@ -129,6 +132,7 @@ class TimelineViewGL(pg.PlotWidget):
         y_axis.setPen(None)
         y_axis.setStyle(showValues=False)
 
+        self.plot_item.setClipToView(True)
         self.raw_item = pg.PlotDataItem(pen='w')
         self.raw_item.setVisible(self.visible)
         self.addItem(self.raw_item)
@@ -156,13 +160,13 @@ class TimelineViewGL(pg.PlotWidget):
          for spikes_item in self.spikes_item_list]
 
     def draw_raw(self):
-        self.raw_item.clear()
+        # self.raw_item.clear()
         lastpoint = self.offset + int(self.num_data_show)
-        x = np.arange(int(self.num_data_show))
-        y = self.raw[:int(self.num_data_show)]
+        # x = np.arange(int(self.num_data_show))
+        # y = self.raw[:int(self.num_data_show)]
         self.plot_item.getViewBox().setXRange(self.offset, lastpoint, padding=0)
         self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
-        self.raw_item.setData(x=x, y=y)
+        # self.raw_item.setData(x=x, y=y)
 
     def draw_thr(self):
         self.thr_item.setValue(self.thr)
@@ -182,20 +186,24 @@ class TimelineViewGL(pg.PlotWidget):
     def ts_to_lines(self, ts, color_ids, data_type):
         item_list = []
         lastpoint = self.offset + int(self.num_data_show)
-        ts_mask = np.all([ts >= self.offset, ts < lastpoint], axis=0)
+        # ts_mask = np.all([ts >= self.offset, ts < lastpoint], axis=0)
         self.pan_color_dict = dict()
 
-        for i in range(len(ts[ts_mask])):
-            if data_type == "spikes":
-                x = [ts[i], ts[i]]
-                y = [-self.data_scale, self.thr]
+        y_element = np.array([-self.data_scale, self.thr])
+        connect_element = np.array([1, 0])
+        unique_unit = np.unique(color_ids)
 
-            color_id = color_ids[ts_mask][i]
-            if int(color_id) not in self.pan_color_dict.keys():
-                self.pan_color_dict[int(color_id)] = pg.mkPen(
-                    color=[c * 255 for c in self.color_palette[int(color_id)]])
-            item_list.append(pg.PlotCurveItem(
-                x=x, y=y, pen=self.pan_color_dict[int(color_id)]))
+        if data_type == "spikes":
+            for color_id in unique_unit:
+                pen = pg.mkPen(
+                    color=[int(c * 255) for c in self.color_palette[int(color_id)]])
+                data_filtered = ts[color_ids == color_id]
+                n = data_filtered.shape[0]
+                x = np.repeat(data_filtered, 2)
+                y = np.tile(y_element, n)
+                connect = np.tile(connect_element, n)
+                item_list.append(pg.PlotCurveItem(
+                    x=x, y=y, pen=pen, connect=connect))
 
         return item_list
 
