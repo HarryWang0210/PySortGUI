@@ -81,10 +81,6 @@ class TimelineViewGL(pg.PlotWidget):
         self.color_palette = sns.color_palette(None, 64)
 
         self.init_plotItem()
-        # self.plot_item.getViewBox().wheelEvent = self.graphMouseWheelEvent
-        # self.plot_item.scene().mousePressEvent = self.graphMousePressEvent
-        # self.plot_item.scene().mouseMoveEvent = self.graphMouseMoveEvent
-        # self.plot_item.scene().mouseReleaseEvent = self.graphMouseReleaseEvent
 
     def get_raw(self, raw):
         self.raw = raw
@@ -144,6 +140,11 @@ class TimelineViewGL(pg.PlotWidget):
         self.addItem(self.thr_item)
 
         self.spikes_item_list = []
+
+        self.plot_item.getViewBox().wheelEvent = self.graphMouseWheelEvent
+        self.plot_item.scene().mousePressEvent = self.graphMousePressEvent
+        self.plot_item.scene().mouseMoveEvent = self.graphMouseMoveEvent
+        self.plot_item.scene().mouseReleaseEvent = self.graphMouseReleaseEvent
 
     def update_plot(self):
         if self.visible:
@@ -207,6 +208,17 @@ class TimelineViewGL(pg.PlotWidget):
 
         return item_list
 
+    def graphMouseWheelEvent(self, event):
+        pass
+
+    def graphMousePressEvent(self, event):
+        pass
+
+    def graphMouseMoveEvent(self, event):
+        pass
+
+    def graphMouseReleaseEvent(self, event):
+        pass
     # def wheelEvent(self, wheel_event):
     #     modifiers = QApplication.keyboardModifiers()
 
