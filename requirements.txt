@@ -1,0 +1,7 @@
+numpy 
+seaborn
+scikit-learn 
+tables
+pandas
+pyqtgraph
+
