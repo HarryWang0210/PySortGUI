@@ -142,27 +142,23 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
     def update_label(self, meta_data):
         labels = self.chan_info.xs(
-            int(meta_data["ID"]), level='ID').index.tolist()
+            meta_data["ID"], level='ID').index.tolist()
         self.sorting_label_comboBox.clear()
         self.sorting_label_comboBox.addItems(labels)
         self.sorting_label_comboBox.setCurrentText(meta_data["Label"])
 
     def update_ref(self, meta_data):
         ref = meta_data["ReferenceID"]
-        if ref == "None":
+        if ref == "nan":
             self.ref_checkBox.setChecked(False)
         else:
-            try:
-                ref = str(int(float(ref)))
-            except ValueError:
-                pass
             self.ref_checkBox.setChecked(True)
             self.ref_comboBox.setCurrentText(ref)
 
     def update_filter(self, meta_data):
         filter_band = [meta_data["LowCutOff"], meta_data["HighCutOff"]]
         filter_band = [int(float(i)) if i !=
-                       "None" else 0 for i in filter_band]
+                       "nan" else 0 for i in filter_band]
         if filter_band[1] <= 0:
             self.filter_checkBox.setChecked(False)
             self.filter_low_spinBox.setValue(0)
