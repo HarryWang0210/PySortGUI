@@ -110,6 +110,11 @@ class SpikeSorter2(MainWindowDocks):
         self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
             self.children_dict["WaveformsView"].spike_chan_changed)
 
+        self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
+            self.children_dict["ClustersView"].data_file_name_changed)
+        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+            self.children_dict["ClustersView"].spike_chan_changed)
+
     def open_file(self):
         """Open file manager and load selected file."""
         self.children_dict["ChannelDetail"].open_file()

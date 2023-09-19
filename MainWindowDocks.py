@@ -10,7 +10,7 @@ from Widgets.ChannelDetail import ChannelDetail
 # from Widgets.WaveformsView import WaveformsView
 from Widgets.WaveformsView_graph import WaveformsView
 
-from Widgets.ClustersView import ClustersView
+from Widgets.ClustersView_graph import ClustersView
 # from Widgets.TimelineView import TimelineView
 from Widgets.TimelineView_graph import TimelineView
 from Widgets.UnitOperateTools import UnitOperateTools
