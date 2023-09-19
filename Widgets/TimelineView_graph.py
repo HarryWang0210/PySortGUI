@@ -18,8 +18,8 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
         super().__init__(parent)
         self.window_title = "Timeline View"
         self.setupUi(self)
-        self.openGLWidget = TimelineViewGL(self)
-        self.openglLayout.addWidget(self.openGLWidget)
+        self.graphWidget = TimelineViewGL(self)
+        self.openglLayout.addWidget(self.graphWidget)
         self.data = None
         self.setup_connections()
 
@@ -31,30 +31,30 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
 
     def data_file_name_changed(self, data):
         self.data = data
-        self.openGLWidget.visible = False
-        # self.openGLWidget.update()
+        self.graphWidget.visible = False
+        # self.graphWidget.update_plot()
 
     def spike_chan_changed(self, meta_data):
-        self.openGLWidget.get_raw(self.data.get_raw(int(meta_data["ID"])))
-        self.openGLWidget.get_thr(meta_data["Threshold"])
-        self.openGLWidget.get_spikes(
+        self.graphWidget.get_raw(self.data.get_raw(int(meta_data["ID"])))
+        self.graphWidget.get_thr(meta_data["Threshold"])
+        self.graphWidget.get_spikes(
             self.data.get_spikes(int(meta_data["ID"]), meta_data["Label"]))
-        self.openGLWidget.init_param()
-        self.openGLWidget.visible = True
+        self.graphWidget.init_param()
+        self.graphWidget.visible = True
 
-        self.openGLWidget.update()
+        self.graphWidget.update_plot()
 
     def show_thr(self, checked):
-        self.openGLWidget.show_thr = checked
-        self.openGLWidget.update()
+        self.graphWidget.show_thr = checked
+        self.graphWidget.update_plot()
 
     def show_events(self, checked):
-        self.openGLWidget.show_events = checked
-        self.openGLWidget.update()
+        self.graphWidget.show_events = checked
+        self.graphWidget.update_plot()
 
     def show_spikes(self, checked):
-        self.openGLWidget.show_spikes = checked
-        self.openGLWidget.update()
+        self.graphWidget.show_spikes = checked
+        self.graphWidget.update_plot()
 
 
 class TimelineViewGL(pg.PlotWidget):
@@ -72,8 +72,6 @@ class TimelineViewGL(pg.PlotWidget):
         self.has_events = False
         self.show_spikes = False
         self.has_spikes = False
-
-        self.plot_item = self.getPlotItem()
 
         self.raw = None
 
@@ -116,16 +114,16 @@ class TimelineViewGL(pg.PlotWidget):
         self.num_data_show = 1000  # initial number of data points show in window
 
     def init_plotItem(self):
+        self.plot_item = self.getPlotItem()
+
         background_color = QColor(
             *[int(c * 255) for c in (0.35, 0.35, 0.35)])  # 使用红色(RGB值为255, 0, 0)
         self.setBackground(background_color)
         self.hideButtons()
 
-        # 获取 x 轴和 y 轴对象
+        # 隱藏 x  y 軸
         x_axis = self.getAxis('bottom')
         y_axis = self.getAxis('left')
-
-        # 将 x 轴和 y 轴的可见性设置为 False
         x_axis.setPen(None)
         x_axis.setStyle(showValues=False)
         y_axis.setPen(None)
@@ -143,7 +141,7 @@ class TimelineViewGL(pg.PlotWidget):
 
         self.spikes_item_list = []
 
-    def update(self):
+    def update_plot(self):
         if self.visible:
             self.draw_raw()
         self.raw_item.setVisible(self.visible)
@@ -218,4 +216,4 @@ class TimelineViewGL(pg.PlotWidget):
     #                            120 * int(self.num_data_show) / 10)
     #         if self.offset <= 0:
     #             self.offset = 0
-    #     self.update()
+    #     self.update_plot()
