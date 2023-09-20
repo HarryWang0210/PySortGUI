@@ -30,7 +30,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.thr = 0.0
         self.color_palette_list = sns.color_palette(None, 64)
         self.data_scale = 1.0
-
+        self.draw_mode = False
         self.init_plotItem()
 
     def init_plotItem(self):
@@ -60,6 +60,16 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.thr_item = pg.InfiniteLine(pos=self.thr, angle=0, pen="w")
         self.thr_item.setVisible(self.visible)
         self.addItem(self.thr_item)
+
+        self.manual_curve_item = pg.PlotCurveItem(
+            pen=pg.mkPen('r', width=2), clickable=False)
+        self.manual_curve_item.setZValue(1)
+        self.addItem(self.manual_curve_item)
+
+        self.plot_item.getViewBox().wheelEvent = self.graphMouseWheelEvent
+        self.plot_item.scene().mousePressEvent = self.graphMousePressEvent
+        self.plot_item.scene().mouseMoveEvent = self.graphMouseMoveEvent
+        self.plot_item.scene().mouseReleaseEvent = self.graphMouseReleaseEvent
 
     def data_file_name_changed(self, data):
         self.data = data
@@ -136,6 +146,46 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
             connect = np.tile(connect_element, n)
             self.waveforms_item_dict[units_id].setData(
                 x=x, y=y, connect=connect)
+
+    def graphMouseWheelEvent(self, event):
+        """Overwrite PlotItem.getViewBox().wheelEvent."""
+        pass
+
+    def graphMousePressEvent(self, event):
+        """Overwrite PlotItem.scene().mousePressEvent."""
+        self.draw_mode = True
+
+        self.manual_curve_item.setVisible(self.draw_mode)
+
+        pos = event.scenePos()
+        mouse_view = self.getViewBox().mapSceneToView(pos)
+        x = mouse_view.x()
+        y = mouse_view.y()
+
+        self.manual_curve_item.setData([x, x], [y, y])
+
+    def graphMouseMoveEvent(self, event):
+        """Overwrite PlotItem.scene().mouseMoveEvent."""
+        if self.draw_mode:
+            pos = event.scenePos()
+            mouse_view = self.getViewBox().mapSceneToView(pos)
+            x = mouse_view.x()
+            y = mouse_view.y()
+
+            x_data, y_data = self.manual_curve_item.getData()
+
+            x_data = np.append(x_data, x)
+            y_data = np.append(y_data, y)
+
+            self.manual_curve_item.setData(x_data, y_data)
+
+    def graphMouseReleaseEvent(self, event):
+        """Overwrite PlotItem.scene().mouseReleaseEvent."""
+        self.draw_mode = False
+        print(self.manual_curve_item.getData())
+        self.manual_curve_item.setVisible(self.draw_mode)
+        # self.removeItem(self.manual_curve_item)
+        # self.manual_curve_item.setData(np.array([]), np.array([]))
 
         # break
         # for i in range(len(self.spikes["units_id"])):
