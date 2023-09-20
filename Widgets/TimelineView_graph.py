@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QGuiApplication
 
 import pyqtgraph as pg
 import numpy as np
@@ -32,7 +32,7 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def data_file_name_changed(self, data):
         self.data = data
         self.graphWidget.visible = False
-        # self.graphWidget.update_plot()
+        self.graphWidget.update_plot()
 
     def spike_chan_changed(self, meta_data):
         self.graphWidget.get_raw(self.data.get_raw(int(meta_data["ID"])))
@@ -76,7 +76,7 @@ class TimelineViewGL(pg.PlotWidget):
         self.raw = None
 
         self.offset = 0
-        self.data_scale = 1.0
+        self.data_scale = 1000
         self.num_data_show = 1000  # initial number of data points show in window
         self.color_palette = sns.color_palette(None, 64)
 
@@ -84,7 +84,8 @@ class TimelineViewGL(pg.PlotWidget):
 
     def get_raw(self, raw):
         self.raw = raw
-        x = np.arange(len(raw))
+        self.raw_len = len(raw)
+        x = np.arange(self.raw_len)
         y = raw
         self.raw_item.setData(x=x, y=y)
 
@@ -109,14 +110,15 @@ class TimelineViewGL(pg.PlotWidget):
             self.spikes = spikes
 
     def init_param(self):
-        self.data_scale = np.median(np.abs(self.raw)) * 10
+        self.data_scale = np.max(np.abs(self.raw))
         self.num_data_show = 1000  # initial number of data points show in window
 
     def init_plotItem(self):
         self.plot_item = self.getPlotItem()
+        self.plot_item.setClipToView(True)
 
         background_color = QColor(
-            *[int(c * 255) for c in (0.35, 0.35, 0.35)])  # 使用红色(RGB值为255, 0, 0)
+            *[int(c * 255) for c in (0.35, 0.35, 0.35)])  # 0~255
         self.setBackground(background_color)
         self.hideButtons()
 
@@ -128,7 +130,6 @@ class TimelineViewGL(pg.PlotWidget):
         y_axis.setPen(None)
         y_axis.setStyle(showValues=False)
 
-        self.plot_item.setClipToView(True)
         self.raw_item = pg.PlotDataItem(pen='w')
         self.raw_item.setVisible(self.visible)
         self.addItem(self.raw_item)
@@ -209,15 +210,61 @@ class TimelineViewGL(pg.PlotWidget):
         return item_list
 
     def graphMouseWheelEvent(self, event):
-        pass
+        """Overwrite PlotItem.getViewBox().wheelEvent."""
+        modifiers = QGuiApplication.keyboardModifiers()
+
+        if modifiers == QtCore.Qt.ShiftModifier:
+            """scale x axis."""
+            delta = int(event.delta() / 120)
+            current_range = self.plot_item.getViewBox().state['viewRange']
+            new_num_data_show = int(self.num_data_show / (1 + delta / 10))
+            self.num_data_show = np.min(
+                (np.max((new_num_data_show, self.MIN_DATA_SHOW)),
+                 self.MAX_DATA_SHOW))
+            print(self.num_data_show)
+            new_range = [current_range[0][0],
+                         current_range[0][0] + self.num_data_show]
+            # check boundary
+            if new_range[0] < 0:
+                new_range = [0, self.num_data_show]
+            if new_range[1] > self.raw_len:
+                new_range = [self.raw_len - self.num_data_show, self.raw_len]
+
+            self.plot_item.getViewBox().setXRange(*new_range, padding=0)
+
+        elif (modifiers == (QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier)):
+            """scale y axis."""
+            delta = int(event.delta() / 120)
+            current_range = self.plot_item.getViewBox().state['viewRange']
+            self.data_scale = int(self.data_scale / (1 + delta / 10))
+            new_range = [-self.data_scale, self.data_scale]
+
+            self.plot_item.getViewBox().setYRange(*new_range, padding=0)
+
+        else:
+            """scroll the range."""
+            delta = int(event.delta() / 120)
+            current_range = self.plot_item.getViewBox().state['viewRange']
+            new_range = [current_range[0][0] - int(delta * self.num_data_show / 10),
+                         current_range[0][1] - int(delta * self.num_data_show / 10)]
+            # check boundary
+            if new_range[0] < 0:
+                new_range = [0, self.num_data_show]
+            if new_range[1] > self.raw_len:
+                new_range = [self.raw_len - self.num_data_show, self.raw_len]
+
+            self.plot_item.getViewBox().setXRange(*new_range, padding=0)
 
     def graphMousePressEvent(self, event):
+        """Overwrite PlotItem.scene().mousePressEvent."""
         pass
 
     def graphMouseMoveEvent(self, event):
+        """Overwrite PlotItem.scene().mouseMoveEvent."""
         pass
 
     def graphMouseReleaseEvent(self, event):
+        """Overwrite PlotItem.scene().mouseReleaseEvent."""
         pass
     # def wheelEvent(self, wheel_event):
     #     modifiers = QApplication.keyboardModifiers()
