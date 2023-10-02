@@ -102,7 +102,7 @@ class TimelineViewGL(pg.PlotWidget):
         self.has_events = True
 
     def get_spikes(self, spikes):
-        if spikes["units_info"] is None:
+        if spikes["unitInfo"] is None:
             self.has_spikes = False
             self.spikes = None
         else:
@@ -180,7 +180,7 @@ class TimelineViewGL(pg.PlotWidget):
         if len(self.spikes_item_list) != 0:
             [self.removeItem(item) for item in self.spikes_item_list]
         self.spikes_item_list = self.ts_to_lines(self.spikes["timestamps"],
-                                                 self.spikes["units_id"], "spikes")
+                                                 self.spikes["unitID"], "spikes")
 
         [self.addItem(item) for item in self.spikes_item_list]
 

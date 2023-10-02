@@ -86,27 +86,27 @@ def load_spikes(filename, chan_ID, label):
             try:
                 spike_chan = Spikes._f_get_child(
                     "spike" + str(chan_ID).zfill(3))
-                units_info = pd.DataFrame(
+                unitInfo = pd.DataFrame(
                     spike_chan._f_get_child("UnitsHeader").read())
                 timestamps = spike_chan._f_get_child("TimeStamps").read()
                 waveforms = spike_chan._f_get_child("Waveforms").read()
             except tables.NodeError:
                 print("The /Spikes node does not contain the spike" +
                       str(chan_ID).zfill(3) + " node.")
-                return {"units_info": None,
-                        "units_id": None,
+                return {"unitInfo": None,
+                        "unitID": None,
                         "timestamps": None,
                         "waveforms": None}
             # get units id
-            units_id = np.zeros(len(timestamps))
-            not_zero_units = units_info[units_info["NumRecords"] > 0]
+            unitID = np.zeros(len(timestamps))
+            not_zero_units = unitInfo[unitInfo["NumRecords"] > 0]
             for unit in not_zero_units.index:
                 unit_h5_name = "/".join([not_zero_units.loc[unit, "H5Location"].decode(
                 ), not_zero_units.loc[unit, "H5Name"].decode()])
                 ind = file.get_node(unit_h5_name).read()
-                units_id[ind] = not_zero_units.loc[unit, "ID"]
+                unitID[ind] = not_zero_units.loc[unit, "ID"]
 
-            return {"units_info": units_info,
-                    "units_id": units_id,
+            return {"unitInfo": unitInfo,
+                    "unitID": unitID,
                     "timestamps": timestamps,
                     "waveforms": waveforms}

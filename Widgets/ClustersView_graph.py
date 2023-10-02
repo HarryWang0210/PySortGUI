@@ -72,7 +72,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
 
     def compute_pca(self, chan_ID, label):
         spikes = self.data.get_spikes(chan_ID, label)
-        if spikes["units_info"] is None:
+        if spikes["unitInfo"] is None:
             # self.has_spikes = False
             self.spikes = None
             self.has_waveforms = False
@@ -97,6 +97,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
 
         for i in range(n):
             color[i, :] = self.color_palette_list[int(
-                self.spikes["units_id"][i])]
+                self.spikes["unitID"][i])]
         color = np.hstack((color, np.ones((n, 1))))
         return color

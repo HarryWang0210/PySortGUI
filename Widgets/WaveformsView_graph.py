@@ -92,7 +92,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
     def get_spikes(self, chan_ID, label):
         spikes = self.data.get_spikes(chan_ID, label)
-        if spikes["units_info"] is None:
+        if spikes["unitInfo"] is None:
             self.has_spikes = False
             self.spikes = None
             self.data_scale = 1.0
@@ -127,19 +127,19 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
             x_element[0], x_element[-1], padding=0)
         self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
 
-        unique_unit = np.unique(self.spikes["units_id"])
-        for units_id in unique_unit:
+        unique_unit = np.unique(self.spikes["unitID"])
+        for unitID in unique_unit:
             pen = pg.mkPen(
-                color=(self.color_palette_list[int(units_id)] * 255).astype(np.int32))
-            self.waveforms_item_dict[units_id] = self.plot(pen=pen)
+                color=(self.color_palette_list[int(unitID)] * 255).astype(np.int32))
+            self.waveforms_item_dict[unitID] = self.plot(pen=pen)
 
-            data_filtered = self.spikes["waveforms"][self.spikes["units_id"] == units_id]
+            data_filtered = self.spikes["waveforms"][self.spikes["unitID"] == unitID]
             n = data_filtered.shape[0]
             x = np.tile(x_element, n)
             y = np.ravel(data_filtered)
             # y = data_filtered.flatten()
             connect = np.tile(connect_element, n)
-            self.waveforms_item_dict[units_id].setData(
+            self.waveforms_item_dict[unitID].setData(
                 x=x, y=y, connect=connect)
 
     def graphMouseWheelEvent(self, event):
@@ -183,21 +183,21 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         # self.manual_curve_item.setData(np.array([]), np.array([]))
 
         # break
-        # for i in range(len(self.spikes["units_id"])):
+        # for i in range(len(self.spikes["unitID"])):
         #     # 瓶頸在這!! loop太多次，想辦法用matrix method
         #     y = self.spikes["waveforms"][i]
         #     x = np.arange(len(y))
         #     connect = np.ones(len(y) - 1)
         #     connect = np.append(connect, 0).astype(np.int32)
 
-        #     units_id = int(self.spikes["units_id"][i])
+        #     unitID = int(self.spikes["unitID"][i])
 
-        #     data_dict[units_id]["x"] = np.concatenate(
-        #         (data_dict[units_id]["x"], x))
-        #     data_dict[units_id]["y"] = np.concatenate(
-        #         (data_dict[units_id]["y"], y))
-        #     data_dict[units_id]["connect"] = np.concatenate(
-        #         (data_dict[units_id]["connect"], connect))
+        #     data_dict[unitID]["x"] = np.concatenate(
+        #         (data_dict[unitID]["x"], x))
+        #     data_dict[unitID]["y"] = np.concatenate(
+        #         (data_dict[unitID]["y"], y))
+        #     data_dict[unitID]["connect"] = np.concatenate(
+        #         (data_dict[unitID]["connect"], connect))
 
 # class WaveformsViewGL(GLWidget):
 #     def __init__(self, parent=None):

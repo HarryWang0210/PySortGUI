@@ -76,14 +76,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     def spike_chan_changed(self, meta_data):
         spikes = self.data.get_spikes(meta_data["ID"], meta_data["Label"])
-        if spikes["units_info"] is None:
+        if spikes["unitInfo"] is None:
             # self.has_spikes = False
             self.spikes = None
             self.has_waveforms = False
         else:
             # self.has_spikes = True
             self.spikes = spikes
-            self.set_data_model(self.spikes["units_info"])
+            self.set_data_model(self.spikes["unitInfo"])
 
             self.has_waveform = True
 
