@@ -6,7 +6,7 @@ import numpy as np
 import seaborn as sns
 
 from DataStructure.data import SpikeSorterData
-from Widgets.GLWidget import GLWidget
+from legacy.GLWidget import GLWidget
 from Widgets.WidgetsInterface import WidgetsInterface
 
 

@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 from OpenGL.GL import *
 import numpy as np
 from DataStructure.data import SpikeSorterData
-from Widgets.GLWidget import GLWidget
+from legacy.GLWidget import GLWidget
 
 
 class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
