@@ -115,20 +115,19 @@ class TimelineViewGL(pg.PlotWidget):
 
     def init_plotItem(self):
         self.plot_item = self.getPlotItem()
+        self.plot_item.setMenuEnabled(False)
         self.plot_item.setClipToView(True)
 
-        background_color = QColor(
-            *[int(c * 255) for c in (0.35, 0.35, 0.35)])  # 0~255
+        # setup background
+        background_color = (0.35, 0.35, 0.35)
+        background_color = QColor(*[int(c * 255) for c in background_color])
         self.setBackground(background_color)
-        self.hideButtons()
+        # hide auto range button
+        self.plot_item.hideButtons()
 
-        # 隱藏 x  y 軸
-        x_axis = self.getAxis('bottom')
-        y_axis = self.getAxis('left')
-        x_axis.setPen(None)
-        x_axis.setStyle(showValues=False)
-        y_axis.setPen(None)
-        y_axis.setStyle(showValues=False)
+        # remove x, y axis
+        self.plot_item.hideAxis('bottom')
+        self.plot_item.hideAxis('left')
 
         self.raw_item = pg.PlotDataItem(pen='w')
         self.raw_item.setVisible(self.visible)
