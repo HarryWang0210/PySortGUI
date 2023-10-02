@@ -8,7 +8,6 @@ import numpy as np
 import seaborn as sns
 import time
 from DataStructure.data import SpikeSorterData
-from Widgets.GLWidget import GLWidget
 from Widgets.WidgetsInterface import WidgetsInterface
 
 
