@@ -60,6 +60,7 @@ class SpikeSorterData():
         return self.__spike_data[chan_ID]
 
     def wavforms_pca(self, chan_ID, label):
+        # TODO: fix when no spike data
         data = self.get_spikes(chan_ID, label)['waveforms']
         chan_ID = int(chan_ID)
         pca = PCA(n_components=3)
