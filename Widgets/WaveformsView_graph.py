@@ -7,7 +7,6 @@ import numpy as np
 import seaborn as sns
 import time
 from DataStructure.data import SpikeSorterData
-from Widgets.GLWidget import GLWidget
 from Widgets.WidgetsInterface import WidgetsInterface
 
 
@@ -28,7 +27,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.data = None  # SpikeSorterData object
         self.waveforms = None
         self.thr = 0.0
-        self.color_palette_list = sns.color_palette(None, 64)
+        self.color_palette_list = np.array(sns.color_palette(None, 64))
         self.data_scale = 1.0
         self.draw_mode = False
         self.init_plotItem()
@@ -38,22 +37,18 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         Initialize plotWidget and plotItems.
         """
         self.plot_item = self.getPlotItem()
-        self.setMenuEnabled(False)
+        self.plot_item.setMenuEnabled(False)
         # setup background
         background_color = (0.35, 0.35, 0.35)
         background_color = QColor(*[int(c * 255) for c in background_color])
         self.setBackground(background_color)
 
         # hide auto range button
-        self.hideButtons()
+        self.plot_item.hideButtons()
 
         # remove x, y axis
-        x_axis = self.getAxis('bottom')
-        y_axis = self.getAxis('left')
-        x_axis.setPen(None)
-        x_axis.setStyle(showValues=False)
-        y_axis.setPen(None)
-        y_axis.setStyle(showValues=False)
+        self.plot_item.hideAxis('bottom')
+        self.plot_item.hideAxis('left')
 
         self.waveforms_item_dict = dict()
 
@@ -134,8 +129,8 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
         unique_unit = np.unique(self.spikes["units_id"])
         for units_id in unique_unit:
-            pen = pg.mkPen(color=[int(c * 255)
-                                  for c in self.color_palette_list[int(units_id)]])
+            pen = pg.mkPen(
+                color=(self.color_palette_list[int(units_id)] * 255).astype(np.int32))
             self.waveforms_item_dict[units_id] = self.plot(pen=pen)
 
             data_filtered = self.spikes["waveforms"][self.spikes["units_id"] == units_id]
