@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_UnitOperateTools(object):
     def setupUi(self, UnitOperateTools):
         UnitOperateTools.setObjectName("UnitOperateTools")
-        UnitOperateTools.resize(172, 396)
+        UnitOperateTools.resize(268, 396)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -26,7 +26,12 @@ class Ui_UnitOperateTools(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(UnitOperateTools)
         self.verticalLayout.setObjectName("verticalLayout")
         self.tableView = QtWidgets.QTableView(UnitOperateTools)
+        self.tableView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.tableView.setTabKeyNavigation(False)
+        self.tableView.setProperty("showDropIndicator", True)
+        self.tableView.setDragDropOverwriteMode(False)
         self.tableView.setObjectName("tableView")
+        self.tableView.verticalHeader().setVisible(False)
         self.verticalLayout.addWidget(self.tableView)
         self.line = QtWidgets.QFrame(UnitOperateTools)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)

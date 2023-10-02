@@ -13,3 +13,11 @@ QTreeView {
 QTreeView QHeaderView::section {
     font-size: 9pt
 }
+
+QTableView {
+    font-size: 9pt
+}
+
+QTableView QHeaderView::section {
+    font-size: 9pt
+}
