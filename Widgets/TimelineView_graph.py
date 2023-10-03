@@ -39,7 +39,6 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
         self.graphWidget.get_thr(meta_data["Threshold"])
         self.graphWidget.get_spikes(
             self.data.get_spikes(int(meta_data["ID"]), meta_data["Label"]))
-        self.graphWidget.init_param()
         self.graphWidget.visible = True
 
         self.graphWidget.update_plot()
@@ -65,53 +64,28 @@ class TimelineViewGL(pg.PlotWidget):
         self.MIN_DATA_SHOW = 100
         self.MAX_DATA_SHOW = 30000
 
-        self.visible = False
-        self.show_thr = False
+        self.visible = False  # overall visible
+
+        self.thr = None
         self.has_thr = False
-        self.show_events = False
+        self.show_thr = False
+
+        self.events = None
         self.has_events = False
-        self.show_spikes = False
+        self.show_events = False
+
+        self.spikes = None
         self.has_spikes = False
+        self.show_spikes = False
 
         self.raw = None
-
-        self.offset = 0
-        self.data_scale = 1000
+        self.raw_len = 0
+        self.offset = 0  # the offset of where data start show in view
+        self.data_scale = 1000  # maximun height of data
         self.num_data_show = 1000  # initial number of data points show in window
         self.color_palette = sns.color_palette(None, 64)
 
         self.init_plotItem()
-
-    def get_raw(self, raw):
-        self.raw = raw
-        self.raw_len = len(raw)
-        x = np.arange(self.raw_len)
-        y = raw
-        self.raw_item.setData(x=x, y=y)
-
-    def get_thr(self, thr):
-        try:
-            self.thr = float(thr)
-            self.has_thr = True
-        except:
-            self.thr = 0.0
-            self.has_thr = False
-
-    def get_events(self, events):
-        self.events = events
-        self.has_events = True
-
-    def get_spikes(self, spikes):
-        if spikes["unitInfo"] is None:
-            self.has_spikes = False
-            self.spikes = None
-        else:
-            self.has_spikes = True
-            self.spikes = spikes
-
-    def init_param(self):
-        self.data_scale = np.max(np.abs(self.raw))
-        self.num_data_show = 1000  # initial number of data points show in window
 
     def init_plotItem(self):
         self.plot_item = self.getPlotItem()
@@ -134,9 +108,8 @@ class TimelineViewGL(pg.PlotWidget):
         self.addItem(self.raw_item)
 
         self.thr = 0.0
-        self.thr_item = pg.InfiniteLine(
-            pos=self.thr, angle=0, pen="g")
-        self.thr_item.setVisible(self.show_thr)
+        self.thr_item = pg.InfiniteLine(pos=self.thr, angle=0, pen="g")
+        self.thr_item.setVisible(False)
         self.addItem(self.thr_item)
 
         self.spikes_item_list = []
@@ -146,13 +119,46 @@ class TimelineViewGL(pg.PlotWidget):
         self.plot_item.scene().mouseMoveEvent = self.graphMouseMoveEvent
         self.plot_item.scene().mouseReleaseEvent = self.graphMouseReleaseEvent
 
+    def get_raw(self, raw):
+        self.raw = raw
+        self.raw_len = len(raw)
+        x = np.arange(self.raw_len)
+        y = raw
+        self.raw_item.setData(x=x, y=y)
+
+        self.data_scale = np.max(np.abs(self.raw))
+        self.num_data_show = 1000  # initial number of data points show in window
+
+    def get_thr(self, thr):
+        try:
+            self.thr = float(thr)
+            self.has_thr = True
+            self.show_thr = True
+        except:
+            self.thr = 0.0
+            self.has_thr = False
+            self.show_thr = False
+        self.thr_item.setValue(self.thr)
+
+    def get_events(self, events):
+        self.events = events
+        self.has_events = True
+
+    def get_spikes(self, spikes):
+        if spikes["unitInfo"] is None:
+            self.has_spikes = False
+            self.spikes = None
+        else:
+            self.has_spikes = True
+            self.spikes = spikes
+
     def update_plot(self):
         if self.visible:
             self.draw_raw()
         self.raw_item.setVisible(self.visible)
 
-        if self.has_thr and self.show_thr and self.visible:
-            self.draw_thr()
+        # if self.has_thr and self.show_thr and self.visible:
+        #     self.draw_thr()
         self.thr_item.setVisible(self.show_thr and self.visible)
 
         if self.has_spikes and self.show_spikes and self.visible:
@@ -161,16 +167,12 @@ class TimelineViewGL(pg.PlotWidget):
          for spikes_item in self.spikes_item_list]
 
     def draw_raw(self):
-        # self.raw_item.clear()
         lastpoint = self.offset + int(self.num_data_show)
-        # x = np.arange(int(self.num_data_show))
-        # y = self.raw[:int(self.num_data_show)]
         self.plot_item.getViewBox().setXRange(self.offset, lastpoint, padding=0)
         self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
-        # self.raw_item.setData(x=x, y=y)
 
-    def draw_thr(self):
-        self.thr_item.setValue(self.thr)
+    # def draw_thr(self):
+    #     self.thr_item.setValue(self.thr)
 
     def draw_events(self):
         """TODO"""
@@ -184,7 +186,7 @@ class TimelineViewGL(pg.PlotWidget):
 
         [self.addItem(item) for item in self.spikes_item_list]
 
-    def ts_to_lines(self, ts, color_ids, data_type):
+    def ts_to_lines(self, ts, colorID, data_type):
         item_list = []
         lastpoint = self.offset + int(self.num_data_show)
         # ts_mask = np.all([ts >= self.offset, ts < lastpoint], axis=0)
@@ -192,13 +194,13 @@ class TimelineViewGL(pg.PlotWidget):
 
         y_element = np.array([-self.data_scale, self.thr])
         connect_element = np.array([1, 0])
-        unique_unit = np.unique(color_ids)
+        unique_unit = np.unique(colorID)
 
         if data_type == "spikes":
             for color_id in unique_unit:
                 pen = pg.mkPen(
                     color=[int(c * 255) for c in self.color_palette[int(color_id)]])
-                data_filtered = ts[color_ids == color_id]
+                data_filtered = ts[colorID == color_id]
                 n = data_filtered.shape[0]
                 x = np.repeat(data_filtered, 2)
                 y = np.tile(y_element, n)
