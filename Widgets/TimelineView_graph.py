@@ -220,7 +220,6 @@ class TimelineViewGL(pg.PlotWidget):
             self.num_data_show = np.min(
                 (np.max((new_num_data_show, self.MIN_DATA_SHOW)),
                  self.MAX_DATA_SHOW))
-            print(self.num_data_show)
             new_range = [current_range[0][0],
                          current_range[0][0] + self.num_data_show]
             # check boundary
@@ -265,21 +264,3 @@ class TimelineViewGL(pg.PlotWidget):
     def graphMouseReleaseEvent(self, event):
         """Overwrite PlotItem.scene().mouseReleaseEvent."""
         pass
-    # def wheelEvent(self, wheel_event):
-    #     modifiers = QApplication.keyboardModifiers()
-
-    #     if (modifiers == Qt.ShiftModifier):
-    #         self.x_scale = 1 + wheel_event.angleDelta().y() / 1000
-    #         self.num_data_show /= self.x_scale
-
-    #     elif (modifiers == (Qt.AltModifier | Qt.ShiftModifier)):
-    #         self.y_scale = 1 + wheel_event.angleDelta().x() / 1000
-    #         self.data_scale /= self.y_scale
-
-    #     else:
-    #         # wheel_event.pixelDelta 只能用在MacOS觸控板
-    #         self.offset -= int(wheel_event.angleDelta().y() /
-    #                            120 * int(self.num_data_show) / 10)
-    #         if self.offset <= 0:
-    #             self.offset = 0
-    #     self.update_plot()
