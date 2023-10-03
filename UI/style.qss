@@ -1,3 +1,9 @@
+* {
+  font-family: Arial;
+  font-size: 12pt;
+  font-weight: Normal;
+}
+
 QDockWidget::title {
     text-align: center
 }
@@ -7,17 +13,17 @@ QTabWidget::tab-bar {
 }
 
 QTreeView {
-    font-size: 9pt
+    font-size: 12pt
 }
 
 QTreeView QHeaderView::section {
-    font-size: 9pt
+    font-size: 12pt
 }
 
 QTableView {
-    font-size: 9pt
+    font-size: 12pt
 }
 
 QTableView QHeaderView::section {
-    font-size: 9pt
+    font-size: 12pt
 }
