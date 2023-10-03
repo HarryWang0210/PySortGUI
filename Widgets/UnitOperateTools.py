@@ -11,7 +11,7 @@ from DataStructure.data import SpikeSorterData
 class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     signal_spike_chan_changed = QtCore.pyqtSignal(object)
-    signal_selected_units_changed = QtCore.pyqtSignal(object)
+    signal_selected_units_changed = QtCore.pyqtSignal(set)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -95,8 +95,18 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         selected_indexes = selection_model.selectedRows()
         selected_rows = [index.row() for index in selected_indexes]
 
-        self.signal_selected_units_changed.emit
-        print(selected_rows)
+        selected_ID = [row - 2 for row in selected_rows]
+
+        model = self.tableView.model()
+        # All
+        if 0 in selected_rows:
+            selected_ID = [row for row in range(model.rowCount() - 2)]
+
+        # All_Sorted_Units
+        if 1 in selected_rows:
+            selected_ID = [row for row in range(1, model.rowCount() - 2)]
+
+        self.signal_selected_units_changed.emit(set(selected_ID))
 
 
 class ColorDelegate(QStyledItemDelegate):
