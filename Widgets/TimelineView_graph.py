@@ -149,14 +149,6 @@ class TimelineViewGraph(pg.PlotWidget):
         self.redraw_spikes = False
         self.update_plot()
 
-        # TODO
-        # self.graphWidget.spikes_visible = [
-        #     False] * self.graphWidget.num_spike_units
-        # for i in selected_rows:
-        #     self.graphWidget.spikes_visible[i] = True
-        # self.redraw = False
-        # self.graphWidget.update_plot()
-
     def get_raw(self, raw):
         self.raw = raw
         self.raw_len = len(raw)
