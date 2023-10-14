@@ -20,7 +20,7 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <layout class="QVBoxLayout" name="openglLayout"/>
+    <layout class="QVBoxLayout" name="plotLayout"/>
    </item>
    <item>
     <widget class="QGroupBox" name="groupBox">
