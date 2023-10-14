@@ -90,7 +90,6 @@ class TimelineViewGraph(pg.PlotWidget):
         self.raw = None
         self.raw_len = 0
         self.redraw_raw = True
-        self.offset = 0  # the offset of where data start show in view
         self.data_scale = 1000  # maximun height of data
         self.num_data_show = 1000  # initial number of data points show in window
 
@@ -216,6 +215,7 @@ class TimelineViewGraph(pg.PlotWidget):
         self.raw_visible = show
 
     def update_plot(self):
+        # FIXME: 每次按button都會使顯示範圍重置
         if self.visible:
             if self.redraw_raw:
                 self.draw_raw()
@@ -229,10 +229,6 @@ class TimelineViewGraph(pg.PlotWidget):
                 self.draw_spikes()
                 self.redraw_spikes = False
 
-            lastpoint = self.offset + self.num_data_show
-            self.plot_item.getViewBox().setXRange(self.offset, lastpoint, padding=0)
-            self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
-
         self.raw_item.setVisible(self.visible)
         self.thr_item.setVisible(self.visible and
                                  self.has_thr and
@@ -243,11 +239,11 @@ class TimelineViewGraph(pg.PlotWidget):
             spikes_item.setVisible(self.visible and
                                    self.spikes_visible and
                                    self.spike_units_visible[unit_ID])
-            print(unit_ID, self.spikes_visible,
-                  self.spike_units_visible[unit_ID])
 
     def draw_raw(self):
         self.raw_item.setData(self.raw)
+        self.plot_item.getViewBox().setXRange(0, self.num_data_show, padding=0)
+        self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
 
     def draw_thr(self):
         self.thr_item.setValue(self.thr)
