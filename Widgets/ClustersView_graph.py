@@ -76,6 +76,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     def selected_units_changed(self, selected_rows):
         self.waveforms_visible = np.isin(
             self.spikes["unitID"], list(selected_rows))
+        self.update_plot()
 
     def compute_pca(self, chan_ID, label):
         spikes = self.data.get_spikes(chan_ID, label)
