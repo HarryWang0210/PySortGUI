@@ -90,7 +90,6 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     def selected_units_changed(self, selected_rows):
         self.visible = [False] * self.num_unit
         for i in selected_rows:
-            print(i)
             self.visible[i] = True
         self.redraw = False
         self.update_plot()
@@ -206,28 +205,3 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.draw_mode = False
         self.redraw = False
         self.manual_curve_item.setVisible(self.draw_mode)
-        # self.removeItem(self.manual_curve_item)
-        # self.manual_curve_item.setData(np.array([]), np.array([]))
-
-        # break
-        # for i in range(len(self.spikes["unitID"])):
-        #     # 瓶頸在這!! loop太多次，想辦法用matrix method
-        #     y = self.spikes["waveforms"][i]
-        #     x = np.arange(len(y))
-        #     connect = np.ones(len(y) - 1)
-        #     connect = np.append(connect, 0).astype(np.int32)
-
-        #     unitID = int(self.spikes["unitID"][i])
-
-        #     data_dict[unitID]["x"] = np.concatenate(
-        #         (data_dict[unitID]["x"], x))
-        #     data_dict[unitID]["y"] = np.concatenate(
-        #         (data_dict[unitID]["y"], y))
-        #     data_dict[unitID]["connect"] = np.concatenate(
-        #         (data_dict[unitID]["connect"], connect))
-
-# class WaveformsViewGL(GLWidget):
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         self.setMinimumWidth(100)
-#         self.setMinimumHeight(100)

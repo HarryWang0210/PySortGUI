@@ -44,9 +44,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.init_spike_info(self.chan_info, init_id=True)
         self.file_name_lineEdit.setText(filename)
 
-    def test_signal(self):
-        print("test")
-
     def generate_data_model(self, df):
         model = QStandardItemModel()
         df = self.get_group(df)
