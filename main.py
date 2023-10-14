@@ -104,6 +104,8 @@ class SpikeSorter2(MainWindowDocks):
             self.children_dict["TimelineView"].data_file_name_changed)
         self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
             self.children_dict["TimelineView"].spike_chan_changed)
+        self.children_dict["UnitOperateTools"].signal_selected_units_changed.connect(
+            self.children_dict["TimelineView"].selected_units_changed)
 
         self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
             self.children_dict["WaveformsView"].data_file_name_changed)
