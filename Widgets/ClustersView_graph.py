@@ -14,6 +14,7 @@ from Widgets.WidgetsInterface import WidgetsInterface
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
     signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     signal_spike_chan_changed = QtCore.pyqtSignal(object)
+    signal_selected_units_changed = QtCore.pyqtSignal(set)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -21,6 +22,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
         self.visible = False
+        self.num_waveforms = 0
+        self.waveforms_visible = []
         self.color_palette_list = sns.color_palette(None, 64)
 
         self.init_plotItem()
@@ -30,7 +33,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         background_color = QColor(*[int(c * 255) for c in background_color])
         self.setBackgroundColor(background_color)
 
-        # 设置视角
         self.setCameraPosition(distance=2,  elevation=45, azimuth=45)
 
         # 添加XYZ轴
@@ -68,7 +70,12 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     def spike_chan_changed(self, meta_data):
         self.compute_pca(meta_data["ID"], meta_data["Label"])
         self.visible = True
+        self.waveforms_visible = [True] * self.num_waveforms
         self.update_plot()
+
+    def selected_units_changed(self, selected_rows):
+        self.waveforms_visible = np.isin(
+            self.spikes["unitID"], list(selected_rows))
 
     def compute_pca(self, chan_ID, label):
         spikes = self.data.get_spikes(chan_ID, label)
@@ -80,19 +87,19 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             # self.has_spikes = True
             self.spikes = spikes
             self.has_waveform = True
-
+        self.num_waveforms = self.spikes["waveforms"].shape[0]
         self.pca = self.data.wavforms_pca(chan_ID, label)
         self.point_color = self.get_color()
 
     def update_plot(self):
         if self.visible:
-            self.scatter.setData(pos=self.pca,
+            self.scatter.setData(pos=self.pca[self.waveforms_visible],
                                  size=3,
-                                 color=self.point_color)
+                                 color=self.point_color[self.waveforms_visible])
         self.scatter.setVisible(self.visible)
 
     def get_color(self):
-        n = self.spikes["waveforms"].shape[0]
+        n = self.num_waveforms
         color = np.zeros((n, 3))
 
         for i in range(n):
