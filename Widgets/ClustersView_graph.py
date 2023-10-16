@@ -36,30 +36,37 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.setCameraPosition(distance=2,  elevation=45, azimuth=45)
 
         # 添加XYZ轴
-        axis_len = 1
-        axis_pos = np.array([[0, 0, 0], [axis_len, 0, 0],
-                             [0, 0, 0], [0, axis_len, 0],
-                             [0, 0, 0], [0, 0, axis_len]])
-        axis_color = np.array([[1, 0, 0, 1], [1, 0, 0, 1],
-                               [0, 1, 0, 1], [0, 1, 0, 1],
-                               [0, 0, 1, 1], [0, 0, 1, 1]])
-        axis = gl.GLLinePlotItem(
+        self.axis_label_item_list = []
+        axis_length = 1
+        axis_pos = np.array([[0, 0, 0],
+                             [axis_length, 0, 0],
+                             [0, 0, 0],
+                             [0, axis_length, 0],
+                             [0, 0, 0],
+                             [0, 0, axis_length]])
+        axis_color = np.array([[1, 0, 0, 1],
+                               [1, 0, 0, 1],
+                               [0, 1, 0, 1],
+                               [0, 1, 0, 1],
+                               [0, 0, 1, 1],
+                               [0, 0, 1, 1]])
+        self.axis_line_item = gl.GLLinePlotItem(
             pos=axis_pos, color=axis_color,  width=2, mode='lines')
-        self.addItem(axis)
+        self.addItem(self.axis_line_item)
 
         axis_text = ["PCA1", "PCA2", "PCA3"]
-        label_x = gl.GLTextItem(text=axis_text[0], color=(255, 0, 0, 255))
-        label_y = gl.GLTextItem(text=axis_text[1], color=(0, 255, 0, 255))
-        label_z = gl.GLTextItem(text=axis_text[2], color=(0, 0, 255, 255))
-        self.addItem(label_x)
-        self.addItem(label_y)
-        self.addItem(label_z)
-        label_x.setData(pos=(axis_len * 1.1, 0, 0))
-        label_y.setData(pos=(0, axis_len * 1.1, 0))
-        label_z.setData(pos=(0, 0, axis_len * 1.1))
+        for i in range(3):
+            axis_label_item = gl.GLTextItem(text=axis_text[i],
+                                            color=(axis_color[i*2] * 255).astype(np.int32))
+            self.axis_label_item_list.append(axis_label_item)
+            self.addItem(self.axis_label_item_list[i])
+
+        self.axis_label_item_list[0].setData(pos=(axis_length * 1.1, 0, 0))
+        self.axis_label_item_list[1].setData(pos=(0, axis_length * 1.1, 0))
+        self.axis_label_item_list[2].setData(pos=(0, 0, axis_length * 1.1))
 
         self.scatter = gl.GLScatterPlotItem()
-        self.scatter.setGLOptions('opaque')
+        self.scatter.setGLOptions('opaque')  # not to mix color
         self.addItem(self.scatter)
 
     def data_file_name_changed(self, data):
@@ -79,6 +86,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.update_plot()
 
     def compute_pca(self, chan_ID, label):
+        # FIXME: fix when no spike data
         spikes = self.data.get_spikes(chan_ID, label)
         if spikes["unitInfo"] is None:
             # self.has_spikes = False
