@@ -59,15 +59,11 @@ class SpikeSorterData():
                 self.filename, chan_ID, label)
         return self.__spike_data[chan_ID]
 
-    def wavforms_pca(self, chan_ID, label):
-        # FIXME: fix when no spike data
-        data = self.get_spikes(chan_ID, label)['waveforms']
-        chan_ID = int(chan_ID)
-        pca = PCA(n_components=3)
-        pca.fit(data)
+    def waveforms_pca(self, data):
+        pca = PCA(n_components=3).fit(data)
         transformed_data = pca.transform(data)
 
-        transformer = MaxAbsScaler().fit(transformed_data)  # fit does nothing.
+        transformer = MaxAbsScaler().fit(transformed_data)
         transformed_data = transformer.transform(transformed_data)
         return transformed_data
 
