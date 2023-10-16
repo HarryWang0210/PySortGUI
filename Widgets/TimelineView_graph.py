@@ -207,7 +207,6 @@ class TimelineViewGraph(pg.PlotWidget):
         self.raw_visible = show
 
     def update_plot(self):
-        # FIXME: 每次按button都會使顯示範圍重置
         if self.visible:
             if self.redraw_raw:
                 self.draw_raw()
@@ -255,6 +254,7 @@ class TimelineViewGraph(pg.PlotWidget):
         [self.addItem(item) for item in self.spikes_item_list]
 
     def ts_to_lines(self, ts, color_ID, num_color, data_type):
+        # FIXME: y軸縮小時上下界不會跟著改變
         item_list = []
         if data_type == "spikes":
             y_element = np.array([-self.data_scale, self.thr])
