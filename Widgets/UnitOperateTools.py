@@ -19,7 +19,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.setupUi(self)
         self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
 
+        self.data = None
+        self.visible = False
+        self.spikes = None
+        self.has_waveforms = False
+        self.locked_rows_list = []
+        self.selected_rows_list = []
         self.color_palette_list = sns.color_palette(None, 64)
+
         self.init_data_model()
 
         delegate = ColorDelegate(self.color_palette_list)
@@ -53,7 +60,9 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         # 創建一個 CheckBox Widget
         checkbox = QCheckBox()
+        checkbox.setProperty("row", row)
         checkbox.setChecked(False)
+        checkbox.stateChanged.connect(self.checkbox_state_changed)
 
         # 將 CheckBox Widget 放入自定義的 Widget 容器中
         checkbox_widget = QWidget()
@@ -69,6 +78,15 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.tableView.setIndexWidget(
             model.index(row, 0), checkbox_widget)
 
+    def checkbox_state_changed(self, state):
+        checkbox = self.sender()
+        row = checkbox.property("row")
+        if state == Qt.Checked:
+            self.locked_rows_list.append(row)
+        elif state == Qt.Unchecked:
+            self.locked_rows_list.remove(row)
+        self.send_selected_ID()
+
     def data_file_name_changed(self, data):
         self.data = data
         self.visible = False
@@ -77,34 +95,40 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def spike_chan_changed(self, meta_data):
         spikes = self.data.get_spikes(meta_data["ID"], meta_data["Label"])
         if spikes["unitInfo"] is None:
-            # self.has_spikes = False
             self.spikes = None
             self.has_waveforms = False
+            model = self.tableView.model()
+            model.clear()
         else:
-            # self.has_spikes = True
             self.spikes = spikes
+            self.has_waveforms = True
             self.set_data_model(self.spikes["unitInfo"])
-
-            self.has_waveform = True
 
         # self.unit_color = self.get_color()
         self.visible = True
+        self.locked_rows_list = []
+        self.selected_rows_list = []
 
     def on_selection_changed(self, selected, deselected):
         selection_model = self.tableView.selectionModel()
         selected_indexes = selection_model.selectedRows()
-        selected_rows = [index.row() for index in selected_indexes]
+        self.selected_rows_list = [index.row() for index in selected_indexes]
+        self.send_selected_ID()
 
-        selected_ID = [row - 2 for row in selected_rows]
+    def send_selected_ID(self):
+        all_selected_rows = self.selected_rows_list + self.locked_rows_list
+
+        selected_ID = [row - 2 for row in all_selected_rows]
 
         model = self.tableView.model()
-        # All
-        if 0 in selected_rows:
-            selected_ID = [row for row in range(model.rowCount() - 2)]
 
         # All_Sorted_Units
-        if 1 in selected_rows:
-            selected_ID = [row for row in range(1, model.rowCount() - 2)]
+        if 1 in all_selected_rows:
+            selected_ID += [row for row in range(1, model.rowCount() - 2)]
+
+        # All
+        if 0 in all_selected_rows:
+            selected_ID += [row for row in range(model.rowCount() - 2)]
 
         self.signal_selected_units_changed.emit(set(selected_ID))
 
