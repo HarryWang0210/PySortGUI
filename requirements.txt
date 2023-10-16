@@ -3,5 +3,5 @@ seaborn
 scikit-learn 
 tables
 pandas
-pyqtgraph
+pyqtgraph==0.13.3
 
