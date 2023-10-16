@@ -88,11 +88,9 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     def compute_pca(self, chan_ID, label):
         spikes = self.data.get_spikes(chan_ID, label)
         if spikes["unitInfo"] is None:
-            # self.visible = False
             self.spikes = None
             self.has_waveforms = False
         else:
-            # self.visible = True
             self.spikes = spikes
             self.has_waveforms = True
             self.num_waveforms = self.spikes["waveforms"].shape[0]
@@ -100,8 +98,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.point_color = self.get_color()
 
     def update_plot(self):
-        print(self.visible)
-        print(self.has_waveforms)
         if self.visible and self.has_waveforms:
             self.scatter.setData(pos=self.pca[self.waveforms_visible],
                                  size=3,
