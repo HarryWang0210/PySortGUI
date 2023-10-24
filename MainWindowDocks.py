@@ -31,13 +31,13 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks |
                             QtWidgets.QMainWindow.AllowNestedDocks |
                             QtWidgets.QMainWindow.AllowTabbedDocks)
-        self._init_docks()
-        self._setup_app_menu()
-        self._setup_status_bar()
+        self._initDocks()
+        self._setupAppMenu()
+        self._setupStatusBar()
         self.show()
         self.raise_()
 
-    def _setup_status_bar(self):
+    def _setupStatusBar(self):
         """Generate status bar."""
         status_bar = QtWidgets.QStatusBar()
         self.children_dict['status_bar'] = status_bar
@@ -48,18 +48,18 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         #     'progress_bar'] = progress_bar = QtWidgets.QProgressBar()
         # status_bar.addPermanentWidget(progress_bar)
 
-    def _setup_app_menu(self):
+    def _setupAppMenu(self):
         """Generate menu bar."""
         self.menu_bar = QtWidgets.QMenuBar()
         self.children_dict['menu_bar'] = self.menu_bar
         self.setMenuBar(self.menu_bar)
-        self._add_file_menu()
-        self._add_edit_menu()
-        self._add_view_menu()
-        self._add_setting_menu()
-        self._add_help_menu()
+        self._addFileMenu()
+        self._addEditMenu()
+        self._addViewMenu()
+        self._addSettingMenu()
+        self._addHelpMenu()
 
-    def _add_file_menu(self):
+    def _addFileMenu(self):
         # File Menu
         FileMenu = self.menu_bar.addMenu('&File')
         FileMenu_dict = dict()
@@ -94,7 +94,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         self.children_dict["FileMenu"] = FileMenu_dict
 
-    def _add_edit_menu(self):
+    def _addEditMenu(self):
         # Edit Menu
         EditMenu = self.menu_bar.addMenu('&Edit')
         EditMenu_dict = dict()
@@ -113,7 +113,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         self.children_dict["EditMenu"] = EditMenu_dict
 
-    def _add_view_menu(self):
+    def _addViewMenu(self):
         # View
         ViewMenu = self.menu_bar.addMenu('&View')
         ViewMenu_dict = dict()
@@ -144,7 +144,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         self.children_dict["ViewMenu"] = ViewMenu_dict
 
-    def _add_setting_menu(self):
+    def _addSettingMenu(self):
         # Setting
         SettingMenu = self.menu_bar.addMenu('&Setting')
         SettingMenu_dict = dict()
@@ -159,20 +159,20 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         self.children_dict["SettingMenu"] = SettingMenu_dict
 
-    def _add_help_menu(self):
+    def _addHelpMenu(self):
         # Help
         HelpAction = QtWidgets.QAction('&Help', self)
         self.menu_bar.addAction(HelpAction)
         self.children_dict["Help"] = HelpAction
 
-    def _init_docks(self):
-        self._generate_dock(ChannelDetail)
-        self._generate_dock(WaveformsView)
-        self._generate_dock(ISIView)
-        self._generate_dock(ClustersView)
+    def _initDocks(self):
+        self._generateDock(ChannelDetail)
+        self._generateDock(WaveformsView)
+        self._generateDock(ISIView)
+        self._generateDock(ClustersView)
 
-        self._generate_dock(TimelineView)
-        self._generate_right_tool_widget(UnitOperateTools)
+        self._generateDock(TimelineView)
+        self._generateRightToolWidget(UnitOperateTools)
 
         geom = QtWidgets.QDesktopWidget().availableGeometry()
         self.splitDockWidget(self.children_dict["ChannelDetail_dock"],
@@ -191,7 +191,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
                           self.children_dict["TimelineView_dock"]],
                          [int(geom.bottom() / 3) * 2, int(geom.bottom() / 3)], QtCore.Qt.Vertical)
 
-    def _generate_dock(self, widget_class=None, name=None, attr_name=None, **kwargs):
+    def _generateDock(self, widget_class=None, name=None, attr_name=None, **kwargs):
         """
         Generate the dock object.
         :param widget_class: class name of widget
@@ -221,7 +221,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock)
 
-    def _generate_right_tool_widget(self, widget_class=None, name=None, attr_name=None, **kwargs):
+    def _generateRightToolWidget(self, widget_class=None, name=None, attr_name=None, **kwargs):
         """
         Generate the right side tool dock object.
         :param widget_class: class name of widget

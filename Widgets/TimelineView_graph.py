@@ -21,13 +21,13 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
         self.setupUi(self)
         self.graphWidget = TimelineViewGraph(self)
         self.plotLayout.addWidget(self.graphWidget)
-        self.setup_connections()
+        self.setupConnections()
 
-    def setup_connections(self):
-        self.thr_pushButton.clicked.connect(self.graphWidget.show_thr)
-        self.events_pushButton.clicked.connect(self.graphWidget.show_events)
-        self.spikes_pushButton.clicked.connect(self.graphWidget.show_spikes)
-        self.raw_pushButton.clicked.connect(self.graphWidget.show_raw)
+    def setupConnections(self):
+        self.thr_pushButton.clicked.connect(self.graphWidget.showThreshold)
+        self.events_pushButton.clicked.connect(self.graphWidget.showEvents)
+        self.spikes_pushButton.clicked.connect(self.graphWidget.showSpikes)
+        self.raw_pushButton.clicked.connect(self.graphWidget.showRaw)
 
         self.signal_data_file_name_changed.connect(
             self.graphWidget.data_file_name_changed)
@@ -86,16 +86,18 @@ class TimelineViewGraph(pg.PlotWidget):
         self.redraw_spikes = True
 
         # raw relative variables
-        self.raw_visible = False
         self.raw = None
-        self.raw_len = 0
+        self.raw_visible = False
         self.redraw_raw = True
+
+        self.timeline_data = None  # data show in view
+        self.timeline_data_len = 0
         self.data_scale = 1000  # maximun height of data
         self.num_data_show = 1000  # initial number of data points show in window
 
-        self.init_plotItem()
+        self.initPlotItem()
 
-    def init_plotItem(self):
+    def initPlotItem(self):
         self.plot_item = self.getPlotItem()
         self.plot_item.setMenuEnabled(False)
         self.plot_item.setClipToView(True)
@@ -131,32 +133,32 @@ class TimelineViewGraph(pg.PlotWidget):
     def data_file_name_changed(self, data):
         self.data_object = data
         self.visible = False
-        self.update_plot()
+        self.updatePlot()
 
     def spike_chan_changed(self, meta_data):
-        self.get_raw(self.data_object.get_raw(int(meta_data["ID"])))
-        self.get_thr(meta_data["Threshold"])
-        self.get_spikes(
-            self.data_object.get_spikes(int(meta_data["ID"]), meta_data["Label"]))
+        self.getRaw(self.data_object.getRaw(int(meta_data["ID"])))
+        self.getThreshold(meta_data["Threshold"])
+        self.getSpikes(
+            self.data_object.getSpikes(int(meta_data["ID"]), meta_data["Label"]))
         self.visible = True
 
-        self.update_plot()
+        self.updatePlot()
 
     def selected_units_changed(self, selected_rows):
         self.spike_units_visible = [False] * self.num_spike_units
         for i in selected_rows:
             self.spike_units_visible[i] = True
         self.redraw_spikes = False
-        self.update_plot()
+        self.updatePlot()
 
-    def get_raw(self, raw):
+    def getRaw(self, raw):
         self.raw = raw
-        self.raw_len = len(raw)
+        self.timeline_data_len = len(raw)
         self.data_scale = np.max(np.abs(self.raw)) / 2
         self.num_data_show = 1000  # initial number of data points show in window
         self.redraw_raw = True
 
-    def get_thr(self, thr):
+    def getThreshold(self, thr):
         try:
             self.thr = float(thr)
             self.has_thr = True
@@ -165,13 +167,13 @@ class TimelineViewGraph(pg.PlotWidget):
             self.has_thr = False
         self.redraw_thr = True
 
-    def get_events(self, events):
-        # TODO: get_events
+    def getEvents(self, events):
+        # TODO: getEvents
         self.events = events
         self.has_events = True
         self.redraw_events = True
 
-    def get_spikes(self, spikes):
+    def getSpikes(self, spikes):
         if spikes["unitInfo"] is None:
             self.has_spikes = False
             self.spikes = None
@@ -184,40 +186,40 @@ class TimelineViewGraph(pg.PlotWidget):
         self.spike_units_visible = [True] * self.num_spike_units
         self.redraw_spikes = True
 
-    def show_thr(self, show):
+    def showThreshold(self, show):
         """Control from TimelineView."""
         self.thr_visible = show
         self.redraw_thr = False
-        self.update_plot()
+        self.updatePlot()
 
-    def show_events(self, show):
+    def showEvents(self, show):
         """Control from TimelineView."""
         self.events_visible = show
         self.redraw_events = False
-        self.update_plot()
+        self.updatePlot()
 
-    def show_spikes(self, show):
+    def showSpikes(self, show):
         """Control from TimelineView."""
         self.spikes_visible = show
         self.redraw_spikes = False
-        self.update_plot()
+        self.updatePlot()
 
-    def show_raw(self, show):
+    def showRaw(self, show):
         """Control from TimelineView."""
         self.raw_visible = show
 
-    def update_plot(self):
+    def updatePlot(self):
         if self.visible:
             if self.redraw_raw:
-                self.draw_raw()
+                self.drawRaw()
                 self.redraw_raw = False
 
             if self.has_thr and self.redraw_thr:
-                self.draw_thr()
+                self.drawThreshold()
                 self.redraw_thr = False
 
             if self.has_spikes and self.redraw_spikes:
-                self.draw_spikes()
+                self.drawSpikes()
                 self.redraw_spikes = False
 
         self.raw_item.setVisible(self.visible)
@@ -231,29 +233,29 @@ class TimelineViewGraph(pg.PlotWidget):
                                    self.spikes_visible and
                                    self.spike_units_visible[unit_ID])
 
-    def draw_raw(self):
+    def drawRaw(self):
         self.raw_item.setData(self.raw)
         self.plot_item.getViewBox().setXRange(0, self.num_data_show, padding=0)
         self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
 
-    def draw_thr(self):
+    def drawThreshold(self):
         self.thr_item.setValue(self.thr)
 
-    def draw_events(self):
+    def drawEvents(self):
         """TODO"""
         pass
 
-    def draw_spikes(self):
+    def drawSpikes(self):
         if len(self.spikes_item_list) != 0:
             [self.removeItem(item) for item in self.spikes_item_list]
-        self.spikes_item_list = self.ts_to_lines(self.spikes["timestamps"],
-                                                 self.spikes["unitID"],
-                                                 self.num_spike_units,
-                                                 "spikes")
+        self.spikes_item_list = self.tsToLines(self.spikes["timestamps"],
+                                               self.spikes["unitID"],
+                                               self.num_spike_units,
+                                               "spikes")
 
         [self.addItem(item) for item in self.spikes_item_list]
 
-    def ts_to_lines(self, ts, color_ID, num_color, data_type):
+    def tsToLines(self, ts, color_ID, num_color, data_type):
         # FIXME: y軸縮小時上下界不會跟著改變
         item_list = []
         if data_type == "spikes":
@@ -292,8 +294,9 @@ class TimelineViewGraph(pg.PlotWidget):
             # check boundary
             if new_range[0] < 0:
                 new_range = [0, self.num_data_show]
-            if new_range[1] > self.raw_len:
-                new_range = [self.raw_len - self.num_data_show, self.raw_len]
+            if new_range[1] > self.timeline_data_len:
+                new_range = [self.timeline_data_len -
+                             self.num_data_show, self.timeline_data_len]
 
             self.plot_item.getViewBox().setXRange(*new_range, padding=0)
 
@@ -315,8 +318,9 @@ class TimelineViewGraph(pg.PlotWidget):
             # check boundary
             if new_range[0] < 0:
                 new_range = [0, self.num_data_show]
-            if new_range[1] > self.raw_len:
-                new_range = [self.raw_len - self.num_data_show, self.raw_len]
+            if new_range[1] > self.timeline_data_len:
+                new_range = [self.timeline_data_len -
+                             self.num_data_show, self.timeline_data_len]
 
             self.plot_item.getViewBox().setXRange(*new_range, padding=0)
 

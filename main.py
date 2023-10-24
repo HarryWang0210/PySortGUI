@@ -61,10 +61,10 @@ class SpikeSorter2(MainWindowDocks):
         self.move(geom.topLeft().x(), geom.topLeft().y())
         self.load_style()
         self.setupUi()
-        self.connect_menu_actions()
-        self.connect_widgets()
+        self.connectMenuActions()
+        self.connectWidgets()
         self.setWindowTitle("SpikeSorterGL")
-        self.restore_layout()
+        self.restoreLayout()
 
     def load_style(self):
         """
@@ -75,15 +75,15 @@ class SpikeSorter2(MainWindowDocks):
         style_sheet = QSSLoader.read_qss_file(style_file)
         self.setStyleSheet(style_sheet)
 
-    def connect_menu_actions(self):
+    def connectMenuActions(self):
         """Connect slots to actions on menu bar."""
 
         self.children_dict['FileMenu']["Open"].triggered.connect(
-            self.open_file, QtCore.Qt.UniqueConnection)
+            self.openFile, QtCore.Qt.UniqueConnection)
         self.children_dict['FileMenu']["Save"].triggered.connect(
-            self.save_channel)
+            self.saveChannel)
         self.children_dict['FileMenu']["SaveAll"].triggered.connect(
-            self.save_all)
+            self.saveAll)
         self.children_dict['FileMenu']["Exit"].triggered.connect(
             self.close)
 
@@ -93,13 +93,13 @@ class SpikeSorter2(MainWindowDocks):
             self.redo)
 
         self.children_dict['SettingMenu']["SaveLayout"].triggered.connect(
-            self.save_layout)
+            self.saveLayout)
         self.children_dict['SettingMenu']["RestoreLayout"].triggered.connect(
-            self.restore_layout)
+            self.restoreLayout)
 
         self.children_dict['Help'].triggered.connect(self.help)
 
-    def connect_widgets(self):
+    def connectWidgets(self):
         self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
             self.children_dict["TimelineView"].data_file_name_changed)
         self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
@@ -126,19 +126,19 @@ class SpikeSorter2(MainWindowDocks):
         self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
             self.children_dict["UnitOperateTools"].spike_chan_changed)
 
-    def open_file(self):
+    def openFile(self):
         """Open file manager and load selected file."""
-        self.children_dict["ChannelDetail"].open_file()
+        self.children_dict["ChannelDetail"].openFile()
 
-    def save_channel(self):
+    def saveChannel(self):
         """Save single channel."""
-        print("save_channel")
+        print("saveChannel")
         pass
 
-    def save_all(self):
+    def saveAll(self):
         """Save all channels."""
-        print("save_all")
-        self.save_channel()
+        print("saveAll")
+        self.saveChannel()
         pass
 
     def undo(self):
@@ -151,14 +151,14 @@ class SpikeSorter2(MainWindowDocks):
         print("redo")
         pass
 
-    def save_layout(self, id=0):
+    def saveLayout(self, id=0):
         """Save the layout changes."""
         self.settings.setValue(
             "geometry_{:d}".format(id), self.saveGeometry())
         self.settings.setValue(
             "windowState_{:d}".format(id), self.saveState())
 
-    def restore_layout(self, id=0):
+    def restoreLayout(self, id=0):
         """Rstore_ the layout changes."""
         if not self.settings.value("geometry_{:d}".format(id)) is None:
             self.restoreGeometry(

@@ -33,9 +33,9 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.color_palette_list = np.array(sns.color_palette(None, 64))
         self.data_scale = 1.0
         self.draw_mode = False
-        self.init_plotItem()
+        self.initPlotItem()
 
-    def init_plotItem(self):
+    def initPlotItem(self):
         """
         Initialize plotWidget and plotItems.
         """
@@ -73,36 +73,36 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     def data_file_name_changed(self, data):
         self.data = data
         self.visible = [False]
-        self.init_plotItem()
+        self.initPlotItem()
         self.waveforms_item_list = []
         self.redraw = True
-        self.update_plot()
+        self.updatePlot()
 
     def spike_chan_changed(self, meta_data):
-        self.get_thr(meta_data["Threshold"])
-        self.get_spikes(meta_data["ID"], meta_data["Label"])
+        self.getThreshold(meta_data["Threshold"])
+        self.getSpikes(meta_data["ID"], meta_data["Label"])
         self.visible = [True] * self.num_unit
-        self.init_plotItem()
+        self.initPlotItem()
         self.waveforms_item_list = []
         self.redraw = True
-        self.update_plot()
+        self.updatePlot()
 
     def selected_units_changed(self, selected_rows):
         self.visible = [False] * self.num_unit
         for i in selected_rows:
             self.visible[i] = True
         self.redraw = False
-        self.update_plot()
+        self.updatePlot()
 
-    def get_thr(self, thr):
+    def getThreshold(self, thr):
         self.thr = float(thr)
         if np.isnan(self.thr):
             self.has_thr = False
         else:
             self.has_thr = True
 
-    def get_spikes(self, chan_ID, label):
-        spikes = self.data.get_spikes(chan_ID, label)
+    def getSpikes(self, chan_ID, label):
+        spikes = self.data.getSpikes(chan_ID, label)
         if spikes["unitInfo"] is None:
             self.has_spikes = False
             self.spikes = None
@@ -119,14 +119,14 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
             self.data_scale = np.max(np.abs(spikes["waveforms"]))
             self.has_waveforms, self.show_waveforms = True, True
 
-    def update_plot(self):
+    def updatePlot(self):
         if self.has_waveforms and np.any(self.visible):
             if self.redraw:
-                self.draw_waveforms(self.plot_waveforms["waveforms"],
-                                    self.plot_waveforms["unitID"])
+                self.drawWaveforms(self.plot_waveforms["waveforms"],
+                                   self.plot_waveforms["unitID"])
                 self.redraw = False
             if self.has_thr:
-                self.draw_thr()
+                self.drawThreshold()
 
         for unitID in range(len(self.waveforms_item_list)):
             waveforms_item = self.waveforms_item_list[unitID]
@@ -135,10 +135,10 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
         self.thr_item.setVisible(self.has_thr and np.any(self.visible))
 
-    def draw_thr(self):
+    def drawThreshold(self):
         self.thr_item.setValue(self.thr)
 
-    def draw_waveforms(self, waveforms, unitID):
+    def drawWaveforms(self, waveforms, unitID):
         # create elements
         xlen = waveforms.shape[1]
         x_element = np.arange(xlen)

@@ -19,7 +19,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.setupUi(self)
         self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
 
-        self.data = None
+        self.data_object = None
         self.visible = False
         self.spikes = None
         self.has_waveforms = False
@@ -27,12 +27,12 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.selected_rows_list = []
         self.color_palette_list = sns.color_palette(None, 64)
 
-        self.init_data_model()
+        self.initDataModel()
 
         delegate = ColorDelegate(self.color_palette_list)
         self.tableView.setItemDelegate(delegate)
 
-    def init_data_model(self):
+    def initDataModel(self):
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(["Locked", "UnitName"])
         self.tableView.setModel(model)
@@ -43,19 +43,19 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         selection_model = self.tableView.selectionModel()
         selection_model.selectionChanged.connect(self.on_selection_changed)
 
-    def set_data_model(self, df):
+    def setDataModel(self, df):
         model = self.tableView.model()
         model.clear()
         model.setHorizontalHeaderLabels(["Locked", "UnitName"])
 
-        self.append_unit_row(0, "All")
-        self.append_unit_row(1, "All_Sorted_Units")
+        self.appendUnitRow(0, "All")
+        self.appendUnitRow(1, "All_Sorted_Units")
 
         for row in range(df.shape[0]):
-            self.append_unit_row(row + 2, bytes.decode(df.loc[row, "Name"]))
+            self.appendUnitRow(row + 2, bytes.decode(df.loc[row, "Name"]))
         self.tableView.resizeColumnToContents(0)
 
-    def append_unit_row(self, row, unit_name):
+    def appendUnitRow(self, row, unit_name):
         model = self.tableView.model()
 
         # 創建一個 CheckBox Widget
@@ -85,15 +85,16 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             self.locked_rows_list.append(row)
         elif state == Qt.Unchecked:
             self.locked_rows_list.remove(row)
-        self.send_selected_ID()
+        self.sendSelectedID()
 
     def data_file_name_changed(self, data):
-        self.data = data
+        self.data_object = data
         self.visible = False
         # self.update_plot()
 
     def spike_chan_changed(self, meta_data):
-        spikes = self.data.get_spikes(meta_data["ID"], meta_data["Label"])
+        spikes = self.data_object.getSpikes(
+            meta_data["ID"], meta_data["Label"])
         if spikes["unitInfo"] is None:
             self.spikes = None
             self.has_waveforms = False
@@ -102,7 +103,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         else:
             self.spikes = spikes
             self.has_waveforms = True
-            self.set_data_model(self.spikes["unitInfo"])
+            self.setDataModel(self.spikes["unitInfo"])
 
         # self.unit_color = self.get_color()
         self.visible = True
@@ -113,9 +114,9 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         selection_model = self.tableView.selectionModel()
         selected_indexes = selection_model.selectedRows()
         self.selected_rows_list = [index.row() for index in selected_indexes]
-        self.send_selected_ID()
+        self.sendSelectedID()
 
-    def send_selected_ID(self):
+    def sendSelectedID(self):
         all_selected_rows = self.selected_rows_list + self.locked_rows_list
 
         selected_ID = [row - 2 for row in all_selected_rows]

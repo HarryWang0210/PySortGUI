@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 
-def load_pyephys(filename):
+def loadPyephys(filename):
     basename, extname = os.path.splitext(filename)
     if extname == "h5raw":
         filename = ".".join(basename, "h5")
@@ -57,7 +57,7 @@ def load_pyephys(filename):
     return data
 
 
-def load_raws(filename, chan_ID):
+def loadRaws(filename, chan_ID):
     chan_ID = int(chan_ID)
     basename, extname = os.path.splitext(filename)
     if extname == "h5raw":
@@ -73,7 +73,7 @@ def load_raws(filename, chan_ID):
             raise
 
 
-def load_spikes(filename, chan_ID, label):
+def loadSpikes(filename, chan_ID, label):
     chan_ID = int(chan_ID)
     basename, extname = os.path.splitext(filename)
     if extname == "h5raw":

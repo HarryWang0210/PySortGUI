@@ -2,8 +2,8 @@ import tables
 import os
 import pandas as pd
 import numpy as np
-from DataStructure.pyephys import load_pyephys, load_raws, load_spikes
-# from pyephys import load_pyephys, load_raws
+from DataStructure.pyephys import loadPyephys, loadRaws, loadSpikes
+# from pyephys import loadPyephys, loadRaws
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MaxAbsScaler
@@ -14,7 +14,7 @@ class SpikeSorterData():
         # super().__init__(parent)
         self.filename = filename
 
-        self.__chan_info = load_pyephys(self.filename)
+        self.__chan_info = loadPyephys(self.filename)
         column_order = ['ID', 'Label', 'Name', 'NumUnits',
                         'ReferenceID', 'LowCutOff', 'HighCutOff', 'Threshold',
                         'NumRecords', 'SamplingFreq', 'SigUnits']
@@ -47,15 +47,15 @@ class SpikeSorterData():
         # print(chan_info.index[0][0], type(chan_info.index[0][0]))
         return chan_info
 
-    def get_raw(self, chan_ID):
+    def getRaw(self, chan_ID):
         if chan_ID not in self.__raw_data.keys():
-            self.__raw_data[chan_ID] = load_raws(self.filename, chan_ID)
+            self.__raw_data[chan_ID] = loadRaws(self.filename, chan_ID)
 
         return self.__raw_data[chan_ID]
 
-    def get_spikes(self, chan_ID, label):
+    def getSpikes(self, chan_ID, label):
         if chan_ID not in self.__spike_data.keys():
-            self.__spike_data[chan_ID] = load_spikes(
+            self.__spike_data[chan_ID] = loadSpikes(
                 self.filename, chan_ID, label)
         return self.__spike_data[chan_ID]
 
@@ -73,4 +73,4 @@ if __name__ == '__main__':
     # filename = "data/MD123_2022-09-07_10-38-00.h5"
     data = SpikeSorterData(filename)
     print(data.chan_info)
-    print(data.get_raw(chan_ID=0))
+    print(data.getRaw(chan_ID=0))
