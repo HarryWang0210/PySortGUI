@@ -4,8 +4,9 @@ from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QColor, QPainter
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
-# import copy
+from OpenGL.GL import *  # noqa
 import numpy as np
+from scipy.spatial import KDTree
 import seaborn as sns
 import time
 from DataStructure.data import SpikeSorterData
@@ -22,17 +23,29 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.window_title = "Clusters View"
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
+
         self.data_object = None
-        self.color_palette_list = sns.color_palette(None, 64)
-
-        self.visible = False  # overall visible
-        self.num_waveforms = 0
-        self.waveform_units_visible = []
-
         self.spikes = None
-        self.has_waveforms = False
-        self.point_color = None
-        self.pca = None
+        self.has_spikes = False
+        self.color_palette_list = sns.color_palette(None, 64)
+        self.visible = False  # overall visible\
+
+        # from UnitOperateTools widget
+        self.draw_mode = False
+        self.feature_on_selection = False
+        self.axis_label = ["PCA1", "PCA2", "PCA3"]
+
+        # change only when waveforms change
+        self.num_wavs = 0  # N
+        self.all_wavs_pca = []  # backup pca on all waveforms
+        self.current_wav_units = []  # waveform units (N,), int
+        self.current_wav_colors = []  # waveform colors (N, 3), float
+
+        # data use on showing
+        self.current_wavs_mask_list = []  # visible waveforms (N,), bool
+        self.current_pca = []  # current showing pca
+        self.current_showing_data = []
+
         self.initPlotItem()
 
     def initPlotItem(self):
@@ -61,9 +74,9 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             pos=axis_pos, color=axis_color,  width=2, mode='lines')
         self.addItem(self.axis_manual_curve_item)
 
-        axis_text = ["PCA1", "PCA2", "PCA3"]
+        self.axis_label = ["PCA1", "PCA2", "PCA3"]
         for i in range(3):
-            axis_label_item = gl.GLTextItem(text=axis_text[i],
+            axis_label_item = gl.GLTextItem(text=self.axis_label[i],
                                             color=(axis_color[i*2] * 255).astype(np.int32))
             self.axis_label_item_list.append(axis_label_item)
             self.addItem(self.axis_label_item_list[i])
@@ -72,9 +85,13 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.axis_label_item_list[1].setData(pos=(0, axis_length * 1.1, 0))
         self.axis_label_item_list[2].setData(pos=(0, 0, axis_length * 1.1))
 
-        self.scatter = gl.GLScatterPlotItem()
-        self.scatter.setGLOptions('opaque')  # not to mix color
-        self.addItem(self.scatter)
+        self.scatter_item = gl.GLScatterPlotItem()
+        self.scatter_item.setGLOptions('opaque')  # not to mix color
+        self.addItem(self.scatter_item)
+
+        self.nearest_point_item = gl.GLScatterPlotItem()
+        self.nearest_point_item.setGLOptions('opaque')  # not to mix color
+        self.addItem(self.nearest_point_item)
 
         self.manual_curve_item = GLPainterItem(color=(255, 0, 0))
         self.addItem(self.manual_curve_item)
@@ -85,44 +102,121 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.updatePlot()
 
     def spike_chan_changed(self, meta_data):
-        self.computePCA(meta_data["ID"], meta_data["Label"])
-        self.visible = True
-        self.waveform_units_visible = [True] * self.num_waveforms
+        spikes = self.data_object.getSpikes(
+            meta_data["ID"], meta_data["Label"])
+        if spikes["unitInfo"] is None:
+            self.has_spikes = False
+            self.spikes = None
+            self.visible = False
+        else:
+            self.has_spikes = True
+            self.spikes = spikes
+
+            self.visible = True
+            self.num_wavs = self.spikes["waveforms"].shape[0]
+            self.all_wavs_pca = self.computePCA(self.spikes["waveforms"])
+
+            self.current_wav_units = self.spikes["unitID"]
+            self.current_wav_colors = self.getColor(self.current_wav_units)
+
+            self.current_wavs_mask_list = [True] * self.num_wavs
+            self.current_pca = self.all_wavs_pca[self.current_wavs_mask_list]
+            self.setCurrentShowingData()
+
         self.updatePlot()
 
     def selected_units_changed(self, selected_rows):
-        self.waveform_units_visible = np.isin(
-            self.spikes["unitID"], list(selected_rows))
+        self.current_wavs_mask_list = np.isin(
+            self.current_wav_units, list(selected_rows))
+        if self.feature_on_selection:
+            self.current_pca = self.computePCA(
+                self.spikes["waveforms"][self.current_wavs_mask_list])
+        else:
+            self.current_pca = self.all_wavs_pca[self.current_wavs_mask_list]
+        self.setCurrentShowingData()
         self.updatePlot()
 
-    def computePCA(self, chan_ID, label):
-        spikes = self.data_object.getSpikes(chan_ID, label)
-        if spikes["unitInfo"] is None:
-            self.spikes = None
-            self.has_waveforms = False
-        else:
-            self.spikes = spikes
-            self.has_waveforms = True
-            self.num_waveforms = self.spikes["waveforms"].shape[0]
-            self.pca = self.data_object.waveforms_pca(self.spikes["waveforms"])
-            self.point_color = self.getColor()
-
     def updatePlot(self):
-        if self.visible and self.has_waveforms:
-            self.scatter.setData(pos=self.pca[self.waveform_units_visible],
-                                 size=3,
-                                 color=self.point_color[self.waveform_units_visible])
-        self.scatter.setVisible(self.visible and self.has_waveforms)
+        if self.visible and self.has_spikes:
+            self.scatter_item.setData(pos=self.current_showing_data,
+                                      size=3,
+                                      color=self.current_wav_colors[self.current_wavs_mask_list])
+        self.scatter_item.setVisible(self.visible and self.has_spikes)
 
-    def getColor(self):
-        n = self.num_waveforms
+    def setCurrentShowingData(self):
+        showing_data = np.zeros((np.sum(self.current_wavs_mask_list), 3))
+        for i in range(3):
+            if self.axis_label[i] == 'PCA1':
+                showing_data[:, i] = self.current_pca[:, 0]
+            elif self.axis_label[i] == 'PCA2':
+                showing_data[:, i] = self.current_pca[:, 1]
+            elif self.axis_label[i] == 'PCA3':
+                showing_data[:, i] = self.current_pca[:, 2]
+            elif self.axis_label[i] == 'time':
+                pass
+            elif self.axis_label[i] == 'slice':
+                pass
+
+        self.current_showing_data = showing_data
+
+    def computePCA(self, wav_data):
+        return self.data_object.waveforms_pca(wav_data)
+
+    def getColor(self, unit_data):
+        n = len(unit_data)
         color = np.zeros((n, 3))
 
         for i in range(n):
-            color[i, :] = self.color_palette_list[int(
-                self.spikes["unitID"][i])]
+            color[i, :] = self.color_palette_list[int(unit_data[i])]
         color = np.hstack((color, np.ones((n, 1))))
         return color
+
+    def __project(self, obj_pos):
+        # modify from pyqtgraph.opengl.items.GLTextItem
+        modelview = np.array(self.viewMatrix().data()
+                             ).reshape((4, 4))  # (4, 4)
+        projection = np.array(self.projectionMatrix().data()
+                              ).reshape((4, 4))  # (4, 4)
+        viewport = [0, 0, self.width(), self.height()]
+        # obj_pos = np.array([1, 1, 0])
+        # obj_vec = np.append(np.array(obj_pos), [1.0])
+
+        # view_vec = np.matmul(modelview.T, obj_vec)
+        # proj_vec = np.matmul(projection.T, view_vec)
+
+        # if proj_vec[3] == 0.0:
+        #     print(0, 0)
+
+        # proj_vec[0:3] /= proj_vec[3]
+
+        # print(
+        #     viewport[0] + (1.0 + proj_vec[0]) * viewport[2] / 2,
+        #     viewport[3] - (viewport[1] + (1.0 + proj_vec[1]) * viewport[3] / 2)
+        # )
+        # print(self.axis_label_item_list[0].view().width(
+        # ), self.axis_label_item_list[0].view().height())
+        # print("end")
+        obj_vec = np.hstack((obj_pos, np.ones((obj_pos.shape[0], 1))))
+
+        view_vec = np.matmul(modelview.T, obj_vec.T)
+        proj_vec = np.matmul(projection.T, view_vec).T
+
+        zero_filter = proj_vec[:, 3] != 0.0
+
+        result = np.zeros((proj_vec.shape[0], 2))
+
+        nozero_proj_vec = proj_vec[zero_filter]
+        nozero_proj_vec = (nozero_proj_vec[:, 0:3].T / nozero_proj_vec[:, 3]).T
+
+        result[zero_filter] = np.array([viewport[0] + (1.0 + nozero_proj_vec[:, 0]) * viewport[2] / 2,
+                                        viewport[3] - (viewport[1] + (1.0 + nozero_proj_vec[:, 1]) * viewport[3] / 2)]).T
+        return result
+
+    def findNearestNeighbor(self, pos):
+        projected_data = self.__project(self.current_showing_data)
+        tree = KDTree(projected_data)
+        nearest_index = tree.query(pos)[1]
+        return nearest_index
 
     def mousePressEvent(self, ev):
         lpos = ev.position() if hasattr(ev, 'position') else ev.localPos()
@@ -132,28 +226,16 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         if ev.buttons() == QtCore.Qt.MouseButton.LeftButton:
             if (ev.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier):
                 """select point"""
-                pass
+                nearest_index = self.findNearestNeighbor(
+                    np.array([self.mousePos.x(), self.mousePos.y()]))
+                self.nearest_point_item.setData(pos=self.current_showing_data[nearest_index, :].reshape((1, 3)),
+                                                size=10,
+                                                color=[1, 1, 1, 1])
             else:
                 if self.draw_mode:
                     self.manual_curve_item.setVisible(self.draw_mode)
                     self.manual_curve_item.setData(
                         pos=[[self.mousePos.x(), self.mousePos.y()]])
-
-        # view_w = self.width()
-        # view_h = self.height()
-        # m = self.projectionMatrix() * self.viewMatrix()
-        # m = np.array(m.data(), dtype=np.float32).reshape((4, 4))
-        # one_mat = np.ones((self.points.shape[0], 1))
-        # points = np.concatenate((self.points, one_mat), axis=1)
-        # new = np.matmul(points, m)
-        # new[:, :3] = new[:, :3] / new[:, 3].reshape(-1, 1)
-        # new = new[:, :3]
-        # projected_array = np.zeros((new.shape[0], 2))
-        # projected_array[:, 0] = (new[:, 0] + 1) / 2
-        # projected_array[:, 1] = (-new[:, 1] + 1) / 2
-        # self.projected_array = copy.deepcopy(projected_array)
-        # self.projected_array[:, 0] = self.projected_array[:, 0] * view_w
-        # self.projected_array[:, 1] = self.projected_array[:, 1] * view_h
 
     def mouseMoveEvent(self, ev):
         lpos = ev.position() if hasattr(ev, 'position') else ev.localPos()
