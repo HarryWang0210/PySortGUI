@@ -7,6 +7,7 @@ import pyqtgraph.opengl as gl
 from OpenGL.GL import *  # noqa
 import numpy as np
 from scipy.spatial import KDTree
+from matplotlib.path import Path
 import seaborn as sns
 import time
 from DataStructure.data import SpikeSorterData
@@ -93,6 +94,10 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.nearest_point_item.setGLOptions('opaque')  # not to mix color
         self.addItem(self.nearest_point_item)
 
+        self.test_point_item = gl.GLScatterPlotItem()
+        self.test_point_item.setGLOptions('opaque')  # not to mix color
+        self.addItem(self.test_point_item)
+
         self.manual_curve_item = GLPainterItem(color=(255, 0, 0))
         self.addItem(self.manual_curve_item)
 
@@ -173,29 +178,12 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
 
     def __project(self, obj_pos):
         # modify from pyqtgraph.opengl.items.GLTextItem
+        # FIXME: work when obj_pos shape=(1, 3)
         modelview = np.array(self.viewMatrix().data()
                              ).reshape((4, 4))  # (4, 4)
         projection = np.array(self.projectionMatrix().data()
                               ).reshape((4, 4))  # (4, 4)
         viewport = [0, 0, self.width(), self.height()]
-        # obj_pos = np.array([1, 1, 0])
-        # obj_vec = np.append(np.array(obj_pos), [1.0])
-
-        # view_vec = np.matmul(modelview.T, obj_vec)
-        # proj_vec = np.matmul(projection.T, view_vec)
-
-        # if proj_vec[3] == 0.0:
-        #     print(0, 0)
-
-        # proj_vec[0:3] /= proj_vec[3]
-
-        # print(
-        #     viewport[0] + (1.0 + proj_vec[0]) * viewport[2] / 2,
-        #     viewport[3] - (viewport[1] + (1.0 + proj_vec[1]) * viewport[3] / 2)
-        # )
-        # print(self.axis_label_item_list[0].view().width(
-        # ), self.axis_label_item_list[0].view().height())
-        # print("end")
         obj_vec = np.hstack((obj_pos, np.ones((obj_pos.shape[0], 1))))
 
         view_vec = np.matmul(modelview.T, obj_vec.T)
@@ -215,8 +203,26 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     def findNearestNeighbor(self, pos):
         projected_data = self.__project(self.current_showing_data)
         tree = KDTree(projected_data)
-        nearest_index = tree.query(pos)[1]
-        return nearest_index
+        nearest_point_index = tree.query(pos)[1]
+        return nearest_point_index
+
+    def findPointInRegion(self, verteices):
+        projected_data = self.__project(self.current_showing_data)
+
+        # first filter: reduce point count
+        xmin, ymin = np.min(projected_data, axis=0)
+        xmax, ymax = np.max(projected_data, axis=0)
+
+        lower_mask = (projected_data > [xmin, ymin]).all(axis=1)
+        upper_mask = (projected_data < [xmax, ymax]).all(axis=1)
+        in_rect_points = projected_data[lower_mask & upper_mask]
+        in_rect_points_index = np.where(lower_mask & upper_mask)[0]
+
+        # secind filter: find the points in polygon
+        region = Path(verteices)
+        in_region_points_index = in_rect_points_index[
+            region.contains_points(in_rect_points)]
+        return in_region_points_index
 
     def mousePressEvent(self, ev):
         lpos = ev.position() if hasattr(ev, 'position') else ev.localPos()
@@ -226,9 +232,10 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         if ev.buttons() == QtCore.Qt.MouseButton.LeftButton:
             if (ev.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier):
                 """select point"""
-                nearest_index = self.findNearestNeighbor(
+                self.nearest_point_item.setVisible(True)
+                nearest_point_index = self.findNearestNeighbor(
                     np.array([self.mousePos.x(), self.mousePos.y()]))
-                self.nearest_point_item.setData(pos=self.current_showing_data[nearest_index, :].reshape((1, 3)),
+                self.nearest_point_item.setData(pos=self.current_showing_data[nearest_point_index, :].reshape((-1, 3)),
                                                 size=10,
                                                 color=[1, 1, 1, 1])
             else:
@@ -247,7 +254,11 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         if ev.buttons() == QtCore.Qt.MouseButton.LeftButton:
             if (ev.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier):
                 """select point"""
-                pass
+                nearest_index = self.findNearestNeighbor(
+                    np.array([self.mousePos.x(), self.mousePos.y()]))
+                self.nearest_point_item.setData(pos=self.current_showing_data[nearest_index, :].reshape((-1, 3)),
+                                                size=10,
+                                                color=[1, 1, 1, 1])
             else:
                 line_data = self.manual_curve_item.getData()
                 line_data = np.append(
@@ -257,17 +268,23 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.orbit(-diff.x(), diff.y())
 
     def mouseReleaseEvent(self, ev):
+        # FIXME: 當shift先放開後，即便滑鼠後來放開，點還在
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:
             if (ev.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier):
                 """select point"""
-                pass
+                self.nearest_point_item.setVisible(False)
             else:
                 line_data = self.manual_curve_item.getData()
                 line_data = np.append(
                     line_data, [line_data[0]], axis=0)
                 self.manual_curve_item.setData(pos=line_data)
                 self.draw_mode = False
-                self.manual_curve_item.setVisible(self.draw_mode)
+
+                in_region_points_index = self.findPointInRegion(line_data)
+                self.test_point_item.setData(pos=self.current_showing_data[in_region_points_index, :].reshape((-1, 3)),
+                                             size=10,
+                                             color=[1, 1, 1, 1])
+                # self.manual_curve_item.setVisible(self.draw_mode)
 
 
 class GLPainterItem(gl.GLGraphicsItem.GLGraphicsItem):
