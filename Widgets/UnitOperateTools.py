@@ -1,4 +1,4 @@
-from UI.UnitOperateToolsUIv2_ui import Ui_UnitOperateTools
+from UI.UnitOperateToolsUIv3_ui import Ui_UnitOperateTools
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QStandardItem, QStandardItemModel, QColor
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QAbstractItemView, QCheckBox, QStyledItemDelegate
@@ -105,7 +105,6 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             self.has_waveforms = True
             self.setDataModel(self.spikes["unitInfo"])
 
-        # self.unit_color = self.get_color()
         self.visible = True
         self.locked_rows_list = []
         self.selected_rows_list = []
