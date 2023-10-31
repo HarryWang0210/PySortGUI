@@ -149,6 +149,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.scatter_item.setVisible(self.visible and self.has_spikes)
 
     def setCurrentShowingData(self):
+        # TODO:
         showing_data = np.zeros((np.sum(self.current_wavs_mask_list), 3))
         for i in range(3):
             if self.axis_label[i] == 'PCA1':
@@ -217,7 +218,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         upper_mask = (projected_data < [xmax, ymax]).all(axis=1)
         in_rect_points = projected_data[lower_mask & upper_mask]
         in_rect_points_index = np.where(lower_mask & upper_mask)[0]
-
+        print(in_rect_points)
         # secind filter: find the points in polygon
         region = Path(verteices)
         in_region_points_index = in_rect_points_index[
@@ -268,23 +269,20 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.orbit(-diff.x(), diff.y())
 
     def mouseReleaseEvent(self, ev):
-        # FIXME: 當shift先放開後，即便滑鼠後來放開，點還在
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:
-            if (ev.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier):
-                """select point"""
-                self.nearest_point_item.setVisible(False)
-            else:
-                line_data = self.manual_curve_item.getData()
-                line_data = np.append(
-                    line_data, [line_data[0]], axis=0)
-                self.manual_curve_item.setData(pos=line_data)
-                self.draw_mode = False
+            self.nearest_point_item.setVisible(False)
 
-                in_region_points_index = self.findPointInRegion(line_data)
-                self.test_point_item.setData(pos=self.current_showing_data[in_region_points_index, :].reshape((-1, 3)),
-                                             size=10,
-                                             color=[1, 1, 1, 1])
-                # self.manual_curve_item.setVisible(self.draw_mode)
+            line_data = self.manual_curve_item.getData()
+            line_data = np.append(
+                line_data, [line_data[0]], axis=0)
+            self.manual_curve_item.setData(pos=line_data)
+            self.draw_mode = False
+
+            in_region_points_index = self.findPointInRegion(line_data)
+            self.test_point_item.setData(pos=self.current_showing_data[in_region_points_index, :].reshape((-1, 3)),
+                                         size=10,
+                                         color=[1, 1, 1, 1])
+            # self.manual_curve_item.setVisible(self.draw_mode)
 
 
 class GLPainterItem(gl.GLGraphicsItem.GLGraphicsItem):
