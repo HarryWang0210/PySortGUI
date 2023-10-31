@@ -269,6 +269,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.orbit(-diff.x(), diff.y())
 
     def mouseReleaseEvent(self, ev):
+        # FIXME: 有些點不會被圈到，但是可以被當成最近點(project沒問題)
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:
             self.nearest_point_item.setVisible(False)
 
