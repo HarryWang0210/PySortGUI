@@ -43,7 +43,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.current_wav_colors = []  # waveform colors (N, 3), float
 
         # data use on showing
-        self.current_wavs_mask_list = []  # visible waveforms (N,), bool
+        self.current_wavs_mask = []  # visible waveforms (N,), bool
         self.current_pca = []  # current showing pca
         self.current_showing_data = []
 
@@ -124,20 +124,20 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.current_wav_units = self.spikes["unitID"]
             self.current_wav_colors = self.getColor(self.current_wav_units)
 
-            self.current_wavs_mask_list = [True] * self.num_wavs
-            self.current_pca = self.all_wavs_pca[self.current_wavs_mask_list]
+            self.current_wavs_mask = [True] * self.num_wavs
+            self.current_pca = self.all_wavs_pca[self.current_wavs_mask]
             self.setCurrentShowingData()
 
         self.updatePlot()
 
     def selected_units_changed(self, selected_rows):
-        self.current_wavs_mask_list = np.isin(
+        self.current_wavs_mask = np.isin(
             self.current_wav_units, list(selected_rows))
         if self.feature_on_selection:
             self.current_pca = self.computePCA(
-                self.spikes["waveforms"][self.current_wavs_mask_list])
+                self.spikes["waveforms"][self.current_wavs_mask])
         else:
-            self.current_pca = self.all_wavs_pca[self.current_wavs_mask_list]
+            self.current_pca = self.all_wavs_pca[self.current_wavs_mask]
         self.setCurrentShowingData()
         self.updatePlot()
 
@@ -145,12 +145,12 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         if self.visible and self.has_spikes:
             self.scatter_item.setData(pos=self.current_showing_data,
                                       size=3,
-                                      color=self.current_wav_colors[self.current_wavs_mask_list])
+                                      color=self.current_wav_colors[self.current_wavs_mask])
         self.scatter_item.setVisible(self.visible and self.has_spikes)
 
     def setCurrentShowingData(self):
         # TODO:
-        showing_data = np.zeros((np.sum(self.current_wavs_mask_list), 3))
+        showing_data = np.zeros((np.sum(self.current_wavs_mask), 3))
         for i in range(3):
             if self.axis_label[i] == 'PCA1':
                 showing_data[:, i] = self.current_pca[:, 0]
@@ -211,14 +211,14 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         projected_data = self.__project(self.current_showing_data)
 
         # first filter: reduce point count
-        xmin, ymin = np.min(projected_data, axis=0)
-        xmax, ymax = np.max(projected_data, axis=0)
+        xmin, ymin = np.min(verteices, axis=0)
+        xmax, ymax = np.max(verteices, axis=0)
 
         lower_mask = (projected_data > [xmin, ymin]).all(axis=1)
         upper_mask = (projected_data < [xmax, ymax]).all(axis=1)
         in_rect_points = projected_data[lower_mask & upper_mask]
         in_rect_points_index = np.where(lower_mask & upper_mask)[0]
-        print(in_rect_points)
+
         # secind filter: find the points in polygon
         region = Path(verteices)
         in_region_points_index = in_rect_points_index[
@@ -269,7 +269,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.orbit(-diff.x(), diff.y())
 
     def mouseReleaseEvent(self, ev):
-        # FIXME: 有些點不會被圈到，但是可以被當成最近點(project沒問題)
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:
             self.nearest_point_item.setVisible(False)
 
