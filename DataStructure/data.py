@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from DataStructure.pyephys import loadPyephys, loadRaws, loadSpikes
-# from pyephys import loadPyephys, loadRaws
+# from pyephys import loadPyephys, loadRaws, loadSpikes
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MaxAbsScaler
@@ -34,13 +34,6 @@ class SpikeSorterData():
     @property
     def chan_info(self):
         chan_info = self.__chan_info.copy()
-        # bytes to string
-        byte_columns = chan_info.select_dtypes(include=[object]).columns
-        chan_info[byte_columns] = chan_info[byte_columns].stack(
-        ).str.decode('utf-8').unstack()
-        chan_info.index = chan_info.index.set_levels(
-            chan_info.index.levels[1].map(bytes.decode), level=1)
-
         # round float
         chan_info["Threshold"] = chan_info["Threshold"].round(3)
         # chan_info = chan_info.replace([np.NaN], [None])
