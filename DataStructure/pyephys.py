@@ -96,27 +96,62 @@ def loadSpikes(filename, chan_ID, label):
             try:
                 spike_chan = spikes._f_get_child(
                     "spike" + str(chan_ID).zfill(3))
-                unitInfo = pd.DataFrame(
+                df_units_header = pd.DataFrame(
                     spike_chan._f_get_child("UnitsHeader").read())
+
+                # convert to string
+                df_units_header = df_units_header.applymap(lambda x: x.decode(
+                    'utf-8') if isinstance(x, bytes) else x)
+
+                if 'UnitType' not in df_units_header.columns:
+                    df_units_header['UnitType'] = 'Unit'
+
+                    unsorted_pattern = r'(?i)unsorted'
+                    matches = df_units_header['Name'].str.contains(
+                        unsorted_pattern, regex=True)
+                    df_units_header.loc[matches, 'UnitType'] = 'Unsorted'
+
+                    invalid_pattern = r'(?i)invalid'
+                    matches = df_units_header['Name'].str.contains(
+                        invalid_pattern, regex=True)
+                    df_units_header.loc[matches, 'UnitType'] = 'Invalid'
+
+                # if 'Invalid' not in df_units_header['UnitType'].values:
+                #     new_unit_ID = df_units_header['ID'].max() + 1
+                #     new_row = {
+                #         'H5Location': f'/Spikes/spike{str(chan_ID).zfill(3)}/Unit_{str(new_unit_ID).zfill(2)}',
+                #         'H5Name': 'Indxs',
+                #         'ID': new_unit_ID,
+                #         'Name':  f'CH{chan_ID + 1}_Unit_{str(new_unit_ID).zfill(2)}_Invalid',
+                #         'NumRecords': 0,
+                #         'ParentID': chan_ID,
+                #         'ParentType': 'Spikes',
+                #         'Type': 'Unit',
+                #         'UnitType': 'Invalid'}
+                #     df_units_header = df_units_header.append(
+                #         new_row, ignore_index=True)
+
                 timestamps = spike_chan._f_get_child("TimeStamps").read()
                 waveforms = spike_chan._f_get_child("Waveforms").read()
+
             except tables.NodeError:
                 print("The /Spikes node does not contain the spike" +
                       str(chan_ID).zfill(3) + " node.")
+
                 return {"unitInfo": None,
                         "unitID": None,
                         "timestamps": None,
                         "waveforms": None}
             # get units id
             unitID = np.zeros(len(timestamps))
-            not_zero_units = unitInfo[unitInfo["NumRecords"] > 0]
+            not_zero_units = df_units_header[df_units_header["NumRecords"] > 0]
             for unit in not_zero_units.index:
-                unit_h5_name = "/".join([not_zero_units.loc[unit, "H5Location"].decode(
-                ), not_zero_units.loc[unit, "H5Name"].decode()])
+                unit_h5_name = "/".join([not_zero_units.loc[unit, "H5Location"],
+                                        not_zero_units.loc[unit, "H5Name"]])
                 ind = file.get_node(unit_h5_name).read()
                 unitID[ind] = not_zero_units.loc[unit, "ID"]
 
-            return {"unitInfo": unitInfo,
+            return {"unitInfo": df_units_header,
                     "unitID": unitID,
                     "timestamps": timestamps,
                     "waveforms": waveforms}
