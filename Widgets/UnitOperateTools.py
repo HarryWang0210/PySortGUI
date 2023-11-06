@@ -235,6 +235,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     # ==================== Unit Actions ====================
     def mergeUnits(self):
+        # TODO: contain unsorted unit, all unit merge warning
         unit_IDs = self.current_showing_units
         if len(unit_IDs) < 2:
             print('Error: Merge Units action must have at least 2 units.')
@@ -284,6 +285,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.recoverySelection()
 
     def removeUnits(self):
+        # TODO: all unit warning
         unit_IDs = self.current_showing_units
         if len(unit_IDs) == 0:
             return
@@ -291,6 +293,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.removeWaveforms(wav_index)
 
     def invalidateUnits(self):
+        # TODO: all unit warning
+
         unit_IDs = self.current_showing_units
         if len(unit_IDs) == 0:
             return
