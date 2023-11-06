@@ -17,7 +17,7 @@ from Widgets.WidgetsInterface import WidgetsInterface
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
     signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     signal_spike_chan_changed = QtCore.pyqtSignal(object)
-    signal_selected_units_changed = QtCore.pyqtSignal(set)
+    signal_manual_waveforms = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,7 +32,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.visible = False  # overall visible\
 
         # from UnitOperateTools widget
-        self.draw_mode = False
+        self.manual_mode = False
         self.feature_on_selection = False
         self.axis_label = ["PCA1", "PCA2", "PCA3"]
 
@@ -94,12 +94,9 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.nearest_point_item.setGLOptions('opaque')  # not to mix color
         self.addItem(self.nearest_point_item)
 
-        self.test_point_item = gl.GLScatterPlotItem()
-        self.test_point_item.setGLOptions('opaque')  # not to mix color
-        self.addItem(self.test_point_item)
-
         self.manual_curve_item = GLPainterItem(color=(255, 0, 0))
         self.addItem(self.manual_curve_item)
+        self.manual_curve_item.setVisible(False)
 
     def data_file_name_changed(self, data):
         self.data_object = data
@@ -118,28 +115,32 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.spikes = spikes
 
             self.visible = True
-            self.num_wavs = self.spikes["waveforms"].shape[0]
             self.all_wavs_pca = self.computePCA(self.spikes["waveforms"])
 
-            self.current_wav_units = self.spikes["unitID"]
-            self.current_wav_colors = self.getColor(self.current_wav_units)
+            # self.current_wav_colors = self.getColor(self.current_wav_units)
 
-            self.current_wavs_mask = [True] * self.num_wavs
-            self.current_pca = self.all_wavs_pca[self.current_wavs_mask]
-            self.setCurrentShowingData()
+            # self.current_pca = self.all_wavs_pca[self.current_wavs_mask]
+            # self.setCurrentShowingData()
 
-        self.updatePlot()
+        # self.updatePlot()
 
-    def selected_units_changed(self, selected_rows):
-        self.current_wavs_mask = np.isin(
-            self.current_wav_units, list(selected_rows))
+    def showing_spikes_data_changed(self, spikes_data):
+        self.current_wav_units = spikes_data['current_wav_units']
+        self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
+                                         spikes_data['current_showing_units'])
         if self.feature_on_selection:
             self.current_pca = self.computePCA(
                 self.spikes["waveforms"][self.current_wavs_mask])
         else:
             self.current_pca = self.all_wavs_pca[self.current_wavs_mask]
+
+        self.current_wav_colors = self.getColor(self.current_wav_units)
+
         self.setCurrentShowingData()
         self.updatePlot()
+
+    def activate_manual_mode(self, state):
+        self.manual_mode = state
 
     def updatePlot(self):
         if self.visible and self.has_spikes:
@@ -149,7 +150,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.scatter_item.setVisible(self.visible and self.has_spikes)
 
     def setCurrentShowingData(self):
-        # TODO:
+        # TODO: time, slice
         showing_data = np.zeros((np.sum(self.current_wavs_mask), 3))
         for i in range(3):
             if self.axis_label[i] == 'PCA1':
@@ -229,7 +230,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         lpos = ev.position() if hasattr(ev, 'position') else ev.localPos()
         self.mousePos = lpos
 
-        self.draw_mode = True
         if ev.buttons() == QtCore.Qt.MouseButton.LeftButton:
             if (ev.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier):
                 """select point"""
@@ -239,11 +239,10 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                 self.nearest_point_item.setData(pos=self.current_showing_data[nearest_point_index, :].reshape((-1, 3)),
                                                 size=10,
                                                 color=[1, 1, 1, 1])
-            else:
-                if self.draw_mode:
-                    self.manual_curve_item.setVisible(self.draw_mode)
-                    self.manual_curve_item.setData(
-                        pos=[[self.mousePos.x(), self.mousePos.y()]])
+            elif self.manual_mode:
+                self.manual_curve_item.setVisible(True)
+                self.manual_curve_item.setData(
+                    pos=[[self.mousePos.x(), self.mousePos.y()]])
 
     def mouseMoveEvent(self, ev):
         lpos = ev.position() if hasattr(ev, 'position') else ev.localPos()
@@ -260,7 +259,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                 self.nearest_point_item.setData(pos=self.current_showing_data[nearest_index, :].reshape((-1, 3)),
                                                 size=10,
                                                 color=[1, 1, 1, 1])
-            else:
+            elif self.manual_mode:
                 line_data = self.manual_curve_item.getData()
                 line_data = np.append(
                     line_data, [[self.mousePos.x(), self.mousePos.y()]], axis=0)
@@ -272,17 +271,20 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:
             self.nearest_point_item.setVisible(False)
 
-            line_data = self.manual_curve_item.getData()
-            line_data = np.append(
-                line_data, [line_data[0]], axis=0)
-            self.manual_curve_item.setData(pos=line_data)
-            self.draw_mode = False
+            if self.manual_mode:
+                line_data = self.manual_curve_item.getData()
+                line_data = np.append(
+                    line_data, [line_data[0]], axis=0)
+                self.manual_curve_item.setData(pos=line_data)
+                self.manual_curve_item.setVisible(False)
 
-            in_region_points_index = self.findPointInRegion(line_data)
-            self.test_point_item.setData(pos=self.current_showing_data[in_region_points_index, :].reshape((-1, 3)),
-                                         size=10,
-                                         color=[1, 1, 1, 1])
-            # self.manual_curve_item.setVisible(self.draw_mode)
+                in_region_points_index = self.findPointInRegion(line_data)
+                global_index = np.where(self.current_wavs_mask)[0][
+                    in_region_points_index]
+
+                if len(global_index) == 0:
+                    return
+                self.signal_manual_waveforms.emit(global_index)
 
 
 class GLPainterItem(gl.GLGraphicsItem.GLGraphicsItem):
