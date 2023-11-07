@@ -36,6 +36,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.current_wav_colors = []
 
         self.current_showing_units = []
+        self.current_showing_data = []
 
         self.manual_mode = False
 
@@ -69,6 +70,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.manual_curve_item = pg.PlotCurveItem(
             pen=pg.mkPen('r', width=2), clickable=False)
         self.manual_curve_item.setZValue(1)
+        self.manual_curve_item.setVisible(False)
         self.addItem(self.manual_curve_item)
 
         self.plot_item.getViewBox().wheelEvent = self.graphMouseWheelEvent
@@ -199,10 +201,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
     def graphMousePressEvent(self, event):
         """Overwrite PlotItem.scene().mousePressEvent."""
-        self.manual_mode = True
-        self.redraw = True
-
-        self.manual_curve_item.setVisible(self.manual_mode)
+        self.manual_curve_item.setVisible(True)
 
         pos = event.scenePos()
         mouse_view = self.getViewBox().mapSceneToView(pos)
@@ -213,7 +212,6 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
     def graphMouseMoveEvent(self, event):
         """Overwrite PlotItem.scene().mouseMoveEvent."""
-        self.redraw = True
         if self.manual_mode:
             pos = event.scenePos()
             mouse_view = self.getViewBox().mapSceneToView(pos)
@@ -229,6 +227,4 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
     def graphMouseReleaseEvent(self, event):
         """Overwrite PlotItem.scene().mouseReleaseEvent."""
-        self.manual_mode = False
-        self.redraw = False
-        self.manual_curve_item.setVisible(self.manual_mode)
+        self.manual_curve_item.setVisible(False)
