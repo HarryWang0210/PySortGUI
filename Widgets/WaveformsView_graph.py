@@ -81,13 +81,11 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     def data_file_name_changed(self, data):
         self.data_object = data
         self.visible = False
-        self.waveforms_item_list = []
         self.updatePlot()
 
     def spike_chan_changed(self, meta_data):
         self.getThreshold(meta_data["Threshold"])
         self.getSpikes(meta_data["ID"], meta_data["Label"])
-        self.waveforms_item_list = []
 
     # def selected_units_changed(self, selected_rows):
     #     self.visible = [False] * self.num_unit
