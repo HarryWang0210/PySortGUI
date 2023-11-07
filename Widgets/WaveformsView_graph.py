@@ -21,18 +21,24 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
 
-        self.has_waveforms = False
-        self.has_thr = False
-        self.visible = [False]
-        self.num_unit = 1
-        self.redraw = True
-        self.data = None  # SpikeSorterData object
-        self.plot_waveforms = {"waveforms": None,
-                               "unitID": None}
-        self.thr = 0.0
-        self.color_palette_list = np.array(sns.color_palette(None, 64))
+        self.data_object = None  # SpikeSorterData object
         self.data_scale = 1.0
-        self.draw_mode = False
+        self.spikes = None
+        self.has_spikes = False
+        self.thr = 0.0
+        self.has_thr = False
+        self.color_palette_list = sns.color_palette(None, 64)
+        self.visible = False  # overall visible\
+
+        self.num_unit = 1
+        self.current_wav_units = []
+        self.current_wavs_mask = []
+        self.current_wav_colors = []
+
+        self.current_showing_units = []
+
+        self.manual_mode = False
+
         self.initPlotItem()
 
     def initPlotItem(self):
@@ -71,28 +77,36 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.plot_item.scene().mouseReleaseEvent = self.graphMouseReleaseEvent
 
     def data_file_name_changed(self, data):
-        self.data = data
-        self.visible = [False]
-        self.initPlotItem()
+        self.data_object = data
+        self.visible = False
         self.waveforms_item_list = []
-        self.redraw = True
         self.updatePlot()
 
     def spike_chan_changed(self, meta_data):
         self.getThreshold(meta_data["Threshold"])
         self.getSpikes(meta_data["ID"], meta_data["Label"])
-        self.visible = [True] * self.num_unit
-        self.initPlotItem()
         self.waveforms_item_list = []
-        self.redraw = True
+
+    # def selected_units_changed(self, selected_rows):
+    #     self.visible = [False] * self.num_unit
+    #     for i in selected_rows:
+    #         self.visible[i] = True
+    #     self.redraw = False
+    #     self.updatePlot()
+
+    def showing_spikes_data_changed(self, spikes_data):
+        self.current_wav_units = spikes_data['current_wav_units']
+        self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
+                                         spikes_data['current_showing_units'])
+        self.current_showing_units = spikes_data['current_showing_units']
+        self.num_unit = len(np.unique(self.current_wav_units))
+
+        self.current_wav_colors = self.getColor(self.current_wav_units)
+        self.setCurrentShowingData()
         self.updatePlot()
 
-    def selected_units_changed(self, selected_rows):
-        self.visible = [False] * self.num_unit
-        for i in selected_rows:
-            self.visible[i] = True
-        self.redraw = False
-        self.updatePlot()
+    def activate_manual_mode(self, state):
+        self.manual_mode = state
 
     def getThreshold(self, thr):
         self.thr = float(thr)
@@ -102,43 +116,49 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
             self.has_thr = True
 
     def getSpikes(self, chan_ID, label):
-        spikes = self.data.getSpikes(chan_ID, label)
+        spikes = self.data_object.getSpikes(chan_ID, label)
         if spikes["unitInfo"] is None:
             self.has_spikes = False
             self.spikes = None
-            self.plot_waveforms["waveforms"] = None
-            self.plot_waveforms["unitID"] = None
+            self.visible = False
+
             self.data_scale = 1.0
-            self.has_waveforms, self.show_waveforms = False, False
         else:
             self.has_spikes = True
             self.spikes = spikes
-            self.num_unit = spikes["unitInfo"].shape[0]
-            self.plot_waveforms["waveforms"] = spikes["waveforms"]
-            self.plot_waveforms["unitID"] = spikes["unitID"]
+            self.visible = True
+
             self.data_scale = np.max(np.abs(spikes["waveforms"]))
-            self.has_waveforms, self.show_waveforms = True, True
+
+    def getColor(self, unit_data):
+        n = len(unit_data)
+        color = np.zeros((n, 3))
+
+        for i in range(n):
+            color[i, :] = self.color_palette_list[int(unit_data[i])]
+        color = color * 255
+        return color.astype(np.int32)
+
+    def setCurrentShowingData(self):
+        self.current_showing_data = self.spikes['waveforms'][self.current_wavs_mask]
 
     def updatePlot(self):
-        if self.has_waveforms and np.any(self.visible):
-            if self.redraw:
-                self.drawWaveforms(self.plot_waveforms["waveforms"],
-                                   self.plot_waveforms["unitID"])
-                self.redraw = False
+        if self.visible and self.has_spikes:
+            self.drawWaveforms(self.current_showing_data,
+                               self.current_showing_units)
             if self.has_thr:
                 self.drawThreshold()
 
-        for unitID in range(len(self.waveforms_item_list)):
-            waveforms_item = self.waveforms_item_list[unitID]
-            waveforms_item.setVisible(
-                self.has_waveforms and self.visible[unitID])
+        for waveforms_item in self.waveforms_item_list:
+            waveforms_item.setVisible(self.visible and self.has_spikes)
 
-        self.thr_item.setVisible(self.has_thr and np.any(self.visible))
+        self.thr_item.setVisible(self.visible and self.has_thr)
 
     def drawThreshold(self):
         self.thr_item.setValue(self.thr)
 
-    def drawWaveforms(self, waveforms, unitID):
+    def drawWaveforms(self, waveforms, unit_ID):
+        self.removeWaveformItems()
         # create elements
         xlen = waveforms.shape[1]
         x_element = np.arange(xlen)
@@ -149,12 +169,9 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
             x_element[0], x_element[-1], padding=0)
         self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
 
-        for ID in range(self.num_unit):
-            pen = pg.mkPen(
-                color=(self.color_palette_list[ID] * 255).astype(np.int32))
-            self.waveforms_item_list.append(self.plot(pen=pen))
-
-            data_filtered = waveforms[unitID == ID]
+        for ID in unit_ID:
+            ID_mask = self.current_wav_units[self.current_wavs_mask] == ID
+            data_filtered = waveforms[ID_mask]
             n = data_filtered.shape[0]
 
             if n == 0:
@@ -162,9 +179,19 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
             x = np.tile(x_element, n)
             y = np.ravel(data_filtered)
-            # y = data_filtered.flatten()
             connect = np.tile(connect_element, n)
-            self.waveforms_item_list[ID].setData(x=x, y=y, connect=connect)
+
+            color = self.current_wav_colors[self.current_wav_units == ID][0, :]
+            pen = pg.mkPen(
+                color=color)
+
+            self.waveforms_item_list.append(
+                self.plot(x=x, y=y, connect=connect, pen=pen))
+
+    def removeWaveformItems(self):
+        for waveforms_item in self.waveforms_item_list:
+            self.removeItem(waveforms_item)
+        self.waveforms_item_list = []
 
     def graphMouseWheelEvent(self, event):
         """Overwrite PlotItem.getViewBox().wheelEvent."""
@@ -172,10 +199,10 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
     def graphMousePressEvent(self, event):
         """Overwrite PlotItem.scene().mousePressEvent."""
-        self.draw_mode = True
+        self.manual_mode = True
         self.redraw = True
 
-        self.manual_curve_item.setVisible(self.draw_mode)
+        self.manual_curve_item.setVisible(self.manual_mode)
 
         pos = event.scenePos()
         mouse_view = self.getViewBox().mapSceneToView(pos)
@@ -187,7 +214,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     def graphMouseMoveEvent(self, event):
         """Overwrite PlotItem.scene().mouseMoveEvent."""
         self.redraw = True
-        if self.draw_mode:
+        if self.manual_mode:
             pos = event.scenePos()
             mouse_view = self.getViewBox().mapSceneToView(pos)
             x = mouse_view.x()
@@ -202,6 +229,6 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
     def graphMouseReleaseEvent(self, event):
         """Overwrite PlotItem.scene().mouseReleaseEvent."""
-        self.draw_mode = False
+        self.manual_mode = False
         self.redraw = False
-        self.manual_curve_item.setVisible(self.draw_mode)
+        self.manual_curve_item.setVisible(self.manual_mode)
