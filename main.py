@@ -100,31 +100,45 @@ class SpikeSorter2(MainWindowDocks):
         self.children_dict['Help'].triggered.connect(self.help)
 
     def connectWidgets(self):
+        # signal_data_file_name_changed
         self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
             self.children_dict["TimelineView"].data_file_name_changed)
-        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
-            self.children_dict["TimelineView"].spike_chan_changed)
-        self.children_dict["UnitOperateTools"].signal_selected_units_changed.connect(
-            self.children_dict["TimelineView"].selected_units_changed)
-
         self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
             self.children_dict["WaveformsView"].data_file_name_changed)
-        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
-            self.children_dict["WaveformsView"].spike_chan_changed)
-        self.children_dict["UnitOperateTools"].signal_selected_units_changed.connect(
-            self.children_dict["WaveformsView"].selected_units_changed)
-
         self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
             self.children_dict["ClustersView"].data_file_name_changed)
-        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
-            self.children_dict["ClustersView"].spike_chan_changed)
-        self.children_dict["UnitOperateTools"].signal_selected_units_changed.connect(
-            self.children_dict["ClustersView"].selected_units_changed)
-
         self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
             self.children_dict["UnitOperateTools"].data_file_name_changed)
+
+        # signal_spike_chan_changed
+        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+            self.children_dict["TimelineView"].spike_chan_changed)
+        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+            self.children_dict["WaveformsView"].spike_chan_changed)
+        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+            self.children_dict["ClustersView"].spike_chan_changed)
         self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
             self.children_dict["UnitOperateTools"].spike_chan_changed)
+
+        # signal_activate_manual_mode
+        # self.children_dict["UnitOperateTools"].signal_activate_manual_mode.connect(
+        #     self.children_dict["WaveformsView"].activate_manual_mode)
+        self.children_dict["UnitOperateTools"].signal_activate_manual_mode.connect(
+            self.children_dict["ClustersView"].activate_manual_mode)
+
+        # signal_manual_waveforms
+        # self.children_dict["WaveformsView"].signal_manual_waveforms.connect(
+        #     self.children_dict["UnitOperateTools"].manual_waveforms)
+        self.children_dict["ClustersView"].signal_manual_waveforms.connect(
+            self.children_dict["UnitOperateTools"].manual_waveforms)
+
+        # signal_showing_spikes_data_changed
+        # self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
+        #     self.children_dict["TimelineView"].showing_spikes_data_changed)
+        self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
+            self.children_dict["WaveformsView"].showing_spikes_data_changed)
+        self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
+            self.children_dict["ClustersView"].showing_spikes_data_changed)
 
     def openFile(self):
         """Open file manager and load selected file."""
