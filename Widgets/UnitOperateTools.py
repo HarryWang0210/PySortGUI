@@ -144,7 +144,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             self.df_table_data['row'] = self.df_table_data.index + 2
 
             self.setDataModel()
-            self.current_wav_units = self.spikes["unitID"]
+            self.current_wav_units = self.spikes["unitID"].copy()
 
             model = self.tableView.model()
             selection_model = self.tableView.selectionModel()
