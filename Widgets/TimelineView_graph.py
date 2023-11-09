@@ -57,7 +57,6 @@ class TimelineViewGraph(pg.PlotWidget):
         self.thr = 0.0
         self.has_thr = False
         self.thr_visible = False
-        self.redraw_thr = True
 
         # events relative variables
         self.events = None
@@ -65,7 +64,6 @@ class TimelineViewGraph(pg.PlotWidget):
         self.events_visible = False
         self.num_event_units = 0
         self.event_units_visible = []  # list of all event units
-        self.redraw_events = True
 
         # spikes relative variables
         self.spikes = None
@@ -73,12 +71,10 @@ class TimelineViewGraph(pg.PlotWidget):
         self.spikes_visible = False
         self.num_spike_units = 0
         self.spike_units_visible = []  # list of all spike units
-        self.redraw_spikes = True
 
         # raw relative variables
         self.raw = None
         self.raw_visible = False
-        self.redraw_raw = True
 
         self.timeline_data = None  # data show in view
         self.timeline_data_len = 0
@@ -144,7 +140,7 @@ class TimelineViewGraph(pg.PlotWidget):
                                          spikes_data['current_showing_units'])
         self.num_unit = len(np.unique(self.current_wav_units))
 
-        self.current_wav_colors = self.getColor(self.current_wav_units)
+        # self.current_wav_colors = self.getColor(self.current_wav_units)
         self.updatePlot()
 
     def getRaw(self, raw):
@@ -152,7 +148,6 @@ class TimelineViewGraph(pg.PlotWidget):
         self.timeline_data_len = len(raw)
         self.data_scale = np.max(np.abs(self.raw)) / 2
         self.num_data_show = 1000  # initial number of data points show in window
-        self.redraw_raw = True
 
     def getThreshold(self, thr):
         try:
@@ -161,13 +156,11 @@ class TimelineViewGraph(pg.PlotWidget):
         except:
             self.thr = 0.0
             self.has_thr = False
-        self.redraw_thr = True
 
     def getEvents(self, events):
         # TODO: getEvents
         self.events = events
         self.has_events = True
-        self.redraw_events = True
 
     def getSpikes(self, spikes):
         if spikes["unitInfo"] is None:
@@ -184,7 +177,6 @@ class TimelineViewGraph(pg.PlotWidget):
             self.spikes = spikes
             self.num_spike_units = spikes["unitInfo"].shape[0]
         self.spike_units_visible = [True] * self.num_spike_units
-        self.redraw_spikes = True
 
     def getColor(self, unit_data):
         """_summary_
@@ -206,19 +198,16 @@ class TimelineViewGraph(pg.PlotWidget):
     def showThreshold(self, show):
         """Control from TimelineView."""
         self.thr_visible = show
-        self.redraw_thr = False
         self.updatePlot()
 
     def showEvents(self, show):
         """Control from TimelineView."""
         self.events_visible = show
-        self.redraw_events = False
         self.updatePlot()
 
     def showSpikes(self, show):
         """Control from TimelineView."""
         self.spikes_visible = show
-        self.redraw_spikes = False
         self.updatePlot()
 
     def showRaw(self, show):
@@ -227,9 +216,7 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def updatePlot(self):
         if self.visible:
-            if self.redraw_raw:
-                self.drawRaw()
-                self.redraw_raw = False
+            self.drawRaw()
 
             if self.has_thr:
                 self.drawThreshold()
