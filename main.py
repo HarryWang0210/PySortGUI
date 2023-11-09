@@ -140,6 +140,10 @@ class SpikeSorter2(MainWindowDocks):
         self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
             self.children_dict["ClustersView"].showing_spikes_data_changed)
 
+        self.children_dict["UnitOperateTools"].signal_features_changed.connect(
+            self.children_dict["ClustersView"].features_changed)
+        
+
     def openFile(self):
         """Open file manager and load selected file."""
         self.children_dict["ChannelDetail"].openFile()
