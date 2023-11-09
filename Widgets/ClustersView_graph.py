@@ -12,6 +12,7 @@ import seaborn as sns
 import time
 from DataStructure.data import SpikeSorterData
 from Widgets.WidgetsInterface import WidgetsInterface
+from sklearn.preprocessing import MaxAbsScaler
 
 
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
@@ -27,7 +28,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.spikes = None
         self.has_spikes = False
         self.color_palette_list = sns.color_palette(None, 64)
-        self.visible = False  # overall visible\
+        self.visible = False  # overall visible
 
         # from UnitOperateTools widget
         self.manual_mode = False
@@ -36,7 +37,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
 
         # change only when waveforms change
         self.num_wavs = 0  # N
-        self.all_wavs_pca = []  # backup pca on all waveforms
         self.current_wav_units = []  # waveform units (N,), int
         self.current_wav_colors = []  # waveform colors (N, 3), float
 
@@ -69,11 +69,10 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                                [0, 1, 0, 1],
                                [0, 0, 1, 1],
                                [0, 0, 1, 1]])
-        self.axis_manual_curve_item = gl.GLLinePlotItem(
+        self.axis_lines_item = gl.GLLinePlotItem(
             pos=axis_pos, color=axis_color,  width=2, mode='lines')
-        self.addItem(self.axis_manual_curve_item)
+        self.addItem(self.axis_lines_item)
 
-        self.axis_label = ["PCA1", "PCA2", "PCA3"]
         for i in range(3):
             axis_label_item = gl.GLTextItem(text=self.axis_label[i],
                                             color=(axis_color[i*2] * 255).astype(np.int32))
@@ -113,7 +112,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.spikes = spikes
 
             self.visible = True
-            self.all_wavs_pca = self.computePCA(self.spikes["waveforms"])
 
             # self.current_wav_colors = self.getColor(self.current_wav_units)
 
@@ -130,7 +128,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             self.current_pca = self.computePCA(
                 self.spikes["waveforms"][self.current_wavs_mask])
         else:
-            self.current_pca = self.all_wavs_pca[self.current_wavs_mask]
+            all_wavs_pca = self.computePCA(self.spikes["waveforms"])
+            self.current_pca = all_wavs_pca[self.current_wavs_mask]
 
         self.current_wav_colors = self.getColor(self.current_wav_units)
 
@@ -139,6 +138,13 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
 
     def activate_manual_mode(self, state):
         self.manual_mode = state
+
+    def features_changed(self, features):
+        self.axis_label = features.copy()
+        for i in range(3):
+            self.axis_label_item_list[i].setData(text=self.axis_label[i])
+        self.setCurrentShowingData()
+        self.updatePlot()
 
     def updatePlot(self):
         if self.visible and self.has_spikes:
@@ -158,14 +164,22 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             elif self.axis_label[i] == 'PCA3':
                 showing_data[:, i] = self.current_pca[:, 2]
             elif self.axis_label[i] == 'time':
-                pass
+                ts = self.spikes["timestamps"].copy()
+                transformed_ts = (MaxAbsScaler().fit_transform(
+                    ts.reshape(-1, 1))).reshape(-1)
+
+                showing_data[:, i] = transformed_ts[self.current_wavs_mask]
+            elif self.axis_label[i] == 'amplitude':
+                print("TODO: amplitude")
             elif self.axis_label[i] == 'slice':
-                pass
+                print("TODO: slice")
 
         self.current_showing_data = showing_data
 
     def computePCA(self, wav_data):
-        return self.data_object.waveforms_pca(wav_data)
+        pca = self.data_object.waveforms_pca(wav_data)
+        transformed_data = MaxAbsScaler().fit_transform(pca)
+        return transformed_data
 
     def getColor(self, unit_data):
         n = len(unit_data)
