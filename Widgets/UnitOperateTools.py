@@ -23,25 +23,32 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.data_object = None
         self.spike_chan_name = ''
-        self.visible = False
+        self.has_spikes = False
         self.spikes = None
-        self.has_waveforms = False
-        self.locked_rows_list = []
-        self.selected_rows_list = []
+        self.locked_rows_list = []  # store the rows that have been locked
+        self.selected_rows_list = []  # store the rows that have been selected
         self.color_palette_list = sns.color_palette(None, 64)
+
         self.wav_actions_state = {
             self.add_wav_new_pushButton.objectName(): [self.add_wav_new_pushButton, False],
             self.add_wav_selected_pushButton.objectName(): [self.add_wav_selected_pushButton, False],
             self.remove_wav_pushButton.objectName(): [self.remove_wav_pushButton, False],
             self.invalidate_wav_pushButton.objectName(): [self.invalidate_wav_pushButton, False]}
 
-        self.current_wav_units = []  # waveform units (N,), int
-        self.current_showing_units = []
-        # self.df_table_data = None
+        self.current_wav_units = []  # all waveform units (N,), int
+        self.current_showing_units = []  # the unit id that are showing
+
+        # store the table data(contain only units)
+        # index: 'ID'
+        # column: 'Name', 'NumRecords', 'UnitType', 'row
+        self.df_table_data = None
+
         self.initDataModel()
 
+        # set table color by unit id
         delegate = TableColorDelegate(self.color_palette_list)
         self.tableView.setItemDelegate(delegate)
+
         self.setupConnections()
 
     def initDataModel(self):
@@ -50,7 +57,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.tableView.setModel(model)
         self.tableView.horizontalHeader().setStretchLastSection(True)
 
-        self.tableView.verticalHeader().setVisible(False)
+        self.tableView.verticalHeader().setVisible(False)  # hide index
 
         selection_model = self.tableView.selectionModel()
         selection_model.selectionChanged.connect(self.onSelectionChanged)
@@ -115,28 +122,26 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     # ========== Slot ==========
     def data_file_name_changed(self, data):
         self.data_object = data
-        self.visible = False
 
     def spike_chan_changed(self, meta_data):
         spikes = self.data_object.getSpikes(
             meta_data["ID"], meta_data["Label"])
         self.spike_chan_name = meta_data["Name"]
 
-        self.visible = True
         self.locked_rows_list = []
         self.selected_rows_list = []
+        self.current_wav_units = []
         self.current_showing_units = []
 
         if spikes["unitInfo"] is None:
             self.spikes = None
-            self.has_waveforms = False
+            self.has_spikes = False
             model = self.tableView.model()
             model.clear()
-            self.current_wav_units = []
 
         else:
             self.spikes = spikes
-            self.has_waveforms = True
+            self.has_spikes = True
             self.df_table_data = pd.DataFrame()
             self.df_table_data[['ID', 'Name', 'NumRecords', 'UnitType']] = self.spikes['unitInfo'][[
                 'ID', 'Name', 'NumRecords', 'UnitType']].copy()
@@ -146,6 +151,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             self.setDataModel()
             self.current_wav_units = self.spikes["unitID"].copy()
 
+            # selecting first row by default
             model = self.tableView.model()
             selection_model = self.tableView.selectionModel()
             selection_model.select(model.index(0, 0),
@@ -320,26 +326,17 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     def addToSelectedUnit(self, wav_index):
         unit_ID_list = self.current_showing_units
-        unit_name_list = self.df_table_data.loc[self.current_showing_units, 'Name']
-
-        accepted, target_unit_name = self.askTargetUnit(
-            unit_ID_list=unit_ID_list,
-            unit_name_list=unit_name_list)
+        accepted, target_unit_ID = self.askTargetUnit(unit_ID_list)
         if accepted:
-            target_unit_mask = self.df_table_data['Name'] == target_unit_name
-            target_unit_type = self.df_table_data['UnitType'][target_unit_mask].to_list()[
-                0]
+            target_unit_type = self.df_table_data.loc[target_unit_ID, 'UnitType']
 
             if target_unit_type in ['Unsorted', 'Invalid']:
                 warning_result = QMessageBox.warning(self,
                                                      "Warning",
                                                      f"The target unit is {target_unit_type} unit.\nDo you want to continue?",
-                                                     QMessageBox.Ok | QMessageBox.Cancel)
-                if warning_result != QMessageBox.Ok:
+                                                     QMessageBox.Yes | QMessageBox.No)
+                if warning_result != QMessageBox.Yes:
                     return
-
-            target_unit_ID = self.df_table_data.index[target_unit_mask].tolist()[
-                0]
         else:
             return
 
@@ -406,7 +403,19 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.recoverySelection()
     # ========================================
 
-    def askTargetUnit(self, unit_ID_list, unit_name_list):
+    def askTargetUnit(self, unit_ID_list):
+        """Create a dialog to ask the target unit.
+
+        Args:
+            unit_ID_list (list): a list of unit IDs.
+
+        Returns:
+            A tuple contain response (bool) and target unit ID (int or None).
+
+            (True, 0)
+            (False, None)
+        """
+        unit_name_list = self.df_table_data.loc[self.current_showing_units, 'Name']
         dialog = SelectTargetUnitDialog(unit_ID_list=unit_ID_list,
                                         unit_name_list=unit_name_list,
                                         color_palette=self.color_palette_list,
@@ -414,8 +423,10 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         result = dialog.exec_()  # 显示对话框并获取结果
 
         if result == QDialog.Accepted:
-            selected_option = dialog.comboBox.currentText()
-            return (True, selected_option)
+            target_unit_name = dialog.comboBox.currentText()
+            target_unit_ID = self.df_table_data[self.df_table_data['Name'] == target_unit_name].index.to_list()[
+                0]
+            return (True, target_unit_ID)
         else:
             return (False, None)
 
