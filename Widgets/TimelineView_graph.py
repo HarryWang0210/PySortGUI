@@ -11,10 +11,6 @@ from DataStructure.data import SpikeSorterData
 
 
 class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
-    signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
-    signal_spike_chan_changed = QtCore.pyqtSignal(object)
-    signal_selected_units_changed = QtCore.pyqtSignal(set)
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window_title = "Timeline View"
@@ -35,15 +31,11 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def spike_chan_changed(self, meta_data):
         self.graphWidget.spike_chan_changed(meta_data)
 
-    def selected_units_changed(self, selected_rows):
-        self.graphWidget.selected_units_changed(selected_rows)
+    def showing_spikes_data_changed(self, spikes_data):
+        self.graphWidget.showing_spikes_data_changed(spikes_data)
 
 
 class TimelineViewGraph(pg.PlotWidget):
-    signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
-    signal_spike_chan_changed = QtCore.pyqtSignal(object)
-    signal_selected_units_changed = QtCore.pyqtSignal(set)
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumWidth(100)
@@ -52,12 +44,17 @@ class TimelineViewGraph(pg.PlotWidget):
         self.MAX_DATA_SHOW = 30000
 
         self.data_object = None
+        self.spike_chan = {
+            'ID': None,
+            'Name': None,
+            'Label': None
+        }
         self.visible = False  # overall visible
-        self.color_palette = sns.color_palette(
+        self.color_palette_list = sns.color_palette(
             None, 64)  # palette for events and spikes
 
         # threshold relative variables
-        self.thr = None
+        self.thr = 0.0
         self.has_thr = False
         self.thr_visible = False
         self.redraw_thr = True
@@ -88,6 +85,8 @@ class TimelineViewGraph(pg.PlotWidget):
         self.data_scale = 1000  # maximun height of data
         self.num_data_show = 1000  # initial number of data points show in window
 
+        self.current_wav_colors = []  # (units, 3)
+
         self.initPlotItem()
 
     def initPlotItem(self):
@@ -111,7 +110,6 @@ class TimelineViewGraph(pg.PlotWidget):
         self.raw_item.setVisible(False)
         self.addItem(self.raw_item)
 
-        self.thr = 0.0
         self.thr_item = pg.InfiniteLine(pos=self.thr, angle=0, pen="g")
         self.thr_item.setVisible(False)
         self.addItem(self.thr_item)
@@ -129,19 +127,24 @@ class TimelineViewGraph(pg.PlotWidget):
         self.updatePlot()
 
     def spike_chan_changed(self, meta_data):
-        self.getRaw(self.data_object.getRaw(int(meta_data["ID"])))
+        self.spike_chan['ID'] = int(meta_data["ID"])
+        self.spike_chan['Name'] = meta_data["Name"]
+        self.spike_chan['Label'] = meta_data["Label"]
+
+        self.getRaw(self.data_object.getRaw(self.spike_chan['ID']))
         self.getThreshold(meta_data["Threshold"])
         self.getSpikes(
-            self.data_object.getSpikes(int(meta_data["ID"]), meta_data["Label"]))
-        self.visible = True
+            self.data_object.getSpikes(self.spike_chan['ID'],
+                                       self.spike_chan['Label']))
 
-        self.updatePlot()
+    def showing_spikes_data_changed(self, spikes_data):
+        self.current_wav_units = spikes_data['current_wav_units']
+        self.current_showing_units = spikes_data['current_showing_units']
+        self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
+                                         spikes_data['current_showing_units'])
+        self.num_unit = len(np.unique(self.current_wav_units))
 
-    def selected_units_changed(self, selected_rows):
-        self.spike_units_visible = [False] * self.num_spike_units
-        for i in selected_rows:
-            self.spike_units_visible[i] = True
-        self.redraw_spikes = False
+        self.current_wav_colors = self.getColor(self.current_wav_units)
         self.updatePlot()
 
     def getRaw(self, raw):
@@ -168,16 +171,37 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def getSpikes(self, spikes):
         if spikes["unitInfo"] is None:
+            self.visible = False
+
             self.has_spikes = False
             self.spikes = None
             self.num_spike_units = 0
 
         else:
+            self.visible = True
+
             self.has_spikes = True
             self.spikes = spikes
             self.num_spike_units = spikes["unitInfo"].shape[0]
         self.spike_units_visible = [True] * self.num_spike_units
         self.redraw_spikes = True
+
+    def getColor(self, unit_data):
+        """_summary_
+
+        Args:
+            unit_data (list): list of all unit ID (int).
+
+        Returns:
+            list: color palette list.
+        """
+        n = len(unit_data)
+        color = np.zeros((n, 3))
+
+        for i in range(n):
+            color[i, :] = self.color_palette_list[int(unit_data[i])]
+        color = color * 255
+        return color.astype(np.int32)
 
     def showThreshold(self, show):
         """Control from TimelineView."""
@@ -207,24 +231,21 @@ class TimelineViewGraph(pg.PlotWidget):
                 self.drawRaw()
                 self.redraw_raw = False
 
-            if self.has_thr and self.redraw_thr:
+            if self.has_thr:
                 self.drawThreshold()
-                self.redraw_thr = False
 
-            if self.has_spikes and self.redraw_spikes:
+            if self.has_spikes:
                 self.drawSpikes()
-                self.redraw_spikes = False
 
         self.raw_item.setVisible(self.visible)
         self.thr_item.setVisible(self.visible and
                                  self.has_thr and
                                  self.thr_visible)
 
-        for unit_ID in range(len(self.spikes_item_list)):
-            spikes_item = self.spikes_item_list[unit_ID]
-            spikes_item.setVisible(self.visible and
-                                   self.spikes_visible and
-                                   self.spike_units_visible[unit_ID])
+        for item in self.spikes_item_list:
+            item.setVisible(self.visible and
+                            self.has_spikes and
+                            self.spikes_visible)
 
     def drawRaw(self):
         self.raw_item.setData(self.raw)
@@ -239,16 +260,21 @@ class TimelineViewGraph(pg.PlotWidget):
         pass
 
     def drawSpikes(self):
-        if len(self.spikes_item_list) != 0:
-            [self.removeItem(item) for item in self.spikes_item_list]
+        self.removeSpikeItems()
+
         self.spikes_item_list = self.tsToLines(self.spikes["timestamps"],
-                                               self.spikes["unitID"],
-                                               self.num_spike_units,
-                                               "spikes")
+                                               unit_ID=self.current_showing_units,
+                                               all_unit_ID=self.current_wav_units,
+                                               data_type="spikes")
 
         [self.addItem(item) for item in self.spikes_item_list]
 
-    def tsToLines(self, ts, color_ID, num_color, data_type):
+    def removeSpikeItems(self):
+        for item in self.spikes_item_list:
+            self.removeItem(item)
+        self.spikes_item_list = []
+
+    def tsToLines(self, ts, unit_ID, all_unit_ID, data_type):
         # FIXME: y軸縮小時上下界不會跟著改變
         item_list = []
         if data_type == "spikes":
@@ -256,17 +282,20 @@ class TimelineViewGraph(pg.PlotWidget):
         elif data_type == "events":
             y_element = np.array([self.data_scale, self.thr])
         else:
+            print('Unknown type of timestamps.')
             return
 
-        for ID in range(num_color):
-            pen = pg.mkPen(
-                color=[int(c * 255) for c in self.color_palette[ID]])
-            data_filtered = ts[color_ID == ID]
+        for ID in unit_ID:
+            data_filtered = ts[all_unit_ID == ID].copy()
+
+            color = self.color_palette_list[ID]
+            color = (np.array(color) * 255).astype(int)
+
             n = data_filtered.shape[0]
             x = np.repeat(data_filtered, 2)
             y = np.tile(y_element, n)
             item_list.append(pg.PlotCurveItem(
-                x=x, y=y, pen=pen, connect="pairs"))
+                x=x, y=y, pen=pg.mkPen(color=color), connect="pairs"))
 
         return item_list
 
