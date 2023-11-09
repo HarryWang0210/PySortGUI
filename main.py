@@ -142,7 +142,8 @@ class SpikeSorter2(MainWindowDocks):
 
         self.children_dict["UnitOperateTools"].signal_features_changed.connect(
             self.children_dict["ClustersView"].features_changed)
-        
+        self.children_dict["UnitOperateTools"].signal_set_feature_on_selection.connect(
+            self.children_dict["ClustersView"].set_feature_on_selection)
 
     def openFile(self):
         """Open file manager and load selected file."""
