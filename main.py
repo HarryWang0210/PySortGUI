@@ -140,6 +140,9 @@ class SpikeSorter2(MainWindowDocks):
         self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
             self.children_dict["ClustersView"].showing_spikes_data_changed)
 
+        self.children_dict["ClustersView"].signal_select_point.connect(
+            self.children_dict["WaveformsView"].select_point)
+
         self.children_dict["UnitOperateTools"].signal_features_changed.connect(
             self.children_dict["ClustersView"].features_changed)
         self.children_dict["UnitOperateTools"].signal_set_feature_on_selection.connect(
