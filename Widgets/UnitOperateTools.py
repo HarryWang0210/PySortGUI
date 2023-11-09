@@ -15,6 +15,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     signal_activate_manual_mode = QtCore.pyqtSignal(bool)
     signal_showing_spikes_data_changed = QtCore.pyqtSignal(object)
     signal_features_changed = QtCore.pyqtSignal(list)
+    signal_set_feature_on_selection = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -120,7 +121,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.feature2_comboBox.currentTextChanged.connect(self.sendFeatures)
         self.feature3_comboBox.currentTextChanged.connect(self.sendFeatures)
 
-        self.features_on_selection_pushButton
+        self.features_on_selection_pushButton.clicked.connect(
+            self.setFeatureOnSelection)
 
         self.isi_thr_doubleSpinBox
 
@@ -206,6 +208,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.selected_rows_list = [index.row() for index in selected_indexes]
         self.sendSpikesData()
 
+    def setFeatureOnSelection(self, checked):
+        self.signal_set_feature_on_selection.emit(checked)
     # ====================
 
     def sendSpikesData(self):

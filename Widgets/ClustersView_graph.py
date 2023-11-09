@@ -124,15 +124,10 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.current_wav_units = spikes_data['current_wav_units']
         self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
                                          spikes_data['current_showing_units'])
-        if self.feature_on_selection:
-            self.current_pca = self.computePCA(
-                self.spikes["waveforms"][self.current_wavs_mask])
-        else:
-            all_wavs_pca = self.computePCA(self.spikes["waveforms"])
-            self.current_pca = all_wavs_pca[self.current_wavs_mask]
 
         self.current_wav_colors = self.getColor(self.current_wav_units)
 
+        self.setCurrentPCA()
         self.setCurrentShowingData()
         self.updatePlot()
 
@@ -146,12 +141,26 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.setCurrentShowingData()
         self.updatePlot()
 
+    def set_feature_on_selection(self, state):
+        self.feature_on_selection = state
+        self.setCurrentPCA()
+        self.setCurrentShowingData()
+        self.updatePlot()
+
     def updatePlot(self):
         if self.visible and self.has_spikes:
             self.scatter_item.setData(pos=self.current_showing_data,
                                       size=3,
                                       color=self.current_wav_colors[self.current_wavs_mask])
         self.scatter_item.setVisible(self.visible and self.has_spikes)
+
+    def setCurrentPCA(self):
+        if self.feature_on_selection:
+            self.current_pca = self.computePCA(
+                self.spikes["waveforms"][self.current_wavs_mask])
+        else:
+            all_wavs_pca = self.computePCA(self.spikes["waveforms"])
+            self.current_pca = all_wavs_pca[self.current_wavs_mask]
 
     def setCurrentShowingData(self):
         # TODO: time, slice
