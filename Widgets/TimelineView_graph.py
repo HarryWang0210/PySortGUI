@@ -29,21 +29,14 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
         self.spikes_pushButton.clicked.connect(self.graphWidget.showSpikes)
         self.raw_pushButton.clicked.connect(self.graphWidget.showRaw)
 
-        self.signal_data_file_name_changed.connect(
-            self.graphWidget.data_file_name_changed)
-        self.signal_spike_chan_changed.connect(
-            self.graphWidget.spike_chan_changed)
-        self.signal_selected_units_changed.connect(
-            self.graphWidget.selected_units_changed)
-
     def data_file_name_changed(self, data):
-        self.signal_data_file_name_changed.emit(data)
+        self.graphWidget.data_file_name_changed(data)
 
     def spike_chan_changed(self, meta_data):
-        self.signal_spike_chan_changed.emit(meta_data)
+        self.graphWidget.spike_chan_changed(meta_data)
 
     def selected_units_changed(self, selected_rows):
-        self.signal_selected_units_changed.emit(selected_rows)
+        self.graphWidget.selected_units_changed(selected_rows)
 
 
 class TimelineViewGraph(pg.PlotWidget):
