@@ -133,8 +133,8 @@ class SpikeSorter2(MainWindowDocks):
             self.children_dict["UnitOperateTools"].manual_waveforms)
 
         # signal_showing_spikes_data_changed
-        # self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
-        #     self.children_dict["TimelineView"].showing_spikes_data_changed)
+        self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
+            self.children_dict["TimelineView"].showing_spikes_data_changed)
         self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
             self.children_dict["WaveformsView"].showing_spikes_data_changed)
         self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
