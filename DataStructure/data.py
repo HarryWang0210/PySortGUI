@@ -56,8 +56,6 @@ class SpikeSorterData():
         pca = PCA(n_components=3).fit(data)
         transformed_data = pca.transform(data)
 
-        transformer = MaxAbsScaler().fit(transformed_data)
-        transformed_data = transformer.transform(transformed_data)
         return transformed_data
 
 
