@@ -15,8 +15,6 @@ from Widgets.WidgetsInterface import WidgetsInterface
 
 
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
-    signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
-    signal_spike_chan_changed = QtCore.pyqtSignal(object)
     signal_manual_waveforms = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):

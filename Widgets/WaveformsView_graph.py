@@ -11,10 +11,6 @@ from Widgets.WidgetsInterface import WidgetsInterface
 
 
 class WaveformsView(pg.PlotWidget, WidgetsInterface):
-    signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
-    signal_spike_chan_changed = QtCore.pyqtSignal(object)
-    signal_selected_units_changed = QtCore.pyqtSignal(set)
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window_title = "Waveforms View"
