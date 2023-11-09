@@ -24,7 +24,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.thr = 0.0
         self.has_thr = False
         self.color_palette_list = sns.color_palette(None, 64)
-        self.visible = False  # overall visible\
+        self.visible = False  # overall visible
 
         self.num_unit = 1
         self.current_wav_units = []
@@ -69,6 +69,12 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.manual_curve_item.setVisible(False)
         self.addItem(self.manual_curve_item)
 
+        self.select_point_item = pg.PlotCurveItem(
+            pen=pg.mkPen('w', width=2), clickable=False)
+        self.select_point_item.setZValue(1)
+        self.select_point_item.setVisible(False)
+        self.addItem(self.select_point_item)
+
         self.plot_item.getViewBox().wheelEvent = self.graphMouseWheelEvent
         self.plot_item.scene().mousePressEvent = self.graphMousePressEvent
         self.plot_item.scene().mouseMoveEvent = self.graphMouseMoveEvent
@@ -103,6 +109,15 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
     def activate_manual_mode(self, state):
         self.manual_mode = state
+
+    def select_point(self, data):
+        selected, wav_index = data
+        if selected:
+            y = self.current_showing_data[wav_index, :]
+            x = np.arange(len(y))
+            self.select_point_item.setData(x, y)
+
+        self.select_point_item.setVisible(selected)
 
     def getThreshold(self, thr):
         self.thr = float(thr)

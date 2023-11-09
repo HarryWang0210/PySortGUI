@@ -17,6 +17,7 @@ from sklearn.preprocessing import MaxAbsScaler
 
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
     signal_manual_waveforms = QtCore.pyqtSignal(object)
+    signal_select_point = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -260,6 +261,9 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                 self.nearest_point_item.setData(pos=self.current_showing_data[nearest_point_index, :].reshape((-1, 3)),
                                                 size=10,
                                                 color=[1, 1, 1, 1])
+
+                self.signal_select_point.emit((True, nearest_point_index))
+
             elif self.manual_mode:
                 self.manual_curve_item.setVisible(True)
                 self.manual_curve_item.setData(
@@ -275,11 +279,13 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         if ev.buttons() == QtCore.Qt.MouseButton.LeftButton:
             if (ev.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier):
                 """select point"""
-                nearest_index = self.findNearestNeighbor(
+                nearest_point_index = self.findNearestNeighbor(
                     np.array([self.mousePos.x(), self.mousePos.y()]))
-                self.nearest_point_item.setData(pos=self.current_showing_data[nearest_index, :].reshape((-1, 3)),
+                self.nearest_point_item.setData(pos=self.current_showing_data[nearest_point_index, :].reshape((-1, 3)),
                                                 size=10,
                                                 color=[1, 1, 1, 1])
+                self.signal_select_point.emit((True, nearest_point_index))
+
             elif self.manual_mode:
                 line_data = self.manual_curve_item.getData()
                 line_data = np.append(
@@ -291,6 +297,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     def mouseReleaseEvent(self, ev):
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:
             self.nearest_point_item.setVisible(False)
+            self.signal_select_point.emit((False, 0))
 
             if self.manual_mode:
                 line_data = self.manual_curve_item.getData()
