@@ -14,6 +14,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     signal_spike_chan_changed = QtCore.pyqtSignal(object)
     signal_activate_manual_mode = QtCore.pyqtSignal(bool)
     signal_showing_spikes_data_changed = QtCore.pyqtSignal(object)
+    signal_features_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -22,7 +23,11 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
 
         self.data_object = None
-        self.spike_chan_name = ''
+        self.spike_chan = {
+            'ID': None,
+            'Name': None,
+            'Label': None
+        }
         self.has_spikes = False
         self.spikes = None
         self.locked_rows_list = []  # store the rows that have been locked
@@ -111,9 +116,9 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.remove_wav_pushButton.clicked.connect(self.sendWaveformAction)
         self.invalidate_wav_pushButton.clicked.connect(self.sendWaveformAction)
 
-        self.feature1_comboBox
-        self.feature2_comboBox
-        self.feature3_comboBox
+        self.feature1_comboBox.currentTextChanged.connect(self.sendFeatures)
+        self.feature2_comboBox.currentTextChanged.connect(self.sendFeatures)
+        self.feature3_comboBox.currentTextChanged.connect(self.sendFeatures)
 
         self.features_on_selection_pushButton
 
@@ -124,9 +129,12 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.data_object = data
 
     def spike_chan_changed(self, meta_data):
+        self.spike_chan['ID'] = int(meta_data["ID"])
+        self.spike_chan['Name'] = meta_data["Name"]
+        self.spike_chan['Label'] = meta_data["Label"]
+
         spikes = self.data_object.getSpikes(
-            meta_data["ID"], meta_data["Label"])
-        self.spike_chan_name = meta_data["Name"]
+            self.spike_chan['ID'], self.spike_chan['Label'])
 
         self.locked_rows_list = []
         self.selected_rows_list = []
@@ -158,6 +166,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
                                    QItemSelectionModel.Select)
             selection_model.select(model.index(0, 1),
                                    QItemSelectionModel.Select)
+        self.sendFeatures()
         self.sendSpikesData()
 
     def manual_waveforms(self, wav_index):
@@ -231,6 +240,12 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         else:
             self.wav_actions_state[sender][1] = False
             self.signal_activate_manual_mode.emit(False)
+
+    def sendFeatures(self, text=''):
+        features = [self.feature1_comboBox.currentText(),
+                    self.feature2_comboBox.currentText(),
+                    self.feature3_comboBox.currentText()]
+        self.signal_features_changed.emit(features)
 
     def exclusiveWaveformActions(self, new_sender):
         for object_name in self.wav_actions_state.keys():
@@ -436,7 +451,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         new_unit_name_suffix = f'_{unit_type}' if unit_type in [
             'Unsorted', 'Invalid'] else ''
         new_unit = pd.DataFrame({
-            'Name': f'{self.spike_chan_name}_Unit_{new_unit_ID:02}{new_unit_name_suffix}',
+            'Name': f'{self.spike_chan["Name"]}_Unit_{new_unit_ID:02}{new_unit_name_suffix}',
             'NumRecords': 0,
             'UnitType': unit_type,
             'row': new_unit_row}, index=[new_unit_ID])
