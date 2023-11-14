@@ -9,6 +9,8 @@ import seaborn as sns
 from UI.TimelineView_ui import Ui_TimelineView
 from DataStructure.data import SpikeSorterData
 
+import logging
+logger = logging.getLogger(__name__)
 
 class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def __init__(self, parent=None):

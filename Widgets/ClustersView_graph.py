@@ -14,6 +14,8 @@ from DataStructure.data import SpikeSorterData
 from Widgets.WidgetsInterface import WidgetsInterface
 from sklearn.preprocessing import MaxAbsScaler
 
+import logging
+logger = logging.getLogger(__name__)
 
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
     signal_manual_waveforms = QtCore.pyqtSignal(object)

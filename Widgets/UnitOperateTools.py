@@ -8,6 +8,9 @@ import pandas as pd
 import seaborn as sns
 from DataStructure.data import SpikeSorterData
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
@@ -191,7 +194,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         elif activate_action == self.invalidate_wav_pushButton.objectName():
             self.invalidateWaveforms(wav_index)
         else:
-            print('Error: Unknowed waveform action type.')
+            logger.error('Unknowed waveform action type.')
 
     def checkboxStateChanged(self, state):
         checkbox = self.sender()
@@ -263,7 +266,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         # TODO: contain unsorted unit, all unit merge warning
         unit_IDs = self.current_showing_units
         if len(unit_IDs) < 2:
-            print('Error: Merge Units action must have at least 2 units.')
+            logger.error(
+                'Merge Units action must select at least 2 units.')
             return
 
         target_unit_ID = unit_IDs[0]
@@ -284,7 +288,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def swapUnits(self):
         unit_IDs = self.current_showing_units
         if len(unit_IDs) != 2:
-            print('Error: Can only swap 2 units.')
+            logger.error('Swap Units action can only select 2 units.')
             return
 
         unit1_ID, unit2_ID = unit_IDs

@@ -7,7 +7,6 @@ Created on Dec 5, 2022
 '''
 # This Python file uses the following encoding: utf-8
 import sys
-import logging
 from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtCore, QtWidgets
 # Important:
@@ -18,6 +17,13 @@ from PyQt5 import QtCore, QtWidgets
 # Load Widgets
 from MainWindowDocks import MainWindowDocks
 from DataStructure.data import SpikeSorterData
+
+import logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="[%(asctime)s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 organization = 'NYCU'
@@ -65,6 +71,7 @@ class SpikeSorter2(MainWindowDocks):
         self.connectWidgets()
         self.setWindowTitle("SpikeSorterGL")
         self.restoreLayout()
+        logger.info('SpikeSorter2 setup finish.')
 
     def load_style(self):
         """

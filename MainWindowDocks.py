@@ -17,6 +17,9 @@ from Widgets.UnitOperateTools import UnitOperateTools
 
 from Widgets.extend.ISIView import ISIView
 
+import logging
+logger = logging.getLogger(__name__)
+
 organization = 'None'
 application = 'MainWindowDocks'
 

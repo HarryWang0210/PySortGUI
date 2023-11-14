@@ -6,6 +6,9 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QAb
 from DataStructure.data import SpikeSorterData
 import numpy as np
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)

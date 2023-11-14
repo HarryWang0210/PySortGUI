@@ -9,6 +9,8 @@ import time
 from DataStructure.data import SpikeSorterData
 from Widgets.WidgetsInterface import WidgetsInterface
 
+import logging
+logger = logging.getLogger(__name__)
 
 class WaveformsView(pg.PlotWidget, WidgetsInterface):
     def __init__(self, parent=None):
