@@ -5,7 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QAbstractItemView, QDialog
 
-from DataStructure.data import SpikeSorterData
+from DataStructure.datav2 import SpikeSorterData
 import numpy as np
 
 import logging
@@ -15,33 +15,43 @@ logger = logging.getLogger(__name__)
 class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     signal_spike_chan_changed = QtCore.pyqtSignal(object)
+    signal_filted_data_changed = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window_title = "Channel Detail"
         self.setupUi(self)
         self.data_object = None
-        self.spike_chan = {
-            'ID': None,
-            'Name': None,
-            'Label': None
-        }
-        self.extract_spike_setting = {
-            'Reference': False,
-            'ReferenceSetting': ('Single', []),
-            'Filter': False,
-            'FilterSetting': (250, 6000),
-            'Treshold': False,
-            'TresholdSetting': ('Const', 0)
-        }
+        self.channel_header = None
 
-        self.treeView.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.filted = None
+        self.default_spike_setting = {
+            'Reference': ('Single', [0]),
+            'Filter': (250, 6000),
+            'Threshold': ('MAD', -3)
+        }
+        self.current_spike_setting = {
+            'Reference': ('Single', [0]),
+            'Filter': (250, 6000),
+            'Threshold': ('MAD', -3)
+        }
+        self.header = ['ID', 'Label', 'Name', 'NumUnits',
+                       'NumRecords', 'LowCutOff', 'HighCutOff', 'Reference', 'Threshold', 'Type']
+        self.raws_header = None
+        self.spikes_header = None
+        self.events_header = None
+
+        self.initDataModel()
         self.setupConnections()
 
     def setupConnections(self):
         self.open_file_toolButton.released.connect(self.openFile)
         self.extract_wav_setting_toolButton.released.connect(
             self.setExtractWaveformParams)
+
+        self.treeView.setSelectionMode(QAbstractItemView.SingleSelection)
+        selection_model = self.treeView.selectionModel()
+        selection_model.selectionChanged.connect(self.onSelectionChanged)
 
     def openFile(self):
         """Open file manager and load selected file. """
@@ -58,208 +68,330 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.data_object = SpikeSorterData(filename)
         self.signal_data_file_name_changed.emit(self.data_object)
+        self.raws_header = self.data_object.raws_header
+        self.spikes_header = self.data_object.spikes_header
+        self.events_header = self.data_object.events_header
 
-        self.chan_info = self.data_object.chan_info
-        self.generateDataModel(self.chan_info)
-        self.initSpikeInfo(self.chan_info, init_id=True)
+        self.setDataModel()
+        self.sorting_label_comboBox.clear()
         self.file_name_lineEdit.setText(filename)
+
+    def initDataModel(self):
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(self.header)
+        self.treeView.setModel(model)
+
+        # for col in range(model.columnCount()):
+        #     self.treeView.resizeColumnToContents(col)
+
+    def setDataModel(self):
+        model = self.treeView.model()
+        model.clear()
+        model.setHorizontalHeaderLabels(self.header)
+
+        if not isinstance(self.spikes_header, type(None)):
+            spikes_header = self.spikes_header.copy()
+            for nan_column in [x for x in self.header if x not in spikes_header.columns]:
+                spikes_header[nan_column] = ''
+            spikes_header['Reference'] = spikes_header['ReferenceID']
+            spikes_header = spikes_header[self.header]
+
+            group_item = QStandardItem('Spikes')  # Top level, Group
+            model.appendRow(group_item)
+
+            for chan_ID in spikes_header['ID'].unique():
+                chan_ID_item = QStandardItem(str(chan_ID))
+                sub_data = spikes_header[spikes_header['ID'] == chan_ID]
+
+                first_items = [chan_ID_item] + \
+                    [QStandardItem(str(col_value))
+                     for col_value in sub_data.iloc[0, 1:]]
+                group_item.appendRow(first_items)
+
+                for sub_row in sub_data.iloc[1:, 1:].values:
+                    values = [QStandardItem("")] + \
+                        [QStandardItem(str(col_value))
+                         for col_value in sub_row]
+                    chan_ID_item.appendRow(values)
+
+        if not isinstance(self.raws_header, type(None)):
+            raws_header = self.raws_header.copy()
+            for nan_column in [x for x in self.header if x not in raws_header.columns]:
+                raws_header[nan_column] = ''
+            raws_header = raws_header[self.header]
+
+            group_item = QStandardItem('Raws')  # Top level, Group
+            model.appendRow(group_item)
+
+            for chan_ID in raws_header['ID'].unique():
+                chan_ID_item = QStandardItem(str(chan_ID))
+                sub_data = raws_header[raws_header['ID'] == chan_ID]
+
+                first_items = [chan_ID_item] + \
+                    [QStandardItem(str(col_value))
+                     for col_value in sub_data.iloc[0, 1:]]
+                group_item.appendRow(first_items)
+
+        if not isinstance(self.events_header, type(None)):
+            events_header = self.events_header.copy()
+            for nan_column in [x for x in self.header if x not in events_header.columns]:
+                events_header[nan_column] = ''
+            events_header = events_header[self.header]
+
+            group_item = QStandardItem('Events')  # Top level, Group
+            model.appendRow(group_item)
+
+            for chan_ID in events_header['ID'].unique():
+                chan_ID_item = QStandardItem(str(chan_ID))
+                sub_data = events_header[events_header['ID'] == chan_ID]
+
+                first_items = [chan_ID_item] + \
+                    [QStandardItem(str(col_value))
+                     for col_value in sub_data.iloc[0, 1:]]
+                group_item.appendRow(first_items)
 
     def setExtractWaveformParams(self):
         if self.data_object == None:
             logger.warn('No SpikeSorterData.')
             return
-        if self.spike_chan['ID'] == None:
+        if isinstance(self.channel_header, type(None)):
             logger.warn('No selected channel.')
             return
-        dialog = ExtractWaveformSettingsDialog(
-            data_object=self.data_object, spike_chan=self.spike_chan, parent=self)
-        result = dialog.exec_()  # 显示对话框并获取结果
+        all_chan_ID = self.raws_header['ID'].unique().tolist()
+
+        if self.channel_header['Type'] == 'Spikes':
+            dialog = ExtractWaveformSettingsDialog(
+                setting=self.current_spike_setting,
+                all_chan_ID=all_chan_ID,
+                parent=self)
+
+        elif self.channel_header['Type'] == 'Raws':
+            dialog = ExtractWaveformSettingsDialog(
+                setting=self.default_spike_setting,
+                all_chan_ID=all_chan_ID,
+                parent=self)
+
+        else:
+            logger.warn('No support type.')
+            return
+
+        result = dialog.exec_()
         if result == QDialog.Accepted:
             return
         else:
             return
 
-    def generateDataModel(self, df):
-        model = QStandardItemModel()
-        df = self.getGroup(df)
+    # def generateDataModel(self):
+    #     model = QStandardItemModel()
+    #     model.setHorizontalHeaderLabels(self.header)
 
-        if 'Spikes' in df.index.get_level_values('Group'):
-            group_item = QStandardItem(str('Spikes'))  # Top level, Group
-            model.appendRow(group_item)
+    #     raws_header = self.data_object.raws_header
+    #     spikes_header = self.data_object.spikes_header
+    #     events_header = self.data_object.events_header
 
-            Ch_data = df.xs('Spikes', level='Group')
-            model.setHorizontalHeaderLabels(
-                list(Ch_data.index.names) + list(Ch_data.columns))
+    #     if not isinstance(spikes_header, type(None)):
+    #         for nan_column in [x for x in self.header if x not in spikes_header.columns]:
+    #             spikes_header[nan_column] = ''
+    #         spikes_header['Reference'] = spikes_header['ReferenceID']
+    #         spikes_header = spikes_header[self.header]
 
-            for ChanlID in Ch_data.index.get_level_values('ID').unique():
-                ChanlID_item = QStandardItem(str(ChanlID))  # Top level, ID
-                sub_data = Ch_data.xs(ChanlID, level='ID')
-                first_items = [ChanlID_item, QStandardItem(str(sub_data.iloc[0, :].name))] + [
-                    QStandardItem(str(col_value)) for col_value in sub_data.iloc[0, :]]
-                group_item.appendRow(first_items)
+    #         group_item = QStandardItem('Spikes')  # Top level, Group
+    #         model.appendRow(group_item)
 
-                for label, sub_row in sub_data.iloc[1:, :].iterrows():
-                    values = [QStandardItem(""),  QStandardItem(
-                        str(label))] + [QStandardItem(str(col_value)) for col_value in sub_row]
-                    ChanlID_item.appendRow(values)
+    #         for chan_ID in spikes_header['ID'].unique():
+    #             chan_ID_item = QStandardItem(str(chan_ID))
+    #             sub_data = spikes_header[spikes_header['ID'] == chan_ID]
 
-        if 'Raws' in df.index.get_level_values('Group'):
-            group_item = QStandardItem(str('Raws'))  # Top level, Group
-            model.appendRow(group_item)
+    #             first_items = [chan_ID_item] + \
+    #                 [QStandardItem(str(col_value))
+    #                  for col_value in sub_data.iloc[0, 1:]]
+    #             group_item.appendRow(first_items)
 
-            Ch_data = df.xs('Raws', level='Group')
-            model.setHorizontalHeaderLabels(
-                list(Ch_data.index.names) + list(Ch_data.columns))
+    #             for sub_row in sub_data.iloc[1:, 1:].values:
+    #                 values = [QStandardItem("")] + \
+    #                     [QStandardItem(str(col_value))
+    #                      for col_value in sub_row]
+    #                 chan_ID_item.appendRow(values)
 
-            for ChanlID in Ch_data.index.get_level_values('ID').unique():
-                ChanlID_item = QStandardItem(str(ChanlID))  # Top level, ID
-                sub_data = Ch_data.xs(ChanlID, level='ID')
-                first_items = [ChanlID_item, QStandardItem(str(sub_data.iloc[0, :].name))] + [
-                    QStandardItem(str(col_value)) for col_value in sub_data.iloc[0, :]]
-                group_item.appendRow(first_items)
+    #     if not isinstance(raws_header, type(None)):
+    #         for nan_column in [x for x in self.header if x not in raws_header.columns]:
+    #             raws_header[nan_column] = ''
+    #         raws_header = raws_header[self.header]
 
-                for label, sub_row in sub_data.iloc[1:, :].iterrows():
-                    values = [QStandardItem(""),  QStandardItem(
-                        str(label))] + [QStandardItem(str(col_value)) for col_value in sub_row]
-                    ChanlID_item.appendRow(values)
+    #         group_item = QStandardItem('Raws')  # Top level, Group
+    #         model.appendRow(group_item)
 
-        self.treeView.setModel(model)
+    #         for chan_ID in raws_header['ID'].unique():
+    #             chan_ID_item = QStandardItem(str(chan_ID))
+    #             sub_data = raws_header[raws_header['ID'] == chan_ID]
 
-        for col in range(model.columnCount()):
-            self.treeView.resizeColumnToContents(col)
+    #             first_items = [chan_ID_item] + \
+    #                 [QStandardItem(str(col_value))
+    #                  for col_value in sub_data.iloc[0, 1:]]
+    #             group_item.appendRow(first_items)
 
-        selection_model = self.treeView.selectionModel()
-        selection_model.selectionChanged.connect(self.on_selection_changed)
+    #     if not isinstance(events_header, type(None)):
+    #         for nan_column in [x for x in self.header if x not in events_header.columns]:
+    #             events_header[nan_column] = ''
+    #         events_header = events_header[self.header]
 
-    def initSpikeInfo(self, df=None, init_id=False):
-        # init label
-        self.sorting_label_comboBox.clear()
-        # # init ref
-        # if init_id:
-        #     ID_list = df.index.get_level_values('ID').unique()
-        #     self.ref_comboBox.clear()
-        #     self.ref_comboBox.addItems(ID_list.map(str))
-        # self.ref_checkBox.setChecked(False)
-        # # init filter
-        # self.filter_checkBox.setChecked(False)
+    #         group_item = QStandardItem('Events')  # Top level, Group
+    #         model.appendRow(group_item)
 
-    def on_selection_changed(self, selected, deselected):
+    #         for chan_ID in events_header['ID'].unique():
+    #             chan_ID_item = QStandardItem(str(chan_ID))
+    #             sub_data = events_header[events_header['ID'] == chan_ID]
+
+    #             first_items = [chan_ID_item] + \
+    #                 [QStandardItem(str(col_value))
+    #                  for col_value in sub_data.iloc[0, 1:]]
+    #             group_item.appendRow(first_items)
+
+    #     self.treeView.setModel(model)
+
+    #     for col in range(model.columnCount()):
+    #         self.treeView.resizeColumnToContents(col)
+
+    #     selection_model = self.treeView.selectionModel()
+    #     selection_model.selectionChanged.connect(self.onSelectionChanged)
+
+    # def initSpikeInfo(self):
+    #     # init label
+    #     self.sorting_label_comboBox.clear()
+    #     # # init ref
+    #     # if init_id:
+    #     #     ID_list = df.index.get_level_values('ID').unique()
+    #     #     self.ref_comboBox.clear()
+    #     #     self.ref_comboBox.addItems(ID_list.map(str))
+    #     # self.ref_checkBox.setChecked(False)
+    #     # # init filter
+    #     # self.filter_checkBox.setChecked(False)
+
+    def onSelectionChanged(self, selected, deselected):
         model = self.treeView.model()
-
-        columns = [model.horizontalHeaderItem(
-            ind).text() for ind in range(model.columnCount())]
         indexes = selected.indexes()
         items = [model.itemFromIndex(ind) for ind in indexes]
 
         if items[0].parent() == None:  # Group
-            self.initSpikeInfo(init_id=False)
+            self.sorting_label_comboBox.clear()
+            self.channel_header = None
             return
         elif items[0].parent().parent() != None:  # Label
             items[0] = items[0].parent()
 
         meta_data = [item.text() for item in items]
-        meta_data = dict(zip(columns, meta_data))
+        meta_data = dict(zip(self.header, meta_data))
 
-        self.updateLabel(meta_data)
-        self.spike_chan['ID'] = int(meta_data["ID"])
-        self.spike_chan['Name'] = meta_data["Name"]
-        self.spike_chan['Label'] = meta_data["Label"]
-        # self.updateReference(meta_data)
-        # self.updateFilter(meta_data)
-        self.signal_spike_chan_changed.emit(meta_data)
+        chan_ID = int(meta_data["ID"])
+        if meta_data['Type'] == 'Spikes':
+            spikes_header = self.spikes_header.copy()
+            selected_df = spikes_header[(spikes_header['ID'] == chan_ID) & (
+                spikes_header['Label'] == meta_data["Label"])].iloc[0, :]
 
-    def getGroup(self, df):
-        df = df.copy()
-        df["Group"] = df["NumUnits"].isnull()
-        df["Group"] = df["Group"].map({True: "Raws", False: "Spikes"})
-        df.set_index('Group', append=True, inplace=True)
-        return df
+        elif meta_data['Type'] == 'Raws':
+            raws_header = self.raws_header.copy()
+            selected_df = raws_header[raws_header['ID'] == chan_ID].iloc[0, :]
 
-    def updateLabel(self, meta_data):
-        labels = self.chan_info.xs(
-            meta_data["ID"], level='ID').index.tolist()
+        elif meta_data['Type'] == 'Events':
+            events_header = self.events_header.copy()
+            selected_df = events_header[events_header['ID']
+                                        == chan_ID].iloc[0, :]
+
+        self.channel_header = selected_df.to_dict()
+        if self.channel_header['Type'] == 'Spikes':
+            self.getSpikeSetting()
+        else:
+            self.filted = None
+
+        self.updateLabel()
+
+        # self.signal_spike_chan_changed.emit(meta_data)
+        logger.info(f'Selected type: {self.channel_header["Type"]}')
+
+        # # self.updateReference(meta_data)
+        # # self.updateFilter(meta_data)
+        self.signal_spike_chan_changed.emit(self.channel_header)
+        self.signal_filted_data_changed.emit(self.filted)
+    # def getGroup(self, df):
+    #     df = df.copy()
+    #     df["Group"] = df["NumUnits"].isnull()
+    #     df["Group"] = df["Group"].map({True: "Raws", False: "Spikes"})
+    #     df.set_index('Group', append=True, inplace=True)
+    #     return df
+
+    def updateLabel(self):
         self.sorting_label_comboBox.clear()
-        self.sorting_label_comboBox.addItems(labels)
-        self.sorting_label_comboBox.setCurrentText(meta_data["Label"])
+        if self.channel_header['Type'] == 'Spikes':
+            spikes_header = self.spikes_header.copy()
 
-    def updateReference(self, meta_data):
-        ref = meta_data["ReferenceID"]
-        if ref == "nan":
-            self.ref_checkBox.setChecked(False)
-        else:
-            self.ref_checkBox.setChecked(True)
-            self.ref_comboBox.setCurrentText(ref)
+            labels = spikes_header[spikes_header['ID']
+                                   == self.channel_header["ID"]]['Label']
+            self.sorting_label_comboBox.addItems(labels)
+            self.sorting_label_comboBox.setCurrentText(
+                self.channel_header["Label"])
 
-    def updateFilter(self, meta_data):
-        filter_band = [meta_data["LowCutOff"], meta_data["HighCutOff"]]
-        filter_band = [int(float(i)) if i !=
-                       "nan" else 0 for i in filter_band]
-        if filter_band[1] <= 0:
-            self.filter_checkBox.setChecked(False)
-            self.filter_low_spinBox.setValue(0)
-            self.filter_high_spinBox.setValue(0)
-        else:
-            self.filter_checkBox.setChecked(True)
-            self.filter_low_spinBox.setValue(filter_band[0])
-            self.filter_high_spinBox.setValue(filter_band[1])
+    def getSpikeSetting(self):
+        ref_data = self.data_object.getRaw(self.channel_header['ReferenceID'])
+        self.filted = self.data_object.spikeFilter(chan_ID=self.channel_header['ID'],
+                                                   ref=ref_data,
+                                                   low=self.channel_header['LowCutOff'],
+                                                   high=self.channel_header['HighCutOff'])
+
+        self.current_spike_setting['Reference'] = ('Single',
+                                                   [self.channel_header['ReferenceID']])
+        self.current_spike_setting['Filter'] = (self.channel_header['LowCutOff'],
+                                                self.channel_header['HighCutOff'])
+        self.current_spike_setting['Threshold'] = ('MAD',
+                                                   self.channel_header['Threshold'] / self.data_object.estimatedSD(self.filted))
+
+    # def updateReference(self, meta_data):
+    #     ref = meta_data["ReferenceID"]
+    #     if ref == "nan":
+    #         self.ref_checkBox.setChecked(False)
+    #     else:
+    #         self.ref_checkBox.setChecked(True)
+    #         self.ref_comboBox.setCurrentText(ref)
+
+    # def updateFilter(self, meta_data):
+    #     filter_band = [meta_data["LowCutOff"], meta_data["HighCutOff"]]
+    #     filter_band = [int(float(i)) if i !=
+    #                    "nan" else 0 for i in filter_band]
+    #     if filter_band[1] <= 0:
+    #         self.filter_checkBox.setChecked(False)
+    #         self.filter_low_spinBox.setValue(0)
+    #         self.filter_high_spinBox.setValue(0)
+    #     else:
+    #         self.filter_checkBox.setChecked(True)
+    #         self.filter_low_spinBox.setValue(filter_band[0])
+    #         self.filter_high_spinBox.setValue(filter_band[1])
 
 
 class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
-    def __init__(self, data_object, spike_chan, parent=None):
+    def __init__(self, setting, all_chan_ID, parent=None):
         super().__init__(parent)
         self.setupUi(self)
         self.setWindowTitle("Extract Waveform Settings Dialog")
-        self.data_object = data_object
-        self.spike_chan = spike_chan
+        self.setting = setting
 
-        ID_list = self.data_object.chan_info.index.get_level_values(
-            'ID').unique()
-        self.channel_ref_comboBox.clear()
-        self.channel_ref_comboBox.addItems(ID_list.map(str))
-        self.initSpikeInfo()
+        # self.channel_ref_comboBox.clear()
+        self.channel_ref_comboBox.addItems(map(str, all_chan_ID))
+        self.initSetting()
 
-    def initSpikeInfo(self):
-        index = (str(self.spike_chan['ID']), self.spike_chan['Label'])
-        df = self.data_object.chan_info.xs(
-            index,
-            level=['ID', 'Label'])
-        logger.debug(df.loc[index, 'ReferenceID'])
-        if not df.loc[index, 'ReferenceID'].isdigit():
-            self.ref_groupBox.setChecked(False)
-            logger.debug('No reference id.')
-        else:
-            self.ref_groupBox.setChecked(True)
+    def initSetting(self):
+        if self.setting['Reference'][0] == 'Single':
             self.channel_ref_radioButton.setChecked(True)
             self.channel_ref_comboBox.setCurrentText(
-                df.loc[index, 'ReferenceID'])
+                str(self.setting['Reference'][1][0]))
+        elif self.setting['Reference'][0] == 'Median':
+            logger.critical('No implement error')
 
-        if df.loc[index, 'HighCutOff'] <= 0:
-            self.filter_groupBox.setChecked(False)
-            logger.info('No filter.')
-        else:
-            self.filter_groupBox.setChecked(True)
-            filter_band = df.loc[index, ['LowCutOff', 'HighCutOff']].tolist()
-            filter_band = [float(i) if i !=
-                           "nan" else 0 for i in filter_band]
-            self.filter_low_doubleSpinBox.setValue(filter_band[0])
-            self.filter_high_doubleSpinBox.setValue(filter_band[1])
+        self.filter_low_doubleSpinBox.setValue(self.setting['Filter'][0])
+        self.filter_high_doubleSpinBox.setValue(self.setting['Filter'][1])
 
-        if df.loc[index, 'Threshold'] == 'nan':
-            self.thr_groupBox.setChecked(False)
-            logger.info('No threshold.')
-        else:
-            self.thr_groupBox.setChecked(True)
+        if self.setting['Threshold'][0] == 'MAD':
+            self.mad_thr_radioButton.setChecked(True)
+            self.mad_thr_doubleSpinBox.setValue(self.setting['Threshold'][1])
+
+        elif self.setting['Threshold'][0] == 'Const':
             self.const_thr_radioButton.setChecked(True)
-            self.const_thr_doubleSpinBox.setValue(
-                float(df.loc[index, 'Threshold']))
-
-        logger.debug(df)
-        # self.data_object.chan_info
-
-    # def
-    # def createComboBox(self, unit_name_list):
-    #     model = QStandardItemModel()
-    #     self.comboBox.setModel(model)
-
-    #     for unit in unit_name_list:
-    #         model.appendRow(QStandardItem(str(unit)))
+            self.const_thr_doubleSpinBox.setValue(self.setting['Threshold'][1])
