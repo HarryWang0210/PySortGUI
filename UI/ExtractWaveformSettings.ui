@@ -23,7 +23,7 @@
       <string>Reference</string>
      </property>
      <property name="checkable">
-      <bool>true</bool>
+      <bool>false</bool>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
@@ -31,7 +31,7 @@
         <item>
          <widget class="QRadioButton" name="channel_ref_radioButton">
           <property name="text">
-           <string>Use single channel</string>
+           <string>Use single channel.</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -48,7 +48,7 @@
         <item>
          <widget class="QRadioButton" name="median_ref_radioButton">
           <property name="text">
-           <string>Use median of channels</string>
+           <string>Use median of channels.</string>
           </property>
          </widget>
         </item>
@@ -99,7 +99,7 @@
       <string>Filter raw</string>
      </property>
      <property name="checkable">
-      <bool>true</bool>
+      <bool>false</bool>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
@@ -153,7 +153,7 @@
       <string>Threshold</string>
      </property>
      <property name="checkable">
-      <bool>true</bool>
+      <bool>false</bool>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
@@ -161,7 +161,7 @@
         <item>
          <widget class="QRadioButton" name="const_thr_radioButton">
           <property name="text">
-           <string>Use constant threshold</string>
+           <string>Use constant threshold.</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -185,7 +185,7 @@
         <item>
          <widget class="QRadioButton" name="mad_thr_radioButton">
           <property name="text">
-           <string>Use median absolute deviation</string>
+           <string>Use n times estimated SD of the noise.</string>
           </property>
          </widget>
         </item>
