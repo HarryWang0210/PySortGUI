@@ -7,10 +7,10 @@ import pyqtgraph as pg
 import numpy as np
 import seaborn as sns
 from UI.TimelineView_ui import Ui_TimelineView
-from DataStructure.data import SpikeSorterData
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def __init__(self, parent=None):
@@ -25,13 +25,17 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
         self.thr_pushButton.clicked.connect(self.graphWidget.showThreshold)
         self.events_pushButton.clicked.connect(self.graphWidget.showEvents)
         self.spikes_pushButton.clicked.connect(self.graphWidget.showSpikes)
-        self.raw_pushButton.clicked.connect(self.graphWidget.showRaw)
+        self.raw_pushButton.toggled.connect(self.graphWidget.showRaw)
 
     def data_file_name_changed(self, data):
         self.graphWidget.data_file_name_changed(data)
 
-    def spike_chan_changed(self, meta_data):
-        self.graphWidget.spike_chan_changed(meta_data)
+    def spike_chan_changed(self, current_chan_info):
+        self.raw_pushButton.setChecked(current_chan_info['Type'] == 'Raws')
+        self.graphWidget.spike_chan_changed(current_chan_info)
+
+    def filted_data_changed(self, filted_data):
+        self.graphWidget.filted_data_changed(filted_data)
 
     def showing_spikes_data_changed(self, spikes_data):
         self.graphWidget.showing_spikes_data_changed(spikes_data)
@@ -46,11 +50,7 @@ class TimelineViewGraph(pg.PlotWidget):
         self.MAX_DATA_SHOW = 30000
 
         self.data_object = None
-        self.spike_chan = {
-            'ID': None,
-            'Name': None,
-            'Label': None
-        }
+        self.current_chan_info = None
         self.visible = False  # overall visible
         self.color_palette_list = sns.color_palette(
             None, 64)  # palette for events and spikes
@@ -75,11 +75,13 @@ class TimelineViewGraph(pg.PlotWidget):
         self.spike_units_visible = []  # list of all spike units
 
         # raw relative variables
-        self.raw = None
-        self.raw_visible = False
+        self.raw_data = None
+        self.filted_data = None
+        self.has_filted_data = False
 
-        self.timeline_data = None  # data show in view
-        self.timeline_data_len = 0
+        self.raw_data_visible = False
+
+        self.data_len = 0
         self.data_scale = 1000  # maximun height of data
         self.num_data_show = 1000  # initial number of data points show in window
 
@@ -104,9 +106,9 @@ class TimelineViewGraph(pg.PlotWidget):
         self.plot_item.hideAxis('bottom')
         self.plot_item.hideAxis('left')
 
-        self.raw_item = pg.PlotDataItem(pen='w')
-        self.raw_item.setVisible(False)
-        self.addItem(self.raw_item)
+        self.data_item = pg.PlotDataItem(pen='w')
+        self.data_item.setVisible(False)
+        self.addItem(self.data_item)
 
         self.thr_item = pg.InfiniteLine(pos=self.thr, angle=0, pen="g")
         self.thr_item.setVisible(False)
@@ -124,16 +126,47 @@ class TimelineViewGraph(pg.PlotWidget):
         self.visible = False
         self.updatePlot()
 
-    def spike_chan_changed(self, meta_data):
-        self.spike_chan['ID'] = int(meta_data["ID"])
-        self.spike_chan['Name'] = meta_data["Name"]
-        self.spike_chan['Label'] = meta_data["Label"]
+    def spike_chan_changed(self, current_chan_info):
+        self.current_chan_info = current_chan_info
 
-        self.getRaw(self.data_object.getRaw(self.spike_chan['ID']))
-        self.getThreshold(meta_data["Threshold"])
-        self.getSpikes(
-            self.data_object.getSpikes(self.spike_chan['ID'],
-                                       self.spike_chan['Label']))
+        if self.current_chan_info['Type'] == 'Spikes':
+            self.visible = True
+            self.has_thr = True
+            self.has_spikes = True
+
+            self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
+            self.thr = self.current_chan_info["Threshold"]
+
+            self.spikes = self.data_object.getSpikes(self.current_chan_info['ID'],
+                                                     self.current_chan_info['Label'])
+            self.num_spike_units = self.spikes["unitInfo"].shape[0]
+
+        elif self.current_chan_info['Type'] == 'Raws':
+            self.visible = True
+            self.has_thr = False
+            self.has_spikes = False
+
+            self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
+            self.thr = 0.0
+            self.spikes = None
+            self.num_spike_units = 0
+
+        elif self.current_chan_info['Type'] == 'Events':
+            self.visible = False
+            logger.critical('Not implement error.')
+
+        self.spike_units_visible = [True] * self.num_spike_units
+
+    def filted_data_changed(self, filted_data):
+        self.filted_data = filted_data
+        if isinstance(self.filted_data, np.ndarray):
+            self.has_filted_data = True
+            self.data_scale = np.max(np.abs(self.filted_data)) / 2
+
+        else:
+            self.has_filted_data = False
+        logger.debug('filted_data_changed')
+        self.updatePlot()
 
     def showing_spikes_data_changed(self, spikes_data):
         self.current_wav_units = spikes_data['current_wav_units']
@@ -141,61 +174,53 @@ class TimelineViewGraph(pg.PlotWidget):
         self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
                                          spikes_data['current_showing_units'])
         self.num_unit = len(np.unique(self.current_wav_units))
-
+        logger.debug('showing_spikes_data_changed')
         # self.current_wav_colors = self.getColor(self.current_wav_units)
         self.updatePlot()
 
     def getRaw(self, raw):
-        self.raw = raw
-        self.timeline_data_len = len(raw)
-        self.data_scale = np.max(np.abs(self.raw)) / 2
+        self.raw_data = raw
+        self.data_len = len(raw)
+        self.data_scale = np.max(np.abs(self.raw_data)) / 2
         self.num_data_show = 1000  # initial number of data points show in window
-
-    def getThreshold(self, thr):
-        try:
-            self.thr = float(thr)
-            self.has_thr = True
-        except:
-            self.thr = 0.0
-            self.has_thr = False
 
     def getEvents(self, events):
         # TODO: getEvents
         self.events = events
         self.has_events = True
 
-    def getSpikes(self, spikes):
-        if spikes["unitInfo"] is None:
-            self.visible = False
+    # def getSpikes(self, spikes):
+    #     if spikes["unitInfo"] is None:
+    #         self.visible = False
 
-            self.has_spikes = False
-            self.spikes = None
-            self.num_spike_units = 0
+    #         self.has_spikes = False
+    #         self.spikes = None
+    #         self.num_spike_units = 0
 
-        else:
-            self.visible = True
+    #     else:
+    #         self.visible = True
 
-            self.has_spikes = True
-            self.spikes = spikes
-            self.num_spike_units = spikes["unitInfo"].shape[0]
-        self.spike_units_visible = [True] * self.num_spike_units
+    #         self.has_spikes = True
+    #         self.spikes = spikes
+    #         self.num_spike_units = spikes["unitInfo"].shape[0]
+    #     self.spike_units_visible = [True] * self.num_spike_units
 
-    def getColor(self, unit_data):
-        """_summary_
+    # def getColor(self, unit_data):
+    #     """_summary_
 
-        Args:
-            unit_data (list): list of all unit ID (int).
+    #     Args:
+    #         unit_data (list): list of all unit ID (int).
 
-        Returns:
-            list: color palette list.
-        """
-        n = len(unit_data)
-        color = np.zeros((n, 3))
+    #     Returns:
+    #         list: color palette list.
+    #     """
+    #     n = len(unit_data)
+    #     color = np.zeros((n, 3))
 
-        for i in range(n):
-            color[i, :] = self.color_palette_list[int(unit_data[i])]
-        color = color * 255
-        return color.astype(np.int32)
+    #     for i in range(n):
+    #         color[i, :] = self.color_palette_list[int(unit_data[i])]
+    #     color = color * 255
+    #     return color.astype(np.int32)
 
     def showThreshold(self, show):
         """Control from TimelineView."""
@@ -214,11 +239,16 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def showRaw(self, show):
         """Control from TimelineView."""
-        self.raw_visible = show
+        self.raw_data_visible = show
+        logger.debug(f'showRaw: {show}')
+        self.updatePlot()
 
     def updatePlot(self):
         if self.visible:
-            self.drawRaw()
+            if not self.raw_data_visible and self.has_filted_data:
+                self.drawData(self.filted_data)
+            else:
+                self.drawData(self.raw_data)
 
             if self.has_thr:
                 self.drawThreshold()
@@ -226,7 +256,7 @@ class TimelineViewGraph(pg.PlotWidget):
             if self.has_spikes:
                 self.drawSpikes()
 
-        self.raw_item.setVisible(self.visible)
+        self.data_item.setVisible(self.visible)
         self.thr_item.setVisible(self.visible and
                                  self.has_thr and
                                  self.thr_visible)
@@ -236,8 +266,8 @@ class TimelineViewGraph(pg.PlotWidget):
                             self.has_spikes and
                             self.spikes_visible)
 
-    def drawRaw(self):
-        self.raw_item.setData(self.raw)
+    def drawData(self, data):
+        self.data_item.setData(data)
         self.plot_item.getViewBox().setXRange(0, self.num_data_show, padding=0)
         self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
 
@@ -305,9 +335,9 @@ class TimelineViewGraph(pg.PlotWidget):
             # check boundary
             if new_range[0] < 0:
                 new_range = [0, self.num_data_show]
-            if new_range[1] > self.timeline_data_len:
-                new_range = [self.timeline_data_len -
-                             self.num_data_show, self.timeline_data_len]
+            if new_range[1] > self.data_len:
+                new_range = [self.data_len -
+                             self.num_data_show, self.data_len]
 
             self.plot_item.getViewBox().setXRange(*new_range, padding=0)
 
@@ -329,9 +359,9 @@ class TimelineViewGraph(pg.PlotWidget):
             # check boundary
             if new_range[0] < 0:
                 new_range = [0, self.num_data_show]
-            if new_range[1] > self.timeline_data_len:
-                new_range = [self.timeline_data_len -
-                             self.num_data_show, self.timeline_data_len]
+            if new_range[1] > self.data_len:
+                new_range = [self.data_len -
+                             self.num_data_show, self.data_len]
 
             self.plot_item.getViewBox().setXRange(*new_range, padding=0)
 
