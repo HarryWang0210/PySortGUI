@@ -22,9 +22,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.window_title = "Channel Detail"
         self.setupUi(self)
         self.data_object = None
-        self.channel_header = None
+        self.current_chan_info = None
 
-        self.filted = None
+        self.filted_data = None
         self.default_spike_setting = {
             'Reference': ('Single', [0]),
             'Filter': (250, 6000),
@@ -154,18 +154,18 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if self.data_object == None:
             logger.warn('No SpikeSorterData.')
             return
-        if isinstance(self.channel_header, type(None)):
+        if isinstance(self.current_chan_info, type(None)):
             logger.warn('No selected channel.')
             return
         all_chan_ID = self.raws_header['ID'].unique().tolist()
 
-        if self.channel_header['Type'] == 'Spikes':
+        if self.current_chan_info['Type'] == 'Spikes':
             dialog = ExtractWaveformSettingsDialog(
                 setting=self.current_spike_setting,
                 all_chan_ID=all_chan_ID,
                 parent=self)
 
-        elif self.channel_header['Type'] == 'Raws':
+        elif self.current_chan_info['Type'] == 'Raws':
             dialog = ExtractWaveformSettingsDialog(
                 setting=self.default_spike_setting,
                 all_chan_ID=all_chan_ID,
@@ -177,7 +177,32 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         result = dialog.exec_()
         if result == QDialog.Accepted:
-            return
+            if dialog.channel_ref_radioButton.isChecked():
+                self.current_spike_setting['Reference'] = ('Single',
+                                                           [int(dialog.channel_ref_comboBox.currentText())])
+            elif dialog.median_ref_radioButton.isChecked():
+                self.current_spike_setting['Reference'] = ('Median',
+                                                           dialog.show_channels_lineEdit.text().split(', '))
+            self.current_spike_setting['Filter'] = (dialog.filter_low_doubleSpinBox.value(),
+                                                    dialog.filter_high_doubleSpinBox.value())
+
+            if dialog.const_thr_radioButton.isChecked():
+                self.current_spike_setting['Threshold'] = ('Const',
+                                                           dialog.const_thr_doubleSpinBox.value())
+            elif dialog.mad_thr_radioButton.isChecked():
+                self.current_spike_setting['Threshold'] = ('MAD',
+                                                           dialog.mad_thr_doubleSpinBox.value())
+
+            self.current_chan_info['ReferenceID'] = self.current_spike_setting['Reference'][1][0]
+            self.current_chan_info['LowCutOff'] = self.current_spike_setting['Filter'][0]
+            self.current_chan_info['HighCutOff'] = self.current_spike_setting['Filter'][1]
+
+            self.getFiltedData()
+            self.current_chan_info['Threshold'] = self.current_spike_setting['Threshold'][1] * \
+                self.data_object.estimatedSD(self.filted_data)
+
+            self.signal_spike_chan_changed.emit(self.current_chan_info)
+            self.signal_filted_data_changed.emit(self.filted_data)
         else:
             return
 
@@ -274,7 +299,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         if items[0].parent() == None:  # Group
             self.sorting_label_comboBox.clear()
-            self.channel_header = None
+            self.current_chan_info = None
             return
         elif items[0].parent().parent() != None:  # Label
             items[0] = items[0].parent()
@@ -297,21 +322,22 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             selected_df = events_header[events_header['ID']
                                         == chan_ID].iloc[0, :]
 
-        self.channel_header = selected_df.to_dict()
-        if self.channel_header['Type'] == 'Spikes':
+        self.current_chan_info = selected_df.to_dict()
+        if self.current_chan_info['Type'] == 'Spikes':
+            self.getFiltedData()
             self.getSpikeSetting()
         else:
-            self.filted = None
+            self.filted_data = None
 
         self.updateLabel()
 
         # self.signal_spike_chan_changed.emit(meta_data)
-        logger.info(f'Selected type: {self.channel_header["Type"]}')
+        logger.info(f'Selected type: {self.current_chan_info["Type"]}')
 
         # # self.updateReference(meta_data)
         # # self.updateFilter(meta_data)
-        self.signal_spike_chan_changed.emit(self.channel_header)
-        self.signal_filted_data_changed.emit(self.filted)
+        self.signal_spike_chan_changed.emit(self.current_chan_info)
+        self.signal_filted_data_changed.emit(self.filted_data)
     # def getGroup(self, df):
     #     df = df.copy()
     #     df["Group"] = df["NumUnits"].isnull()
@@ -321,28 +347,30 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
     def updateLabel(self):
         self.sorting_label_comboBox.clear()
-        if self.channel_header['Type'] == 'Spikes':
+        if self.current_chan_info['Type'] == 'Spikes':
             spikes_header = self.spikes_header.copy()
 
             labels = spikes_header[spikes_header['ID']
-                                   == self.channel_header["ID"]]['Label']
+                                   == self.current_chan_info["ID"]]['Label']
             self.sorting_label_comboBox.addItems(labels)
             self.sorting_label_comboBox.setCurrentText(
-                self.channel_header["Label"])
+                self.current_chan_info["Label"])
+
+    def getFiltedData(self):
+        ref_data = self.data_object.getRaw(
+            self.current_chan_info['ReferenceID'])
+        self.filted_data = self.data_object.spikeFilter(chan_ID=self.current_chan_info['ID'],
+                                                        ref=ref_data,
+                                                        low=self.current_chan_info['LowCutOff'],
+                                                        high=self.current_chan_info['HighCutOff'])
 
     def getSpikeSetting(self):
-        ref_data = self.data_object.getRaw(self.channel_header['ReferenceID'])
-        self.filted = self.data_object.spikeFilter(chan_ID=self.channel_header['ID'],
-                                                   ref=ref_data,
-                                                   low=self.channel_header['LowCutOff'],
-                                                   high=self.channel_header['HighCutOff'])
-
         self.current_spike_setting['Reference'] = ('Single',
-                                                   [self.channel_header['ReferenceID']])
-        self.current_spike_setting['Filter'] = (self.channel_header['LowCutOff'],
-                                                self.channel_header['HighCutOff'])
+                                                   [self.current_chan_info['ReferenceID']])
+        self.current_spike_setting['Filter'] = (self.current_chan_info['LowCutOff'],
+                                                self.current_chan_info['HighCutOff'])
         self.current_spike_setting['Threshold'] = ('MAD',
-                                                   self.channel_header['Threshold'] / self.data_object.estimatedSD(self.filted))
+                                                   self.current_chan_info['Threshold'] / self.data_object.estimatedSD(self.filted_data))
 
     # def updateReference(self, meta_data):
     #     ref = meta_data["ReferenceID"]
