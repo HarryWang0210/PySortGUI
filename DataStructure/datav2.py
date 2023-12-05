@@ -5,6 +5,9 @@ import numpy as np
 from DataStructure.pyephysv2 import loadPyephys, loadRaws, loadSpikes
 # from pyephysv2 import loadPyephys, loadRaws, loadSpikes
 from DataStructure.FunctionsLib.SignalProcessing import design_and_filter
+from DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
+from DataStructure.FunctionsLib.Sorting import auto_sort
+
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MaxAbsScaler
 
@@ -49,10 +52,10 @@ class SpikeSorterData():
         if chan_ID not in self.__spike_data.keys():
             self.__spike_data[chan_ID] = loadSpikes(
                 self.filename, chan_ID, label)
-        return self.__spike_data[chan_ID]
+        return self.__spike_data[chan_ID].copy()
 
-    def waveforms_pca(self, x):
-        pca = PCA(n_components=3).fit(x)
+    def waveforms_pca(self, x, n_components=3):
+        pca = PCA(n_components).fit(x)
         transformed_data = pca.transform(x)
 
         return transformed_data
@@ -69,9 +72,21 @@ class SpikeSorterData():
     def estimatedSD(self, x):
         return float(np.median(abs(x) / 0.6745))
 
+    def test_extract_waveforms(self, x, chan_ID, threshold):
+        result = extract_waveforms(x, chan_ID, threshold, alg='Valley-Peak')
+        return result
+
+    def test_auto_sort(self, chan_ID, waveforms, timestamps):
+        feat = self.waveforms_pca(waveforms, n_components=None)
+        unitID = auto_sort(self.filename, chan_ID, feat,
+                           waveforms, timestamps, sorting=None, re_sort=False)
+        return unitID
+
 
 if __name__ == '__main__':
     filename = "data/MX6-22_2020-06-17_17-07-48_no_ref.h5"
     # filename = "data/MD123_2022-09-07_10-38-00.h5"
     data = SpikeSorterData(filename)
-    print(data.spikes_header)
+    ch1 = data.getRaw(1)
+    ref = data.spikes_header[data.spikes_header['ID'] == 1]['ReferenceID']
+    print(ch1, ref)
