@@ -40,6 +40,12 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def showing_spikes_data_changed(self, spikes_data):
         self.graphWidget.showing_spikes_data_changed(spikes_data)
 
+    def extract_wav_changed(self, wav_dict):
+        self.graphWidget.extract_wav_changed(wav_dict)
+
+    def sorting_result_changed(self, unitID):
+        self.graphWidget.sorting_result_changed(unitID)
+
 
 class TimelineViewGraph(pg.PlotWidget):
     def __init__(self, parent=None):
@@ -139,6 +145,7 @@ class TimelineViewGraph(pg.PlotWidget):
 
             self.spikes = self.data_object.getSpikes(self.current_chan_info['ID'],
                                                      self.current_chan_info['Label'])
+            logger.debug(self.spikes)
             self.num_spike_units = self.spikes["unitInfo"].shape[0]
 
         elif self.current_chan_info['Type'] == 'Raws':
@@ -166,6 +173,25 @@ class TimelineViewGraph(pg.PlotWidget):
         else:
             self.has_filted_data = False
         logger.debug('filted_data_changed')
+        self.updatePlot()
+
+    def extract_wav_changed(self, wav_dict):
+        self.has_spikes = True
+        self.spikes['timestamps'] = wav_dict['timestamps']
+        self.spikes['waveforms'] = wav_dict['waveforms']
+        self.spikes['unitInfo'] = None
+        self.spikes['unitID'] = np.zeros(len(self.spikes['timestamps']))
+        self.current_wav_units = self.spikes['unitID']
+        logger.debug('extract_wav_changed')
+        self.updatePlot()
+
+    def sorting_result_changed(self, unitID):
+        self.has_spikes = True
+        self.spikes['unitInfo'] = None
+        self.spikes['unitID'] = unitID
+        self.current_wav_units = self.spikes['unitID']
+
+        logger.debug('sorting_result_changed')
         self.updatePlot()
 
     def showing_spikes_data_changed(self, spikes_data):

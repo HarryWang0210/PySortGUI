@@ -16,6 +16,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     signal_spike_chan_changed = QtCore.pyqtSignal(object)
     signal_filted_data_changed = QtCore.pyqtSignal(object)
+    signal_extract_wav_changed = QtCore.pyqtSignal(object)
+    signal_sorting_result_changed = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -35,6 +37,14 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             'Filter': (250, 6000),
             'Threshold': ('MAD', -3)
         }
+
+        self.spikes = {
+            "unitInfo": None,
+            "unitID": None,
+            "timestamps": None,
+            "waveforms": None
+        }
+
         self.header = ['ID', 'Label', 'Name', 'NumUnits',
                        'NumRecords', 'LowCutOff', 'HighCutOff', 'Reference', 'Threshold', 'Type']
         self.raws_header = None
@@ -48,6 +58,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.open_file_toolButton.released.connect(self.openFile)
         self.extract_wav_setting_toolButton.released.connect(
             self.setExtractWaveformParams)
+
+        self.extract_wav_pushButton.clicked.connect(self.extract_wav)
+        self.sort_channel_pushButton.clicked.connect(self.sort_channel)
 
         self.treeView.setSelectionMode(QAbstractItemView.SingleSelection)
         selection_model = self.treeView.selectionModel()
@@ -206,6 +219,29 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         else:
             return
 
+    def extract_wav(self):
+        result, timestamps = self.data_object.test_extract_waveforms(self.filted_data,
+                                                                     self.current_chan_info['ID'],
+                                                                     self.current_chan_info['Threshold'])
+
+        waveforms = result['Waveforms']
+
+        self.spikes['timestamps'] = timestamps
+        self.spikes['waveforms'] = waveforms
+
+        self.signal_extract_wav_changed.emit({
+            'timestamps': timestamps,
+            'waveforms': waveforms
+        })
+
+    def sort_channel(self):
+        unitID = self.data_object.test_auto_sort(self.current_chan_info['ID'],
+                                                 waveforms=self.spikes['waveforms'],
+                                                 timestamps=self.spikes['timestamps'])
+
+        self.spikes['unitID'] = unitID
+
+        self.signal_sorting_result_changed.emit(unitID)
     # def generateDataModel(self):
     #     model = QStandardItemModel()
     #     model.setHorizontalHeaderLabels(self.header)
