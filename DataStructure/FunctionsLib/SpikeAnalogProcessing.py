@@ -60,7 +60,8 @@ def spike_triggered_average(x, EvList, TimeWindow=(.1, .1), SFC=None,
         ADC = 1.
         ADC = getattr(x, 'ADC', 1)
 
-    OffSet = dict.get(x.Header, 'TimeFirstPoint', 0)  # * SFC Offset is in ticks
+    # * SFC Offset is in ticks
+    OffSet = dict.get(x.Header, 'TimeFirstPoint', 0)
     logger.debug('Parameters set SFC:%s SFTs:%s ADC:%s OffSet:%s' %
                  (SFC, SFTs, ADC, OffSet))
 
