@@ -187,7 +187,8 @@ def apply_filter(data, b, a):
     if type(data) is np.ndarray:
         return signal.filtfilt(b, a, data)
 
-    out = data.__class__(signal.filtfilt(b, a, data))
+    out = signal.filtfilt(b, a, data)
+    # out = data.__class__(signal.filtfilt(b, a, data))
 
     if hasattr(data, '_Header'):
         out._Header = data._Header.copy()
