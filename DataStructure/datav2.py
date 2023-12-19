@@ -70,11 +70,12 @@ class SpikeSorterData():
         return data
 
     def estimatedSD(self, x):
-        return float(np.median(abs(x) / 0.6745))
+        return float(np.median(np.abs(x) / 0.6745))
 
     def test_extract_waveforms(self, x, chan_ID, threshold):
-        result = extract_waveforms(x, chan_ID, threshold, alg='Valley-Peak')
-        return result
+        waveforms, timestamps = extract_waveforms(
+            x, chan_ID, threshold, alg='Valley-Peak')
+        return waveforms, timestamps
 
     def test_auto_sort(self, chan_ID, waveforms, timestamps):
         feat = self.waveforms_pca(waveforms, n_components=None)
