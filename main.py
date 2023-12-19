@@ -27,7 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 organization = 'NYCU'
-application = 'SpikeSorter2'
+application = 'PySortGUI'
 
 
 class CLIError(Exception):
@@ -56,7 +56,7 @@ class QSSLoader:
             return file.read()
 
 
-class SpikeSorter2(MainWindowDocks):
+class PySortGUI(MainWindowDocks):
     def __init__(self, parent=None):
         super().__init__(parent)
         if not hasattr(self, 'settings'):
@@ -69,9 +69,9 @@ class SpikeSorter2(MainWindowDocks):
         self.setupUi()
         self.connectMenuActions()
         self.connectWidgets()
-        self.setWindowTitle("SpikeSorterGL")
+        self.setWindowTitle("PySortGUI")
         self.restoreLayout()
-        logger.info('SpikeSorter2 setup finish.')
+        logger.info('PySortGUI setup finish.')
 
     def load_style(self):
         """
@@ -220,7 +220,7 @@ class SpikeSorter2(MainWindowDocks):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = SpikeSorter2()
+    window = PySortGUI()
     window.show()
 
     sys.exit(app.exec())
