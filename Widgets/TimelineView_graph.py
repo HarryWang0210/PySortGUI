@@ -59,7 +59,7 @@ class TimelineViewGraph(pg.PlotWidget):
         self.current_chan_info = None
         self.visible = False  # overall visible
         self.color_palette_list = sns.color_palette(
-            None, 64)  # palette for events and spikes
+            'bright', 64)  # palette for events and spikes
 
         # threshold relative variables
         self.thr = 0.0

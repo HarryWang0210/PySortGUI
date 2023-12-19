@@ -30,7 +30,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.data_object = None
         self.spikes = None
         self.has_spikes = False
-        self.color_palette_list = sns.color_palette(None, 64)
+        self.color_palette_list = sns.color_palette('bright', 64)
         self.visible = False  # overall visible
 
         # from UnitOperateTools widget

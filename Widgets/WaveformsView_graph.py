@@ -12,6 +12,7 @@ from Widgets.WidgetsInterface import WidgetsInterface
 import logging
 logger = logging.getLogger(__name__)
 
+
 class WaveformsView(pg.PlotWidget, WidgetsInterface):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -25,7 +26,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.has_spikes = False
         self.thr = 0.0
         self.has_thr = False
-        self.color_palette_list = sns.color_palette(None, 64)
+        self.color_palette_list = sns.color_palette('bright', 64)
         self.visible = False  # overall visible
 
         self.num_unit = 1
