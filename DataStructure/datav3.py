@@ -1,10 +1,10 @@
-from typing import Any, Literal as L
+from typing import Type
 from numpy import ndarray, ufunc
 import tables
 import os
 import pandas as pd
 import numpy as np
-from DataStructure.pyephysv2 import loadPyephys, loadRaws, loadSpikes
+from DataStructure.pyephysv3 import loadPyephys, loadRaws, loadSpikes
 # from pyephysv2 import loadPyephys, loadRaws, loadSpikes
 from DataStructure.FunctionsLib.SignalProcessing import design_and_filter
 from DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
@@ -41,13 +41,13 @@ class SpikeSorterData(object):
         spikes_header = self._headers['SpikesHeader'].to_dict('records')
         for header in spikes_header:
             spike_object = DiscreteData(filename=self._filename,
-                                        header=spikes_header,
+                                        header=header,
                                         data_type='Spikes')
-            raw_object = self.getRaw(spikes_header['ID'])
+            raw_object = self.getRaw(header['ID'])
             raw_object.setSpike(
-                spike_object, label=spikes_header['Label'])
+                spike_object, label=header['Label'])
 
-    def getRaw(self, channel: int | str):
+    def getRaw(self, channel: int | str) -> 'ContinuousData' | None:
         """_summary_
 
         Args:
@@ -66,30 +66,48 @@ class SpikeSorterData(object):
         Args:
             channel (int | str): channel ID or channel name.
         """
-        chanID = self.validateChannel(channel)
-
-        raw_object = self._raws_dict.get(chanID)
+        raw_object = self.getRaw(channel)
+        if raw_object is None:
+            return
         if raw_object.isLoaded():
             return
+        chanID = self.validateChannel(channel)
         self._raws_dict[chanID] = raw_object._loadData()
 
-    def getSpike(self, channel: int | str, label: str):
+    def getSpike(self, channel: int | str, label: str) -> 'DiscreteData' | None:
         """_summary_
 
         Args:
             channel (int | str): channel ID or channel name.
-            label (str): _description_
+            label (str): spike label.
 
         Returns:
             _type_: Spike object
         """
         raw_object = self.getRaw(channel)
-        if label in raw_object.spikes:
+        if raw_object is None:
+            return
 
-            raw_object.getSpike(label)
+        if label in raw_object.spikes:
+            return raw_object.getSpike(label)
+
         else:
             logger.warning(f'No label {label} spike data in channel {channel}')
-        return channel
+            return None
+
+    def loadSpike(self, channel: int | str, label: str):
+        """load Spike data, return nothing.
+
+        Args:
+            channel (int | str): channel ID or channel name.
+            label (str): spike label.
+        """
+        spike_object = self.getSpike(channel, label)
+        if spike_object is None:
+            return
+        if spike_object.isLoaded():
+            return
+        spike_object._loadData()
 
     def getEvent(self):
         logger.critical('Unimplemented function.')
@@ -97,9 +115,11 @@ class SpikeSorterData(object):
 
     def subtractReference(self, channel: int | str, reference: list):
         ch_object = self.getRaw(channel)
+
         if len(reference) == 1:
             referenceID = self.validateChannel(reference[0])
             ref_object = self.getRaw(referenceID)
+
         result = ch_object.subtractReference(
             ref_object, referenceID=referenceID)
 
@@ -120,14 +140,13 @@ class SpikeSorterData(object):
         logger.critical('Unimplemented function.')
         return
 
-    def validateChannel(self, channel: int | str):
+    def validateChannel(self, channel: int | str) -> int:
         if isinstance(channel, str):
             channel = self._name_to_ID.get(channel)
-            if isinstance(channel, int):
-                return channel
-            else:
+            if channel is None:
                 logger.warning('Unknowed channel name.')
                 return
+            return channel
 
         elif isinstance(channel, int):
             if channel in self._name_to_ID.values():
@@ -142,8 +161,9 @@ class ContinuousData(np.ndarray):
         """_summary_
 
         Args:
-            header (dict): _description_
             input_array (array-like, optional): _description_. Defaults to [].
+            filename (str, optional): _description_. Defaults to ''.
+            header (dict, optional): _description_. Defaults to dict().
             data_type (str, optional): 'Raw' | 'Filted'. Defaults to 'Filted'.
 
         Returns:
@@ -158,7 +178,7 @@ class ContinuousData(np.ndarray):
         obj._data_type = data_type
         obj._filename = filename
         obj._data_loaded = False
-        if not isinstance(input_array, type(None)) and len(input_array) != 0:
+        if (not input_array is None) and (len(input_array) != 0):
             obj._data_loaded = True
 
         # Finally, we must return the newly created object:
@@ -199,21 +219,22 @@ class ContinuousData(np.ndarray):
     def spikes(self):
         return self._spikes.keys()
 
-    def isLoaded(self):
+    def isLoaded(self) -> bool:
         return self._data_loaded
 
-    def _loadData(self):
+    def _loadData(self) -> 'ContinuousData' | None:
         if self._data_type != 'Raw' or self._data_loaded:
             logger.warning('No data to load.')
-            return
+            return None
 
-        data = loadRaws(self._filename, self.channel_ID)
-        return self.__class__(data, self._filename, self._header.copy(), self._data_type)
+        data = loadRaws(
+            self._filename, self._header['H5Location'], self._header['H5Name'])
+        return self.__class__(data, self._filename, self._header, self._data_type)
 
     def setSpike(self, spike_object, label: str = 'default'):
         self._spikes[label] = spike_object
 
-    def getSpike(self, label: str):
+    def getSpike(self, label: str) -> 'DiscreteData' | None:
         return self._spikes.get(label)
 
     def _setReference(self, referenceID: int):
@@ -229,13 +250,13 @@ class ContinuousData(np.ndarray):
         if isinstance(threshold, int):
             self._header['Threshold'] = threshold
 
-    def subtractReference(self, array, referenceID: int):
+    def subtractReference(self, array, referenceID: int) -> 'ContinuousData' | None:
         result = self - array
         if isinstance(result, self.__class__):
             result._setReference(referenceID)
             return result
 
-    def bandpassFilter(self, low, high):
+    def bandpassFilter(self, low, high) -> 'ContinuousData' | None:
         result = design_and_filter(
             self, FSampling=self.fs, LowCutOff=low, HighCutOff=high)
         if isinstance(result, self.__class__):
@@ -246,7 +267,7 @@ class ContinuousData(np.ndarray):
             result._setFilter(low=low, high=high)
         return result
 
-    def estimatedSD(self):
+    def estimatedSD(self) -> float:
         self._estimated_sd = float(np.median(np.abs(self) / 0.6745))
         return self.estimated_sd
 
@@ -294,12 +315,18 @@ class ContinuousData(np.ndarray):
 
 class DiscreteData(object):
     def __init__(self, filename: str, header: dict, unit_header: pd.DataFrame = pd.DataFrame(),
-                 timestamps=[], unit_ID=[], waveforms=[], data_type: str = 'Spikes'):
+                 unit_ID=[], timestamps=[], waveforms=[], data_type: str = 'Spikes'):
         self._filename = filename
         self._header = header.copy()
         self._unit_header = unit_header.copy()
+        self._unit_ID = unit_ID.copy()
+
+        if self._timestamps == []:
+            self._data_loaded = False
+        else:
+            self._data_loaded = True
+
         self._timestamps = timestamps
-        self._unit_ID = unit_ID
         self._waveforms = waveforms
         self._data_type = data_type
 
@@ -342,15 +369,27 @@ class DiscreteData(object):
     def data_type(self):
         return self._data_type
 
-    def loadData(self):
-        logger.critical('Unimplemented function.')
-        if self.data_type == 'Raw' and not self._data_loaded:
-            data = [1, 2, 3]
-            return self.__class__(self.header, data, self.data_type)
-        else:
-            logger.warning('No data to load.')
+    def isLoaded(self) -> bool:
+        return self._data_loaded
 
-    def setUnit(self, new_unit_ID):
+    def _loadData(self):
+        if self._data_loaded:
+            logger.warning('Data alreadly loaded.')
+            return
+
+        spike = loadSpikes(filename=self._filename,
+                           path=self._header['H5Location'])
+
+        if spike is None:
+            logger.warning('No data to load.')
+            return
+
+        self._unit_header = spike.get('unitHeader')
+        self._unit_ID = spike.get('unitID')
+        self._timestamps = spike.get('timestamps')
+        self._waveforms = spike.get('waveforms')
+
+    def setUnit(self, new_unit_ID) -> 'DiscreteData' | None:
         if self._data_type != 'Spikes':
             logger.warning('Not spike type data.')
             return
