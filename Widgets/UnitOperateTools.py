@@ -459,8 +459,11 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             return (False, None)
 
     def createNewUnit(self, unit_type):
-        new_unit_ID = self.df_table_data.index.max() + 1
-        new_unit_row = self.df_table_data['row'].max() + 1
+        new_unit_ID = int(self.df_table_data.index.max() + 1)
+        new_unit_row = int(self.df_table_data['row'].max() + 1)
+        logger.debug(f'new_unit_row: {type(new_unit_row)}')
+        logger.debug(new_unit_row)
+
         new_unit_name_suffix = f'_{unit_type}' if unit_type in [
             'Unsorted', 'Invalid'] else ''
         new_unit = pd.DataFrame({

@@ -261,7 +261,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.spikes['unitInfo'] = pd.DataFrame({'ID': [0] + list(unique),
                                                 'Name': [f'{self.current_chan_info["Name"]}_Unit_00_Unsorted'] +
-                                                [f'{self.current_chan_info["Name"]}_Unit_{new_unit_ID:02}_Unit' for new_unit_ID in unique],
+                                                [f'{self.current_chan_info["Name"]}_Unit_{new_unit_ID:02}' for new_unit_ID in unique],
                                                 'NumRecords': [0] + list(counts),
                                                 'UnitType': ['Unsorted'] + ['Unit'] * len(np.unique(unitID))})
         self.current_chan_info.update(self.spikes)
