@@ -17,6 +17,7 @@ from sklearn.preprocessing import MaxAbsScaler
 import logging
 logger = logging.getLogger(__name__)
 
+
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
     signal_manual_waveforms = QtCore.pyqtSignal(object)
     signal_select_point = QtCore.pyqtSignal(object)
@@ -103,10 +104,9 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.visible = False
         self.updatePlot()
 
-    def spike_chan_changed(self, meta_data):
-        spikes = self.data_object.getSpikes(
-            meta_data["ID"], meta_data["Label"])
-        if spikes["unitInfo"] is None:
+    def spike_chan_changed(self, current_chan_info):
+        spikes = current_chan_info
+        if spikes["unitID"] is None:
             self.has_spikes = False
             self.spikes = None
             self.visible = False
@@ -124,14 +124,15 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         # self.updatePlot()
 
     def showing_spikes_data_changed(self, spikes_data):
-        self.current_wav_units = spikes_data['current_wav_units']
-        self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
-                                         spikes_data['current_showing_units'])
+        if self.has_spikes:
+            self.current_wav_units = spikes_data['current_wav_units']
+            self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
+                                             spikes_data['current_showing_units'])
 
-        self.current_wav_colors = self.getColor(self.current_wav_units)
+            self.current_wav_colors = self.getColor(self.current_wav_units)
 
-        self.setCurrentPCA()
-        self.setCurrentShowingData()
+            self.setCurrentPCA()
+            self.setCurrentShowingData()
         self.updatePlot()
 
     def activate_manual_mode(self, state):

@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QAb
 
 from DataStructure.datav2 import SpikeSorterData
 import numpy as np
-
+import pandas as pd
 import logging
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     signal_spike_chan_changed = QtCore.pyqtSignal(object)
     signal_filted_data_changed = QtCore.pyqtSignal(object)
-    signal_extract_wav_changed = QtCore.pyqtSignal(object)
-    signal_sorting_result_changed = QtCore.pyqtSignal(object)
+    # signal_extract_wav_changed = QtCore.pyqtSignal(object)
+    # signal_sorting_result_changed = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -214,6 +214,15 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             self.current_chan_info['Threshold'] = self.current_spike_setting['Threshold'][1] * \
                 self.data_object.estimatedSD(self.filted_data)
 
+            self.spikes = {
+                "unitInfo": None,
+                "unitID": None,
+                "timestamps": None,
+                "waveforms": None
+            }
+            self.current_chan_info.update(self.spikes)
+
+            self.current_chan_info['Type'] = 'Filted'
             self.signal_spike_chan_changed.emit(self.current_chan_info)
             self.signal_filted_data_changed.emit(self.filted_data)
         else:
@@ -228,11 +237,19 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.spikes['timestamps'] = timestamps
         self.spikes['waveforms'] = waveforms
+        self.spikes['unitInfo'] = pd.DataFrame({'ID': [0],
+                                                'Name': [f'{self.current_chan_info["Name"]}_Unit_00_Unsorted'],
+                                                'NumRecords': [len(timestamps)],
+                                                'UnitType': ['Unsorted']})
+        self.spikes['unitID'] = np.zeros(len(timestamps))
+        self.current_chan_info.update(self.spikes)
+        self.current_chan_info['Type'] = 'Spikes'
+        self.signal_spike_chan_changed.emit(self.current_chan_info)
 
-        self.signal_extract_wav_changed.emit({
-            'timestamps': timestamps,
-            'waveforms': waveforms
-        })
+        # self.signal_extract_wav_changed.emit({
+        #     'timestamps': timestamps,
+        #     'waveforms': waveforms
+        # })
 
     def sort_channel(self):
         unitID = self.data_object.test_auto_sort(self.current_chan_info['ID'],
@@ -240,8 +257,17 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                                  timestamps=self.spikes['timestamps'])
 
         self.spikes['unitID'] = unitID
+        unique, counts = np.unique(unitID, return_counts=True)
 
-        self.signal_sorting_result_changed.emit(unitID)
+        self.spikes['unitInfo'] = pd.DataFrame({'ID': [0] + list(unique),
+                                                'Name': [f'{self.current_chan_info["Name"]}_Unit_00_Unsorted'] +
+                                                [f'{self.current_chan_info["Name"]}_Unit_{new_unit_ID:02}_Unit' for new_unit_ID in unique],
+                                                'NumRecords': [0] + list(counts),
+                                                'UnitType': ['Unsorted'] + ['Unit'] * len(np.unique(unitID))})
+        self.current_chan_info.update(self.spikes)
+        self.current_chan_info['Type'] = 'Spikes'
+        self.signal_spike_chan_changed.emit(self.current_chan_info)
+        # self.signal_sorting_result_changed.emit(unitID)
     # def generateDataModel(self):
     #     model = QStandardItemModel()
     #     model.setHorizontalHeaderLabels(self.header)
@@ -359,13 +385,28 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                         == chan_ID].iloc[0, :]
 
         self.current_chan_info = selected_df.to_dict()
+        ID = int(meta_data["ID"])
+        name = meta_data["Name"]
+        label = meta_data["Label"]
+        self.current_chan_info['ID'] = ID
+        self.current_chan_info["Name"] = name
+        self.current_chan_info["Label"] = label
         if self.current_chan_info['Type'] == 'Spikes':
             self.getFiltedData()
             self.getSpikeSetting()
+
+            self.spikes = self.data_object.getSpikes(ID, label)
+
         else:
             self.filted_data = None
-
+            self.spikes = {
+                "unitInfo": None,
+                "unitID": None,
+                "timestamps": None,
+                "waveforms": None
+            }
         self.updateLabel()
+        self.current_chan_info.update(self.spikes)
 
         # self.signal_spike_chan_changed.emit(meta_data)
         logger.info(f'Selected type: {self.current_chan_info["Type"]}')

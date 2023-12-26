@@ -88,9 +88,29 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.visible = False
         self.updatePlot()
 
-    def spike_chan_changed(self, meta_data):
-        self.getThreshold(meta_data["Threshold"])
-        self.getSpikes(meta_data["ID"], meta_data["Label"])
+    def spike_chan_changed(self, current_chan_info):
+        self.getThreshold(current_chan_info["Threshold"])
+        # self.getSpikes(current_chan_info["ID"], current_chan_info["Label"])
+        self.getSpikes(current_chan_info)
+
+    # def extract_wav_changed(self, wav_dict):
+    #     self.has_spikes = True
+    #     self.spikes['timestamps'] = wav_dict['timestamps']
+    #     self.spikes['waveforms'] = wav_dict['waveforms']
+    #     self.spikes['unitInfo'] = None
+    #     self.spikes['unitID'] = np.zeros(len(self.spikes['timestamps']))
+    #     self.current_wav_units = self.spikes['unitID']
+    #     logger.debug('extract_wav_changed')
+    #     self.updatePlot()
+
+    # def sorting_result_changed(self, unitID):
+    #     self.has_spikes = True
+    #     self.spikes['unitInfo'] = None
+    #     self.spikes['unitID'] = unitID
+    #     self.current_wav_units = self.spikes['unitID']
+
+    #     logger.debug('sorting_result_changed')
+    #     self.updatePlot()
 
     # def selected_units_changed(self, selected_rows):
     #     self.visible = [False] * self.num_unit
@@ -100,14 +120,15 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     #     self.updatePlot()
 
     def showing_spikes_data_changed(self, spikes_data):
-        self.current_wav_units = spikes_data['current_wav_units']
-        self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
-                                         spikes_data['current_showing_units'])
-        self.current_showing_units = spikes_data['current_showing_units']
-        self.num_unit = len(np.unique(self.current_wav_units))
+        if self.has_spikes:
+            self.current_wav_units = spikes_data['current_wav_units']
+            self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
+                                             spikes_data['current_showing_units'])
+            self.current_showing_units = spikes_data['current_showing_units']
+            self.num_unit = len(np.unique(self.current_wav_units))
 
-        self.current_wav_colors = self.getColor(self.current_wav_units)
-        self.setCurrentShowingData()
+            self.current_wav_colors = self.getColor(self.current_wav_units)
+            self.setCurrentShowingData()
         self.updatePlot()
 
     def activate_manual_mode(self, state):
@@ -129,9 +150,12 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         else:
             self.has_thr = True
 
-    def getSpikes(self, chan_ID, label):
-        spikes = self.data_object.getSpikes(chan_ID, label)
-        if spikes["unitInfo"] is None:
+    def getSpikes(self, current_chan_info):
+        # def getSpikes(self, chan_ID, label):
+        spikes = current_chan_info
+
+        # spikes = self.data_object.getSpikes(chan_ID, label)
+        if spikes["unitID"] is None:
             self.has_spikes = False
             self.spikes = None
             self.visible = False
@@ -143,6 +167,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
             self.visible = True
 
             self.data_scale = np.max(np.abs(spikes["waveforms"]))
+        logger.debug(self.visible)
 
     def getColor(self, unit_data):
         n = len(unit_data)
@@ -154,6 +179,8 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         return color.astype(np.int32)
 
     def setCurrentShowingData(self):
+        if not self.has_spikes:
+            return
         self.current_showing_data = self.spikes['waveforms'][self.current_wavs_mask]
 
     def updatePlot(self):

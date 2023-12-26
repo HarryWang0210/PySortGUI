@@ -15,7 +15,7 @@ from Widgets.ClustersView_graph import ClustersView
 from Widgets.TimelineView_graph import TimelineView
 from Widgets.UnitOperateTools import UnitOperateTools
 
-from Widgets.extend.ISIView import ISIView
+from Widgets.ISIView import ISIView
 
 import logging
 logger = logging.getLogger(__name__)

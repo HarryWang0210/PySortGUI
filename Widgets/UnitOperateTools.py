@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
-    signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
-    signal_spike_chan_changed = QtCore.pyqtSignal(object)
+    # signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
+    # signal_spike_chan_changed = QtCore.pyqtSignal(object)
     signal_activate_manual_mode = QtCore.pyqtSignal(bool)
     signal_showing_spikes_data_changed = QtCore.pyqtSignal(object)
     signal_features_changed = QtCore.pyqtSignal(list)
@@ -133,24 +133,25 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def data_file_name_changed(self, data):
         self.data_object = data
 
-    def spike_chan_changed(self, meta_data):
-        self.spike_chan['ID'] = int(meta_data["ID"])
-        self.spike_chan['Name'] = meta_data["Name"]
-        self.spike_chan['Label'] = meta_data["Label"]
+    def spike_chan_changed(self, current_chan_info):
+        self.spike_chan['ID'] = int(current_chan_info["ID"])
+        self.spike_chan['Name'] = current_chan_info["Name"]
+        self.spike_chan['Label'] = current_chan_info["Label"]
 
-        spikes = self.data_object.getSpikes(
-            self.spike_chan['ID'], self.spike_chan['Label'])
-
+        # spikes = self.data_object.getSpikes(
+        #     self.spike_chan['ID'], self.spike_chan['Label'])
+        spikes = current_chan_info
         self.locked_rows_list = []
         self.selected_rows_list = []
         self.current_wav_units = []
         self.current_showing_units = []
 
-        if spikes["unitInfo"] is None:
+        if spikes["unitID"] is None:
             self.spikes = None
             self.has_spikes = False
             model = self.tableView.model()
             model.clear()
+            model.setHorizontalHeaderLabels(["Locked", "UnitName"])
 
         else:
             self.spikes = spikes
@@ -216,6 +217,10 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     # ====================
 
     def sendSpikesData(self):
+        if not self.has_spikes:
+            spikes = {'current_wav_units': self.current_wav_units,
+                      'current_showing_units': self.current_showing_units}
+            self.signal_showing_spikes_data_changed.emit(spikes)
         all_selected_rows = self.selected_rows_list + self.locked_rows_list
 
         # All
@@ -493,10 +498,18 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         unsorted_units = self.df_table_data['UnitType'] == 'Unsorted'
         invalid_units = self.df_table_data['UnitType'] == 'Invalid'
 
+        # """unsorted/invalid/sorted"""
+        # new_df_table_data = pd.concat(
+        #     [self.df_table_data[unsorted_units], self.df_table_data[invalid_units]])
+        # new_df_table_data = pd.concat(
+        #     [new_df_table_data, self.df_table_data[~(unsorted_units | invalid_units)]])
+
+        """unsorted/sorted/invalid"""
         new_df_table_data = pd.concat(
-            [self.df_table_data[unsorted_units], self.df_table_data[invalid_units]])
+            [self.df_table_data[unsorted_units], self.df_table_data[~(unsorted_units | invalid_units)]])
         new_df_table_data = pd.concat(
-            [new_df_table_data, self.df_table_data[~(unsorted_units | invalid_units)]])
+            [new_df_table_data, self.df_table_data[invalid_units]])
+
         old_ID = new_df_table_data.index.copy()
         old_row = new_df_table_data['row'].copy()
         new_df_table_data.reset_index(drop=True, inplace=True)
