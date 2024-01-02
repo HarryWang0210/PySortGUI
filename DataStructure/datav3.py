@@ -22,7 +22,7 @@ class SpikeSorterData(object):
         super().__init__()
         self._filename = filename
         self._raws_dict = dict()
-        self._name_to_ID = dict()
+        self._channel_name_to_ID = dict()
         self._headers = loadPyephys(filename)
         self._createRawsData()
         self._createSpikesData()
@@ -33,7 +33,7 @@ class SpikeSorterData(object):
 
     @property
     def channel_IDs(self):
-        return list(self._name_to_ID.values())
+        return list(self._channel_name_to_ID.values())
 
     @property
     def raws_header(self):
@@ -68,8 +68,9 @@ class SpikeSorterData(object):
         raws_header = self._headers['RawsHeader'].to_dict('records')
         for header in raws_header:
             self._raws_dict[header['ID']] = ContinuousData(filename=self._filename,
-                                                           header=header, data_type='Raw')
-            self._name_to_ID[header['Name']] = header['ID']
+                                                           header=header,
+                                                           data_type='Raw')
+            self._channel_name_to_ID[header['Name']] = header['ID']
 
     def _createSpikesData(self):
         spikes_header = self._headers['SpikesHeader'].to_dict('records')
@@ -179,14 +180,14 @@ class SpikeSorterData(object):
 
     def validateChannel(self, channel: int | str) -> int:
         if isinstance(channel, str):
-            channel = self._name_to_ID.get(channel)
+            channel = self._channel_name_to_ID.get(channel)
             if channel is None:
                 logger.warning('Unknowed channel name.')
                 return
             return channel
 
         elif isinstance(channel, int):
-            if channel in self._name_to_ID.values():
+            if channel in self._channel_name_to_ID.values():
                 return channel
             else:
                 logger.warning('Unknowed channel ID.')
@@ -247,6 +248,22 @@ class ContinuousData(np.ndarray):
         return self._header['SamplingFreq']
 
     @property
+    def reference(self) -> int:
+        return self._header['ReferenceID']
+
+    @property
+    def low_cutoff(self) -> int | float:
+        return self._header['LowCutOff']
+
+    @property
+    def high_cutoff(self) -> int | float:
+        return self._header['HighCutOff']
+
+    @property
+    def threshold(self) -> int | float:
+        return self._header['Threshold']
+
+    @property
     def estimated_sd(self):
         if isinstance(self._estimated_sd, (int, float)):
             return self._estimated_sd
@@ -287,8 +304,8 @@ class ContinuousData(np.ndarray):
         if isinstance(high, (int, float)):
             self._header['HighCutOff'] = high
 
-    def _setThreshold(self, threshold: int):
-        if isinstance(threshold, int):
+    def _setThreshold(self, threshold: int | float):
+        if isinstance(threshold, (int, float)):
             self._header['Threshold'] = threshold
 
     def subtractReference(self, array, referenceID: int) -> ContinuousData | None:
