@@ -107,8 +107,7 @@ class SpikeSorterData(object):
         raw_object = self.getRaw(channel)
         if raw_object is None:
             return
-        chanID = self.validateChannel(channel)
-        self._raws_dict[chanID] = raw_object._loadData()
+        raw_object._loadData()
 
     def getSpike(self, channel: int | str, label: str, load_data: bool = False) -> DiscreteData | None:
         """_summary_
@@ -156,8 +155,7 @@ class SpikeSorterData(object):
             referenceID = self.validateChannel(reference[0])
             ref_object = self.getRaw(referenceID, load_data=True)
 
-        result = ch_object.subtractReference(
-            ref_object, referenceID=referenceID)
+        result = ch_object.subtractReference(ref_object.data, referenceID)
 
         return result
 
@@ -194,36 +192,44 @@ class SpikeSorterData(object):
                 return
 
 
-class ContinuousData(np.ndarray):
-    def __new__(cls, input_array=None, filename: str = '', header: dict = dict(), data_type: str = 'Filted'):
-        """_summary_
+class ContinuousData(object):
+    # def __new__(cls, input_array=None, filename: str = '', header: dict = dict(), data_type: str = 'Filted'):
+    #     """_summary_
 
-        Args:
-            input_array (array-like, optional): _description_. Defaults to [].
-            filename (str, optional): _description_. Defaults to ''.
-            header (dict, optional): _description_. Defaults to dict().
-            data_type (str, optional): 'Raw' | 'Filted'. Defaults to 'Filted'.
+    #     Args:
+    #         input_array (array-like, optional): _description_. Defaults to [].
+    #         filename (str, optional): _description_. Defaults to ''.
+    #         header (dict, optional): _description_. Defaults to dict().
+    #         data_type (str, optional): 'Raw' | 'Filted'. Defaults to 'Filted'.
 
-        Returns:
-            ContinuousData: _description_
-        """
-        # Input array is an already formed ndarray instance
-        # We first cast to be our class type
-        obj = np.asarray(input_array).view(cls)
-        # add the new attribute to the created instance
-        obj._header = header.copy()
-        # obj._header = header.copy()
-        obj._data_type = data_type
-        obj._filename = filename
-        obj._data_loaded = False
-        if (not input_array is None) and (len(input_array) != 0):
-            obj._data_loaded = True
+    #     Returns:
+    #         ContinuousData: _description_
+    #     """
+    #     # Input array is an already formed ndarray instance
+    #     # We first cast to be our class type
+    #     obj = np.asarray(input_array).view(cls)
+    #     # add the new attribute to the created instance
+    #     obj._header = header.copy()
+    #     # obj._header = header.copy()
+    #     obj._data_type = data_type
+    #     obj._filename = filename
+    #     obj._data_loaded = False
+    #     if (not input_array is None) and (len(input_array) != 0):
+    #         obj._data_loaded = True
 
-        # Finally, we must return the newly created object:
-        return obj
+    #     # Finally, we must return the newly created object:
+    #     return obj
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, input_array: np.ndarray = [], filename: str = '', header: dict = dict(), data_type: str = 'Filted'):
         super().__init__()
+        self._data = np.asarray(input_array)
+        self._filename = filename
+        self._header = header.copy()
+        self._data_type = data_type
+        self._data_loaded = False
+        if len(input_array) > 0:
+            self._data_loaded = True
+
         self._estimated_sd = None
         self._spikes = dict()
 
@@ -233,6 +239,8 @@ class ContinuousData(np.ndarray):
 
     @property
     def channel_ID(self):
+        if not isinstance(self._header['ID'], int):
+            self._header['ID'] = int(self._header['ID'])
         return self._header['ID']
 
     @property
@@ -240,27 +248,43 @@ class ContinuousData(np.ndarray):
         return self._header.copy()
 
     @property
+    def data(self):
+        return self._data.copy()
+
+    @property
     def data_type(self):
         return self._data_type
 
     @property
     def fs(self):
+        if not isinstance(self._header['SamplingFreq'], (int, float)):
+            self._header['SamplingFreq'] = int(self._header['SamplingFreq'])
         return self._header['SamplingFreq']
 
     @property
-    def reference(self) -> int:
+    def reference(self) -> list | None:
+        if self._header['ReferenceID'] == '':
+            self._header['ReferenceID'] = None
+        if isinstance(self._header['ReferenceID'], str):
+            self._header['ReferenceID'] = [int(self._header['ReferenceID'])]
         return self._header['ReferenceID']
 
     @property
     def low_cutoff(self) -> int | float:
+        if not isinstance(self._header['LowCutOff'], (int, float)):
+            self._header['LowCutOff'] = float(self._header['LowCutOff'])
         return self._header['LowCutOff']
 
     @property
     def high_cutoff(self) -> int | float:
+        if not isinstance(self._header['HighCutOff'], (int, float)):
+            self._header['HighCutOff'] = float(self._header['HighCutOff'])
         return self._header['HighCutOff']
 
     @property
     def threshold(self) -> int | float:
+        if not isinstance(self._header['Threshold'], (int, float)):
+            self._header['Threshold'] = float(self._header['Threshold'])
         return self._header['Threshold']
 
     @property
@@ -276,18 +300,15 @@ class ContinuousData(np.ndarray):
     def isLoaded(self) -> bool:
         return self._data_loaded
 
-    def _loadData(self) -> ContinuousData | None:
+    def _loadData(self):
         if self._data_type != 'Raw' or self.isLoaded():
             logger.warning('No data to load.')
-            return None
+            return
 
         data = loadRaws(
             self._filename, self._header['H5Location'], self._header['H5Name'])
-        raw_object = self.__class__(
-            data, self._filename, self._header, self._data_type)
-        for label in self.spikes:
-            raw_object.setSpike(self._spikes[label], label)
-        return raw_object
+
+        self._data = np.asarray(data)
 
     def setSpike(self, spike_object, label: str = 'default'):
         self._spikes[label] = spike_object
@@ -295,8 +316,8 @@ class ContinuousData(np.ndarray):
     def getSpike(self, label: str) -> DiscreteData | None:
         return self._spikes.get(label)
 
-    def _setReference(self, referenceID: int):
-        self._header['ReferenceID'] = referenceID
+    def _setReference(self, referenceID: list):
+        self._header['ReferenceID'] = list(referenceID)
 
     def _setFilter(self, low: int | float | None = None, high: int | float | None = None):
         if isinstance(low, (int, float)):
@@ -308,22 +329,26 @@ class ContinuousData(np.ndarray):
         if isinstance(threshold, (int, float)):
             self._header['Threshold'] = threshold
 
-    def subtractReference(self, array, referenceID: int) -> ContinuousData | None:
-        result = self - array
-        if isinstance(result, self.__class__):
-            result._setReference(referenceID)
-            return result
+    def subtractReference(self, array: np.ndarray, reference: int) -> ContinuousData | None:
+        result = self.data - np.asarray(array)
+
+        return self.createCopy(input_array=result, reference=reference)
+        # if isinstance(result, self.__class__):
+        #     result._setReference(referenceID)
+        #     return result
 
     def bandpassFilter(self, low, high) -> ContinuousData | None:
         result = design_and_filter(
-            self, FSampling=self.fs, LowCutOff=low, HighCutOff=high)
-        if isinstance(result, self.__class__):
-            result._setFilter(low=low, high=high)
-        elif isinstance(result, np.ndarray):
-            result = self.__class__(
-                result, self._filename, self._header.copy(), data_type='Filted')
-            result._setFilter(low=low, high=high)
-        return result
+            self.data, FSampling=self.fs, LowCutOff=low, HighCutOff=high)
+
+        return self.createCopy(input_array=result, low_cutoff=low, high_cutoff=high)
+        # if isinstance(result, self.__class__):
+        #     result._setFilter(low=low, high=high)
+        # elif isinstance(result, np.ndarray):
+        #     result = self.__class__(
+        #         result, self._filename, self._header.copy(), data_type='Filted')
+        #     result._setFilter(low=low, high=high)
+        # return result
 
     def _estimatedSD(self) -> float:
         self._estimated_sd = float(np.median(np.abs(self) / 0.6745))
@@ -331,10 +356,10 @@ class ContinuousData(np.ndarray):
 
     def extractWaveforms(self, threshold) -> tuple[ContinuousData, DiscreteData]:
         waveforms, timestamps = extract_waveforms(
-            self, self.channel_ID, threshold, alg='Valley-Peak')
-        result = self[:]
-        if isinstance(result, self.__class__):
-            result._setThreshold(threshold)
+            self.data, self.channel_ID, threshold, alg='Valley-Peak')
+
+        result = self.createCopy(threshold=threshold)
+
         unit_ID = np.zeros(len(timestamps))
         spike = DiscreteData(filename=result.filename, header=result._header,
                              unit_ID=unit_ID,
@@ -342,33 +367,48 @@ class ContinuousData(np.ndarray):
                              waveforms=waveforms)
         return result, spike
 
-    def __array_finalize__(self, obj):
-        # ``self`` is a new object resulting from
-        # ndarray.__new__(InfoArray, ...), therefore it only has
-        # attributes that the ndarray.__new__ constructor gave it -
-        # i.e. those of a standard ndarray.
-        #
-        # We could have got to the ndarray.__new__ call in 3 ways:
-        # From an explicit constructor - e.g. InfoArray():
-        #    obj is None
-        #    (we're in the middle of the InfoArray.__new__
-        #    constructor, and self.info will be set when we return to
-        #    InfoArray.__new__)
-        if obj is None:
-            return
-        # From view casting - e.g arr.view(InfoArray):
-        #    obj is arr
-        #    (type(obj) can be InfoArray)
-        #
-        # Note that it is here, rather than in the __new__ method,
-        # that we set the default value for 'info', because this
-        # method sees all creation of default objects - with the
-        # InfoArray.__new__ constructor, but also with
-        # arr.view(InfoArray).
-        self._filename = getattr(obj, '_filename',  None)
-        self._header = getattr(obj, '_header',  dict()).copy()
-        self._data_type = 'Filted'
-        self._data_loaded = True
+    def createCopy(self,
+                   input_array: np.ndarray = None,
+                   header: dict = None,
+                   reference=None,
+                   low_cutoff=None,
+                   high_cutoff=None,
+                   threshold=None,
+                   deep_copy_data=False):
+        # args = ['input_array', 'header', 'reference',
+        #         'low_cutoff', 'high_cutoff', 'threshold']
+
+        # for k in kargs.keys():
+        #     if k not in args:
+        #         raise ValueError(
+        #             'Invalid keyword argument: %s (allowed arguments are %s)' % (k, str(args)))
+
+        data_ = self._data
+        if not input_array is None:
+            data_ = input_array.copy()
+        elif self._data_type == 'Raw' or deep_copy_data:
+            data_ = self._data.copy()
+
+        header_ = self._header.copy()
+        if not header is None:
+            header_ = header.copy()
+
+        new_object = self.__class__(
+            data_, self._filename, header_, data_type='Filted')
+
+        if not reference is None:
+            new_object._setReference(reference)
+
+        if not low_cutoff is None:
+            new_object._setFilter(low=low_cutoff)
+
+        if not high_cutoff is None:
+            new_object._setFilter(high=high_cutoff)
+
+        if not threshold is None:
+            new_object._setThreshold(threshold)
+
+        return new_object
 
 
 class DiscreteData(object):
