@@ -413,7 +413,8 @@ class ContinuousData(object):
 
 class DiscreteData(object):
     def __init__(self, filename: str, header: dict, unit_header: pd.DataFrame = pd.DataFrame(),
-                 unit_ID: np.ndarray = [], timestamps: np.ndarray = [], waveforms: np.ndarray = [], data_type: str = 'Spikes', _from_file=False):
+                 unit_ID: np.ndarray = [], timestamps: np.ndarray = [], waveforms: np.ndarray = [],
+                 data_type: str = 'Spikes', _from_file=False):
         self._filename = filename
         self._header = header.copy()
         self._unit_header = unit_header.copy()
@@ -538,14 +539,51 @@ class DiscreteData(object):
         self._waveforms = spike.get('waveforms')
 
     def setUnit(self, new_unit_ID, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> DiscreteData | None:
-        # TODO
         if self._data_type != 'Spikes':
             logger.warning('Not spike type data.')
             return
-        unit_header_name = ['H5Location', 'H5Name', 'ID', 'Name', 'NumRecords', 'ParentID',
-                            'ParentType', 'Type', 'UnitType']
-        new_unit_header = []
-        logger.critical('Unimplemented function.')
+
+        if len(new_unit_ID) != len(self._timestamps):
+            logger.warning('Length of unit id not match with timestamps.')
+            return
+
+        # unit_header_name = ['H5Location', 'H5Name', 'ID', 'Name', 'NumRecords', 'ParentID',
+        #                     'ParentType', 'Type', 'UnitType']
+
+        values, counts = np.unique(new_unit_ID, return_counts=True)
+
+        new_unit_header = pd.DataFrame({'ID': values,
+                                        'Name': [f'CH{self.channel_ID}_Unit_{values:02}' for ID in values],
+                                        'NumRecords': counts,
+                                        })
+        new_unit_header['UnitType'] = 'Unit'
+
+        if not unsorted_unit_ID is None:
+            if unsorted_unit_ID in new_unit_header['ID']:
+                new_unit_header.loc[new_unit_header['ID'] == unsorted_unit_ID, ['Name', 'Unit']] = [
+                    f'CH{self.channel_ID}_Unit_{unsorted_unit_ID:02}_Unsorted', 'Unsorted']
+            else:
+                unsorted_unit_header = pd.DataFrame({'ID': unsorted_unit_ID,
+                                                     'Name': f'CH{self.channel_ID}_Unit_{unsorted_unit_ID:02}_Unsorted',
+                                                     'NumRecords': 0,
+                                                     'UnitType': 'Unsorted'})
+                new_unit_header = pd.concat([new_unit_header, unsorted_unit_header],
+                                            axis=0)
+
+        if not invalid_unit_ID is None:
+            if invalid_unit_ID in new_unit_header['ID']:
+                new_unit_header.loc[new_unit_header['ID'] == invalid_unit_ID, ['Name', 'Unit']] = [
+                    f'CH{self.channel_ID}_Unit_{invalid_unit_ID:02}_Invalid', 'Invalid']
+            else:
+                invalid_unit_header = pd.DataFrame({'ID': invalid_unit_ID,
+                                                    'Name': f'CH{self.channel_ID}_Unit_{invalid_unit_ID:02}_Invalid',
+                                                    'NumRecords': 0,
+                                                    'UnitType': 'Invalid'})
+                new_unit_header = pd.concat([new_unit_header, invalid_unit_header],
+                                            axis=0)
+
+        new_unit_header.sort_values('ID', ignore_index=True, inplace=True)
+        # logger.critical('Unimplemented function.')
         return self.__class__(filename=self._filename,
                               header=self._header,
                               unit_header=new_unit_header,
@@ -575,6 +613,7 @@ class DiscreteData(object):
             new_sort_unit_ID = auto_sort(self.filename, self.channel_ID, feat,
                                          self.waveforms[ignored_mask],
                                          self.timestamps[ignored_mask], sorting=None, re_sort=False)
+            # by default invalid unit is last one
             new_invalid_unit_ID = np.max(new_unit_ID) + 1
             new_unit_ID = np.ones(len(self.unit_ID)) * new_invalid_unit_ID
             new_unit_ID[~ignored_mask] = new_sort_unit_ID
