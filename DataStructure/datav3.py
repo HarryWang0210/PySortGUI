@@ -413,12 +413,12 @@ class ContinuousData(object):
 
 class DiscreteData(object):
     def __init__(self, filename: str, header: dict, unit_header: pd.DataFrame = pd.DataFrame(),
-                 unit_ID: np.ndarray = [], timestamps: np.ndarray = [], waveforms: np.ndarray = [],
+                 unit_IDs: np.ndarray = [], timestamps: np.ndarray = [], waveforms: np.ndarray = [],
                  data_type: str = 'Spikes', _from_file=False):
         self._filename = filename
         self._header = header.copy()
         self._unit_header = unit_header.copy()
-        self._unit_ID = np.array(unit_ID)
+        self._unit_IDs = np.array(unit_IDs)
         self._timestamps = timestamps
         self._waveforms = waveforms
 
@@ -507,8 +507,8 @@ class DiscreteData(object):
         return self._timestamps.copy()
 
     @property
-    def unit_ID(self) -> np.ndarray:
-        return self._unit_ID.copy()
+    def unit_IDs(self) -> np.ndarray:
+        return self._unit_IDs.copy()
 
     @property
     def waveforms(self) -> np.ndarray:
@@ -534,23 +534,23 @@ class DiscreteData(object):
             return
 
         self._unit_header = spike.get('unitHeader')
-        self._unit_ID = spike.get('unitID')
+        self._unit_IDs = spike.get('unitID')
         self._timestamps = spike.get('timestamps')
         self._waveforms = spike.get('waveforms')
 
-    def setUnit(self, new_unit_ID, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> DiscreteData | None:
+    def setUnit(self, new_unit_IDs, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> DiscreteData | None:
         if self._data_type != 'Spikes':
             logger.warning('Not spike type data.')
             return
 
-        if len(new_unit_ID) != len(self._timestamps):
+        if len(new_unit_IDs) != len(self._timestamps):
             logger.warning('Length of unit id not match with timestamps.')
             return
 
         # unit_header_name = ['H5Location', 'H5Name', 'ID', 'Name', 'NumRecords', 'ParentID',
         #                     'ParentType', 'Type', 'UnitType']
 
-        values, counts = np.unique(new_unit_ID, return_counts=True)
+        values, counts = np.unique(new_unit_IDs, return_counts=True)
 
         new_unit_header = pd.DataFrame({'ID': values,
                                         'Name': [f'CH{self.channel_ID}_Unit_{values:02}' for ID in values],
@@ -588,7 +588,7 @@ class DiscreteData(object):
                               header=self._header,
                               unit_header=new_unit_header,
                               timestamps=self._timestamps,
-                              unit_ID=new_unit_ID,
+                              unit_ID=new_unit_IDs,
                               waveforms=self._waveforms)
 
     def waveformsPCA(self, n_components: int = None, ignore_invalid: bool = False) -> np.ndarray:
@@ -614,16 +614,16 @@ class DiscreteData(object):
                                          self.waveforms[ignored_mask],
                                          self.timestamps[ignored_mask], sorting=None, re_sort=False)
             # by default invalid unit is last one
-            new_invalid_unit_ID = np.max(new_unit_ID) + 1
-            new_unit_ID = np.ones(len(self.unit_ID)) * new_invalid_unit_ID
-            new_unit_ID[~ignored_mask] = new_sort_unit_ID
+            new_invalid_unit_ID = np.max(new_unit_IDs) + 1
+            new_unit_IDs = np.ones(len(self.unit_ID)) * new_invalid_unit_ID
+            new_unit_IDs[~ignored_mask] = new_sort_unit_ID
 
         else:
-            new_unit_ID = auto_sort(self.filename, self.channel_ID, feat,
-                                    self.waveforms,
-                                    self.timestamps, sorting=None, re_sort=False)
+            new_unit_IDs = auto_sort(self.filename, self.channel_ID, feat,
+                                     self.waveforms,
+                                     self.timestamps, sorting=None, re_sort=False)
         # logger.critical('Unimplemented function.')
-        return self.setUnit(new_unit_ID, unsorted_unit_ID=0, invalid_unit_ID=new_invalid_unit_ID)
+        return self.setUnit(new_unit_IDs, unsorted_unit_ID=0, invalid_unit_ID=new_invalid_unit_ID)
 
 
 if __name__ == '__main__':
