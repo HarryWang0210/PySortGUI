@@ -538,7 +538,7 @@ class DiscreteData(object):
         self._timestamps = spike.get('timestamps')
         self._waveforms = spike.get('waveforms')
 
-    def setUnit(self, new_unit_IDs, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> DiscreteData | None:
+    def setUnit(self, new_unit_IDs, new_unit_header: pd.DataFrame | None = None, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> DiscreteData | None:
         if self._data_type != 'Spikes':
             logger.warning('Not spike type data.')
             return
@@ -547,10 +547,24 @@ class DiscreteData(object):
             logger.warning('Length of unit id not match with timestamps.')
             return
 
+        if new_unit_header is None:
+            new_unit_header = self.createUnitHeader(new_unit_IDs,
+                                                    unsorted_unit_ID,
+                                                    invalid_unit_ID)
+
         # unit_header_name = ['H5Location', 'H5Name', 'ID', 'Name', 'NumRecords', 'ParentID',
         #                     'ParentType', 'Type', 'UnitType']
 
-        values, counts = np.unique(new_unit_IDs, return_counts=True)
+        # logger.critical('Unimplemented function.')
+        return self.__class__(filename=self._filename,
+                              header=self._header,
+                              unit_header=new_unit_header,
+                              timestamps=self._timestamps,
+                              unit_ID=new_unit_IDs,
+                              waveforms=self._waveforms)
+
+    def createUnitHeader(self, unit_IDs, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> pd.DataFrame:
+        values, counts = np.unique(unit_IDs, return_counts=True)
 
         new_unit_header = pd.DataFrame({'ID': values,
                                         'Name': [f'CH{self.channel_ID}_Unit_{values:02}' for ID in values],
@@ -583,13 +597,8 @@ class DiscreteData(object):
                                             axis=0)
 
         new_unit_header.sort_values('ID', ignore_index=True, inplace=True)
-        # logger.critical('Unimplemented function.')
-        return self.__class__(filename=self._filename,
-                              header=self._header,
-                              unit_header=new_unit_header,
-                              timestamps=self._timestamps,
-                              unit_ID=new_unit_IDs,
-                              waveforms=self._waveforms)
+
+        return new_unit_header
 
     def waveformsPCA(self, n_components: int = None, ignore_invalid: bool = False) -> np.ndarray:
         if ignore_invalid and not self.invalid_unit_ID is None:
@@ -602,6 +611,11 @@ class DiscreteData(object):
         return transformed_data
 
     def autosort(self):
+        """by default unsorted unit id is 0, and invalid unit id is the last.
+
+        Returns:
+            _type_: _description_
+        """
         if self._data_type != 'Spikes':
             logger.warning('Not spike type data.')
             return
