@@ -610,7 +610,7 @@ class DiscreteData(object):
 
     def waveformsPCA(self, n_components: int = None, ignore_invalid: bool = False) -> np.ndarray:
         if ignore_invalid and not self.invalid_unit_ID is None:
-            ignored_mask = ~(self.unit_ID == self.invalid_unit_ID)
+            ignored_mask = ~(self._unit_IDs == self.invalid_unit_ID)
             transformed_data = PCA(n_components).fit_transform(
                 self.waveforms[ignored_mask])
         else:
@@ -631,13 +631,13 @@ class DiscreteData(object):
         feat = self.waveformsPCA(ignore_invalid=True)
         new_invalid_unit_ID = None
         if not self.invalid_unit_ID is None:
-            ignored_mask = ~(self.unit_ID == self.invalid_unit_ID)
+            ignored_mask = ~(self._unit_IDs == self.invalid_unit_ID)
             new_sort_unit_ID = auto_sort(self.filename, self.channel_ID, feat,
                                          self.waveforms[ignored_mask],
                                          self.timestamps[ignored_mask], sorting=None, re_sort=False)
             # by default invalid unit is last one
             new_invalid_unit_ID = np.max(new_unit_IDs) + 1
-            new_unit_IDs = np.ones(len(self.unit_ID)) * new_invalid_unit_ID
+            new_unit_IDs = np.ones(len(self._unit_IDs)) * new_invalid_unit_ID
             new_unit_IDs[~ignored_mask] = new_sort_unit_ID
 
         else:
