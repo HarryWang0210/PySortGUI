@@ -244,6 +244,10 @@ class ContinuousData(object):
         return self._header['ID']
 
     @property
+    def channel_name(self) -> int:
+        return self._header['Name']
+
+    @property
     def header(self):
         return self._header.copy()
 
@@ -443,6 +447,10 @@ class DiscreteData(object):
     @property
     def channel_ID(self) -> int:
         return self._header['ID']
+
+    @property
+    def channel_name(self) -> int:
+        return self._header['Name']
 
     @property
     def label(self) -> str:
