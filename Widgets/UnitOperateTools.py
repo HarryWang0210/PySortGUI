@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, QItemSelectionModel
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from DataStructure.data import SpikeSorterData
+from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
 
 import logging
 logger = logging.getLogger(__name__)
@@ -15,10 +15,12 @@ logger = logging.getLogger(__name__)
 class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     # signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     # signal_spike_chan_changed = QtCore.pyqtSignal(object)
-    signal_activate_manual_mode = QtCore.pyqtSignal(bool)
-    signal_showing_spikes_data_changed = QtCore.pyqtSignal(object)
+    signal_showing_spike_data_changed = QtCore.pyqtSignal(DiscreteData)
+    signal_showing_units_changed = QtCore.pyqtSignal(object)
+    signal_manual_mode_state_changed = QtCore.pyqtSignal(bool)
     signal_features_changed = QtCore.pyqtSignal(list)
-    signal_set_feature_on_selection = QtCore.pyqtSignal(bool)
+    # signal_set_feature_on_selection = QtCore.pyqtSignal(bool)
+    signal_feature_on_selection_state_changed = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -26,14 +28,16 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.setupUi(self)
         self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
 
-        self.data_object = None
-        self.spike_chan = {
-            'ID': None,
-            'Name': None,
-            'Label': None
-        }
-        self.has_spikes = False
-        self.spikes = None
+        self.current_data_object: SpikeSorterData | None = None
+        self.current_spike_object: DiscreteData | None = None
+
+        # self.spike_chan = {
+        #     'ID': None,
+        #     'Name': None,
+        #     'Label': None
+        # }
+        # self.has_spikes = False
+        # self.spikes = None
         self.locked_rows_list = []  # store the rows that have been locked
         self.selected_rows_list = []  # store the rows that have been selected
         self.color_palette_list = sns.color_palette('bright', 64)
@@ -44,12 +48,12 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             self.remove_wav_pushButton.objectName(): [self.remove_wav_pushButton, False],
             self.invalidate_wav_pushButton.objectName(): [self.invalidate_wav_pushButton, False]}
 
-        self.current_wav_units = []  # all waveform units (N,), int
+        # self.current_wav_units = []  # all waveform units (N,), int
         self.current_showing_units = []  # the unit id that are showing
 
         # store the table data(contain only units)
         # index: 'ID'
-        # column: 'Name', 'NumRecords', 'UnitType', 'row
+        # column: 'Name', 'NumRecords', 'UnitType', 'row'
         self.df_table_data = None
 
         self.initDataModel()
@@ -133,37 +137,49 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def data_file_name_changed(self, data):
         self.data_object = data
 
-    def spike_chan_changed(self, current_chan_info):
-        self.spike_chan['ID'] = int(current_chan_info["ID"])
-        self.spike_chan['Name'] = current_chan_info["Name"]
-        self.spike_chan['Label'] = current_chan_info["Label"]
-
-        # spikes = self.data_object.getSpikes(
-        #     self.spike_chan['ID'], self.spike_chan['Label'])
-        spikes = current_chan_info
+    def spike_data_changed(self, new_spike_object: DiscreteData | None):
         self.locked_rows_list = []
         self.selected_rows_list = []
-        self.current_wav_units = []
         self.current_showing_units = []
 
-        if spikes["unitID"] is None:
-            self.spikes = None
-            self.has_spikes = False
+        self.current_spike_object = new_spike_object
+
+        self.sendFeatures()
+        self.sendShowingSpikeData()
+
+        if self.current_spike_object is None:
             model = self.tableView.model()
             model.clear()
             model.setHorizontalHeaderLabels(["Locked", "UnitName"])
 
         else:
-            self.spikes = spikes
-            self.has_spikes = True
-            self.df_table_data = pd.DataFrame()
-            self.df_table_data[['ID', 'Name', 'NumRecords', 'UnitType']] = self.spikes['unitInfo'][[
-                'ID', 'Name', 'NumRecords', 'UnitType']].copy()
+            self.df_table_data = self.current_spike_object.unit_header
+            # self.df_table_data[['ID', 'Name', 'NumRecords', 'UnitType']] = self.[[
+            #     'ID', 'Name', 'NumRecords', 'UnitType']].copy()
             self.df_table_data.set_index('ID', inplace=True)
             self.df_table_data['row'] = self.df_table_data.index + 2
+        # self.spike_chan['ID'] = int(current_chan_info["ID"])
+        # self.spike_chan['Name'] = current_chan_info["Name"]
+        # self.spike_chan['Label'] = current_chan_info["Label"]
+
+        # spikes = self.data_object.getSpikes(
+        #     self.spike_chan['ID'], self.spike_chan['Label'])
+        # spikes = current_chan_info
+
+        # if spikes["unitID"] is None:
+        #     self.spikes = None
+
+        # else:
+        #     self.spikes = spikes
+        #     self.has_spikes = True
+        #     self.df_table_data = pd.DataFrame()
+        #     self.df_table_data[['ID', 'Name', 'NumRecords', 'UnitType']] = self.spikes['unitInfo'][[
+        #         'ID', 'Name', 'NumRecords', 'UnitType']].copy()
+        #     self.df_table_data.set_index('ID', inplace=True)
+        #     self.df_table_data['row'] = self.df_table_data.index + 2
 
             self.setDataModel()
-            self.current_wav_units = self.spikes["unitID"].copy()
+            # self.current_wav_units = self.spikes["unitID"].copy()
 
             # selecting first row by default
             model = self.tableView.model()
@@ -172,8 +188,6 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
                                    QItemSelectionModel.Select)
             selection_model.select(model.index(0, 1),
                                    QItemSelectionModel.Select)
-        self.sendFeatures()
-        self.sendSpikesData()
 
     def manual_waveforms(self, wav_index):
         if len(wav_index) == 0:
@@ -204,23 +218,24 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             self.locked_rows_list.append(row)
         elif state == Qt.Unchecked and row in self.locked_rows_list:
             self.locked_rows_list.remove(row)
-        self.sendSpikesData()
+        self.sendShowingUnits()
 
     def onSelectionChanged(self, selected, deselected):
         selection_model = self.tableView.selectionModel()
         selected_indexes = selection_model.selectedRows()
         self.selected_rows_list = [index.row() for index in selected_indexes]
-        self.sendSpikesData()
+        self.sendShowingUnits()
 
     def setFeatureOnSelection(self, checked):
-        self.signal_set_feature_on_selection.emit(checked)
+        self.signal_feature_on_selection_state_changed.emit(checked)
     # ====================
 
-    def sendSpikesData(self):
-        if not self.has_spikes:
-            spikes = {'current_wav_units': self.current_wav_units,
-                      'current_showing_units': self.current_showing_units}
-            self.signal_showing_spikes_data_changed.emit(spikes)
+    # def sendShowingSpikeData(self):
+    def sendShowingUnits(self):
+        # if not self.has_spikes:
+        #     spikes = {'current_wav_units': self.current_wav_units,
+        #               'current_showing_units': self.current_showing_units}
+        #     self.signal_showing_spikes_data_changed.emit(spikes)
         all_selected_rows = self.selected_rows_list + self.locked_rows_list
 
         # All
@@ -238,22 +253,26 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.current_showing_units = selected_ID
 
-        spikes = {'current_wav_units': self.current_wav_units,
-                  'current_showing_units': self.current_showing_units}
-        self.signal_showing_spikes_data_changed.emit(spikes)
+        # spikes = {'current_wav_units': self.current_wav_units,
+        #           'current_showing_units': self.current_showing_units}
+        self.signal_showing_units_changed.emit(self.current_showing_units)
+        # self.signal_showing_spikes_data_changed.emit(spikes)
+
+    def sendShowingSpikeData(self):
+        self.signal_showing_spike_data_changed.emit(self.current_spike_object)
 
     def sendWaveformAction(self, checked):
         sender = self.sender().objectName()
         if checked:
             self.wav_actions_state[sender][1] = True
             self.exclusiveWaveformActions(sender)
-            self.signal_activate_manual_mode.emit(True)
+            self.signal_manual_mode_state_changed.emit(True)
 
         else:
             self.wav_actions_state[sender][1] = False
-            self.signal_activate_manual_mode.emit(False)
+            self.signal_manual_mode_state_changed.emit(False)
 
-    def sendFeatures(self, text=''):
+    def sendFeatures(self):
         features = [self.feature1_comboBox.currentText(),
                     self.feature2_comboBox.currentText(),
                     self.feature3_comboBox.currentText()]
@@ -269,50 +288,54 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     # ==================== Unit Actions ====================
     def mergeUnits(self):
         # TODO: contain unsorted unit, all unit merge warning
-        unit_IDs = self.current_showing_units
-        if len(unit_IDs) < 2:
+        merge_unit_IDs = self.current_showing_units
+        if len(merge_unit_IDs) < 2:
             logger.error(
                 'Merge Units action must select at least 2 units.')
             return
 
-        target_unit_ID = unit_IDs[0]
-        wav_index = np.where(np.isin(self.current_wav_units, unit_IDs))[0]
+        target_unit_ID = merge_unit_IDs[0]
+        wav_index = np.where(
+            np.isin(self.current_spike_object.unit_IDs, merge_unit_IDs))[0]
 
-        self.moveWaveforms(wav_index, target_unit_ID)
+        new_unit_IDs = self.moveWaveforms(wav_index, target_unit_ID)
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID()
+        self.reorderUnitID(new_unit_IDs)
 
-        self.sendSpikesData()
+        self.sendShowingSpikeData()
 
         self.setDataModel()
 
         self.recoverySelection()
 
     def swapUnits(self):
-        unit_IDs = self.current_showing_units
-        if len(unit_IDs) != 2:
+        swap_unit_IDs = self.current_showing_units
+        if len(swap_unit_IDs) != 2:
             logger.error('Swap Units action can only select 2 units.')
             return
 
-        unit1_ID, unit2_ID = unit_IDs
+        unit1_ID, unit2_ID = swap_unit_IDs
         unit1_wav_index = np.where(
-            np.isin(self.current_wav_units, [unit1_ID]))[0]
+            np.isin(self.current_spike_object.unit_IDs, [unit1_ID]))[0]
         unit2_wav_index = np.where(
-            np.isin(self.current_wav_units, [unit2_ID]))[0]
+            np.isin(self.current_spike_object.unit_IDs, [unit2_ID]))[0]
 
         temp_unit_id = self.createNewUnit('Unit')
 
-        self.moveWaveforms(unit1_wav_index, temp_unit_id)  # 1 to temp
-        self.moveWaveforms(unit2_wav_index, unit1_ID)  # 2 to 1
-        self.moveWaveforms(unit1_wav_index, unit2_ID)  # temp to 2
+        new_unit_IDs = self.moveWaveforms(
+            unit1_wav_index, temp_unit_id)  # 1 to temp
+        new_unit_IDs = self.moveWaveforms(
+            unit2_wav_index, unit1_ID, new_unit_IDs)  # 2 to 1
+        new_unit_IDs = self.moveWaveforms(
+            unit1_wav_index, unit2_ID, new_unit_IDs)  # temp to 2
 
         self.removeEmptyUnits()
 
         self.reorderUnitID()
 
-        self.sendSpikesData()
+        self.sendShowingSpikeData()
 
         self.setDataModel()
 
@@ -320,19 +343,21 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     def removeUnits(self):
         # TODO: all unit warning
-        unit_IDs = self.current_showing_units
-        if len(unit_IDs) == 0:
+        remove_unit_IDs = self.current_showing_units
+        if len(remove_unit_IDs) == 0:
             return
-        wav_index = np.where(np.isin(self.current_wav_units, unit_IDs))[0]
+        wav_index = np.where(
+            np.isin(self.current_spike_object.unit_IDs, remove_unit_IDs))[0]
         self.removeWaveforms(wav_index)
 
     def invalidateUnits(self):
         # TODO: all unit warning
 
-        unit_IDs = self.current_showing_units
-        if len(unit_IDs) == 0:
+        invalid_unit_IDs = self.current_showing_units
+        if len(invalid_unit_IDs) == 0:
             return
-        wav_index = np.where(np.isin(self.current_wav_units, unit_IDs))[0]
+        wav_index = np.where(
+            np.isin(self.current_spike_object.unit_IDs, invalid_unit_IDs))[0]
         self.invalidateWaveforms(wav_index)
     # ========================================
 
@@ -340,13 +365,13 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def addAsNewUnit(self, wav_index):
         new_unit_ID = self.createNewUnit('Unit')
 
-        self.moveWaveforms(wav_index, new_unit_ID)
+        new_unit_IDs = self.moveWaveforms(wav_index, new_unit_ID)
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID()
+        self.reorderUnitID(new_unit_IDs)
 
-        self.sendSpikesData()
+        self.sendShowingSpikeData()
 
         self.setDataModel()
 
@@ -368,13 +393,13 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         else:
             return
 
-        self.moveWaveforms(wav_index, target_unit_ID)
+        new_unit_IDs = self.moveWaveforms(wav_index, target_unit_ID)
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID()
+        self.reorderUnitID(new_unit_IDs)
 
-        self.sendSpikesData()
+        self.sendShowingSpikeData()
 
         self.setDataModel()
 
@@ -385,7 +410,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         )
         if len(unsorted_unit_ID) < 1:
             unsorted_unit_ID = self.createNewUnit('Unsorted')
-            self.moveWaveforms(wav_index, unsorted_unit_ID)
+            new_unit_IDs = self.moveWaveforms(wav_index, unsorted_unit_ID)
 
         elif len(unsorted_unit_ID) != 1:
             # TODO: Select one to move.
@@ -393,13 +418,13 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         else:
             unsorted_unit_ID = unsorted_unit_ID[0]
-            self.moveWaveforms(wav_index, unsorted_unit_ID)
+            new_unit_IDs = self.moveWaveforms(wav_index, unsorted_unit_ID)
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID()
+        self.reorderUnitID(new_unit_IDs)
 
-        self.sendSpikesData()
+        self.sendShowingSpikeData()
 
         self.setDataModel()
 
@@ -410,7 +435,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         )
         if len(invalid_unit_ID) < 1:
             invalid_unit_ID = self.createNewUnit('Invalid')
-            self.moveWaveforms(wav_index, invalid_unit_ID)
+            new_unit_IDs = self.moveWaveforms(wav_index, invalid_unit_ID)
 
         elif len(invalid_unit_ID) != 1:
             # TODO: Select one to move.
@@ -418,13 +443,13 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         else:
             invalid_unit_ID = invalid_unit_ID[0]
-            self.moveWaveforms(wav_index, invalid_unit_ID)
+            new_unit_IDs = self.moveWaveforms(wav_index, invalid_unit_ID)
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID()
+        self.reorderUnitID(new_unit_IDs)
 
-        self.sendSpikesData()
+        self.sendShowingSpikeData()
 
         self.setDataModel()
 
@@ -459,6 +484,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             return (False, None)
 
     def createNewUnit(self, unit_type):
+        # TODO: Refactoring
         new_unit_ID = int(self.df_table_data.index.max() + 1)
         new_unit_row = int(self.df_table_data['row'].max() + 1)
         logger.debug(f'new_unit_row: {type(new_unit_row)}')
@@ -467,12 +493,12 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         new_unit_name_suffix = f'_{unit_type}' if unit_type in [
             'Unsorted', 'Invalid'] else ''
         new_unit = pd.DataFrame({
-            'Name': f'{self.spike_chan["Name"]}_Unit_{new_unit_ID:02}{new_unit_name_suffix}',
+            'Name': f'{self.current_spike_object.channel_name}_Unit_{new_unit_ID:02}{new_unit_name_suffix}',
             'NumRecords': 0,
             'UnitType': unit_type,
             'row': new_unit_row}, index=[new_unit_ID])
-        self.appendUnitRow(
-            new_unit.loc[new_unit_ID, 'row'], new_unit.loc[new_unit_ID, 'Name'])
+        # self.appendUnitRow(new_unit.loc[new_unit_ID, 'row'],
+        #                    new_unit.loc[new_unit_ID, 'Name'])
         self.df_table_data = pd.concat([self.df_table_data, new_unit], axis=0)
 
         return new_unit_ID
@@ -485,19 +511,24 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.df_table_data = self.df_table_data[
             (~remove_units) | excluded_units]
 
-    def moveWaveforms(self, wav_index, target_unit):
-        self.current_wav_units[wav_index] = target_unit
+    def moveWaveforms(self, wav_index, target_unit, unit_IDs=None):
+        if unit_IDs is None:
+            new_unit_IDs = self.current_spike_object.unit_IDs
+        else:
+            new_unit_IDs = unit_IDs
+        new_unit_IDs[wav_index] = target_unit
 
         # update NumRecords
-        unique, counts = np.unique(self.current_wav_units, return_counts=True)
+        unique, counts = np.unique(new_unit_IDs, return_counts=True)
         counts_dict = dict(zip(unique, counts))
         self.df_table_data['NumRecords'] = self.df_table_data.index.map(
             counts_dict)
         self.df_table_data['NumRecords'].fillna(0, inplace=True)
         self.df_table_data['NumRecords'] = self.df_table_data['NumRecords'].astype(
             int)
+        return new_unit_IDs
 
-    def reorderUnitID(self):
+    def reorderUnitID(self, unit_IDs):
         unsorted_units = self.df_table_data['UnitType'] == 'Unsorted'
         invalid_units = self.df_table_data['UnitType'] == 'Invalid'
 
@@ -549,8 +580,11 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         new_df_table_data['Name'] = new_df_table_data['Name'].str.replace(
             r'_Unit_(\d{2})', replace_func, regex=True)
         self.df_table_data = new_df_table_data
-        self.current_wav_units = np.vectorize(
-            map_new_ID_dict.get)(self.current_wav_units)
+        new_unit_IDs = np.vectorize(
+            map_new_ID_dict.get)(unit_IDs)
+
+        self.current_spike_object = self.current_spike_object.setUnit(new_unit_IDs,
+                                                                      new_unit_header=self.df_table_data.reset_index())
 
     def recoverySelection(self):
         model = self.tableView.model()
