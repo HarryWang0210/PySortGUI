@@ -321,6 +321,8 @@ class ContinuousData(object):
         return self._spikes.get(label)
 
     def _setReference(self, referenceID: list):
+        if isinstance(referenceID, int):
+            referenceID = [referenceID]
         self._header['ReferenceID'] = list(referenceID)
 
     def _setFilter(self, low: int | float | None = None, high: int | float | None = None):
