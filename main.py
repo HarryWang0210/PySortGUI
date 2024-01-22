@@ -107,61 +107,69 @@ class PySortGUI(MainWindowDocks):
         self.children_dict['Help'].triggered.connect(self.help)
 
     def connectWidgets(self):
-        """send data object"""
-        self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
-            self.children_dict["TimelineView"].data_file_name_changed)
-        self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
-            self.children_dict["WaveformsView"].data_file_name_changed)
-        self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
-            self.children_dict["ClustersView"].data_file_name_changed)
-        self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
-            self.children_dict["UnitOperateTools"].data_file_name_changed)
+        self.children_dict['ChannelDetail'].signal_continuous_data_changed.connect(
+            self.children_dict["TimelineView"].continuous_data_changed)
+        self.children_dict['ChannelDetail'].signal_spike_data_changed.connect(
+            self.children_dict["UnitOperateTools"].spike_data_changed)
 
-        """send filted data"""
-        self.children_dict["ChannelDetail"].signal_filted_data_changed.connect(
-            self.children_dict["TimelineView"].filted_data_changed)
+        self.children_dict['UnitOperateTools'].signal_showing_spike_data_changed.connect(
+            self.children_dict["TimelineView"].showing_spike_data_changed)
+        self.children_dict['UnitOperateTools'].signal_showing_units_changed.connect(
+            self.children_dict["TimelineView"].showing_units_changed)
+        # """send data object"""
+        # self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
+        #     self.children_dict["TimelineView"].data_file_name_changed)
+        # self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
+        #     self.children_dict["WaveformsView"].data_file_name_changed)
+        # self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
+        #     self.children_dict["ClustersView"].data_file_name_changed)
+        # self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
+        #     self.children_dict["UnitOperateTools"].data_file_name_changed)
 
-        """send selected channel info"""
-        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
-            self.children_dict["TimelineView"].spike_chan_changed)
-        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
-            self.children_dict["WaveformsView"].spike_chan_changed)
-        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
-            self.children_dict["ClustersView"].spike_chan_changed)
-        self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
-            self.children_dict["UnitOperateTools"].spike_chan_changed)
+        # """send filted data"""
+        # self.children_dict["ChannelDetail"].signal_filted_data_changed.connect(
+        #     self.children_dict["TimelineView"].filted_data_changed)
 
-        """activate manual pen mode"""
+        # """send selected channel info"""
+        # self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+        #     self.children_dict["TimelineView"].spike_chan_changed)
+        # self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+        #     self.children_dict["WaveformsView"].spike_chan_changed)
+        # self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+        #     self.children_dict["ClustersView"].spike_chan_changed)
+        # self.children_dict["ChannelDetail"].signal_spike_chan_changed.connect(
+        #     self.children_dict["UnitOperateTools"].spike_chan_changed)
+
+        # """activate manual pen mode"""
+        # # self.children_dict["UnitOperateTools"].signal_activate_manual_mode.connect(
+        # #     self.children_dict["WaveformsView"].activate_manual_mode)
         # self.children_dict["UnitOperateTools"].signal_activate_manual_mode.connect(
-        #     self.children_dict["WaveformsView"].activate_manual_mode)
-        self.children_dict["UnitOperateTools"].signal_activate_manual_mode.connect(
-            self.children_dict["ClustersView"].activate_manual_mode)
-
+        #     self.children_dict["ClustersView"].activate_manual_mode)
         """send manual waveform index"""
         # self.children_dict["WaveformsView"].signal_manual_waveforms.connect(
         #     self.children_dict["UnitOperateTools"].manual_waveforms)
-        self.children_dict["ClustersView"].signal_manual_waveforms.connect(
-            self.children_dict["UnitOperateTools"].manual_waveforms)
+        # self.children_dict["ClustersView"].signal_manual_waveforms.connect(
+        #     self.children_dict["UnitOperateTools"].manual_waveforms)
 
-        """send current showing unit"""
-        self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
-            self.children_dict["TimelineView"].showing_spikes_data_changed)
-        self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
-            self.children_dict["WaveformsView"].showing_spikes_data_changed)
-        self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
-            self.children_dict["ClustersView"].showing_spikes_data_changed)
+        # """send current showing unit"""
+        # self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
+        #     self.children_dict["TimelineView"].showing_spikes_data_changed)
+        # self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
+        #     self.children_dict["WaveformsView"].showing_spikes_data_changed)
+        # self.children_dict["UnitOperateTools"].signal_showing_spikes_data_changed.connect(
+        #     self.children_dict["ClustersView"].showing_spikes_data_changed)
 
-        """send selected waveform (only from ClustersView to WaveformsView)"""
-        self.children_dict["ClustersView"].signal_select_point.connect(
-            self.children_dict["WaveformsView"].select_point)
+        # """send selected waveform (only from ClustersView to WaveformsView)"""
+        # self.children_dict["ClustersView"].signal_select_point.connect(
+        #     self.children_dict["WaveformsView"].select_point)
 
-        """send ClustersView feature axis"""
-        self.children_dict["UnitOperateTools"].signal_features_changed.connect(
-            self.children_dict["ClustersView"].features_changed)
+        # """send ClustersView feature axis"""
+        # self.children_dict["UnitOperateTools"].signal_features_changed.connect(
+        #     self.children_dict["ClustersView"].features_changed)
 
-        """send feature_on_selection mode to ClustersView"""
-        self.children_dict["UnitOperateTools"].signal_set_feature_on_selection.connect(
-            self.children_dict["ClustersView"].set_feature_on_selection)
+        # """send feature_on_selection mode to ClustersView"""
+        # self.children_dict["UnitOperateTools"].signal_set_feature_on_selection.connect(
+        #     self.children_dict["ClustersView"].set_feature_on_selection)
 
         """send result after extract wav"""
         # self.children_dict["ChannelDetail"].signal_extract_wav_changed.connect(
