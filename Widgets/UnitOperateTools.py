@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     # signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     # signal_spike_chan_changed = QtCore.pyqtSignal(object)
-    signal_showing_spike_data_changed = QtCore.pyqtSignal(DiscreteData)
+    signal_showing_spike_data_changed = QtCore.pyqtSignal(object)
     signal_showing_units_changed = QtCore.pyqtSignal(object)
     signal_manual_mode_state_changed = QtCore.pyqtSignal(bool)
     signal_features_changed = QtCore.pyqtSignal(list)
@@ -484,7 +484,6 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             return (False, None)
 
     def createNewUnit(self, unit_type):
-        # TODO: Refactoring
         new_unit_ID = int(self.df_table_data.index.max() + 1)
         new_unit_row = int(self.df_table_data['row'].max() + 1)
         logger.debug(f'new_unit_row: {type(new_unit_row)}')
