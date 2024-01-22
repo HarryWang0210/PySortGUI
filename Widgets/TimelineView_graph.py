@@ -7,6 +7,7 @@ import pyqtgraph as pg
 import numpy as np
 import seaborn as sns
 from UI.TimelineView_ui import Ui_TimelineView
+from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
 
 import logging
 logger = logging.getLogger(__name__)
@@ -30,21 +31,33 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def data_file_name_changed(self, data):
         self.graphWidget.data_file_name_changed(data)
 
-    def spike_chan_changed(self, current_chan_info):
-        self.raw_pushButton.setChecked(current_chan_info['Type'] == 'Raws')
-        self.graphWidget.spike_chan_changed(current_chan_info)
+    def continuous_data_changed(self, new_raw_object, new_filted_object):
+        self.raw_pushButton.setChecked(new_filted_object is None)
+        # print(new_raw_object, new_filted_object)
+        self.graphWidget.continuous_data_changed(
+            new_raw_object, new_filted_object)
 
-    def filted_data_changed(self, filted_data):
-        self.graphWidget.filted_data_changed(filted_data)
+    def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+        self.graphWidget.showing_spike_data_changed(new_spike_object)
 
-    def showing_spikes_data_changed(self, spikes_data):
-        self.graphWidget.showing_spikes_data_changed(spikes_data)
+    def showing_units_changed(self, showing_unit_IDs):
+        self.graphWidget.showing_units_changed(showing_unit_IDs)
 
-    def extract_wav_changed(self, wav_dict):
-        self.graphWidget.extract_wav_changed(wav_dict)
+    # def spike_chan_changed(self, current_chan_info):
+    #     self.raw_pushButton.setChecked(current_chan_info['Type'] == 'Raws')
+    #     self.graphWidget.spike_chan_changed(current_chan_info)
 
-    def sorting_result_changed(self, unitID):
-        self.graphWidget.sorting_result_changed(unitID)
+    # def filted_data_changed(self, filted_data):
+    #     self.graphWidget.filted_data_changed(filted_data)
+
+    # def showing_spikes_data_changed(self, spikes_data):
+    #     self.graphWidget.showing_spikes_data_changed(spikes_data)
+
+    # def extract_wav_changed(self, wav_dict):
+    #     self.graphWidget.extract_wav_changed(wav_dict)
+
+    # def sorting_result_changed(self, unitID):
+    #     self.graphWidget.sorting_result_changed(unitID)
 
 
 class TimelineViewGraph(pg.PlotWidget):
@@ -56,7 +69,10 @@ class TimelineViewGraph(pg.PlotWidget):
         self.MAX_DATA_SHOW = 30000
 
         self.data_object = None
-        self.current_chan_info = None
+        self.current_raw_object: ContinuousData | None = None
+        self.current_filted_object: ContinuousData | None = None
+        self.current_spike_object: DiscreteData | None = None
+        # self.current_chan_info = None
         self.visible = False  # overall visible
         self.color_palette_list = sns.color_palette(
             'bright', 64)  # palette for events and spikes
@@ -64,35 +80,35 @@ class TimelineViewGraph(pg.PlotWidget):
         # threshold relative variables
         self.thr = 0.0
         self.has_thr = False
-        self.thr_visible = False
+        self.show_thr = False
 
         # events relative variables
         self.events = None
         self.has_events = False
-        self.events_visible = False
+        self.show_events = False
         self.num_event_units = 0
         self.event_units_visible = []  # list of all event units
 
         # spikes relative variables
         # self.spikes = None
         self.has_spikes = False
-        self.spikes_visible = False
-        self.num_spike_units = 0
-        self.spike_units_visible = []  # list of all spike units
+        self.show_spikes = False
+        # self.num_spike_units = 0
+        # self.spike_units_visible = []  # list of all spike units
 
         # raw relative variables
-        self.raw_data = None
-        self.filted_data = None
-        self.has_filted_data = False
+        # self.raw_data = None
+        # self.filted_data = None
+        # self.has_filted_data = False
 
-        self.raw_data_visible = False
+        self.show_raw = False
 
         self.data_len = 0
         self.data_scale = 1000  # maximun height of data
         self.num_data_show = 1000  # initial number of data points show in window
 
-        self.current_wav_colors = []  # (units, 3)
-        self.current_wav_units = []
+        # self.current_wav_colors = []  # (units, 3)
+        # self.current_wav_units = []
         self.current_showing_units = []
         self.initPlotItem()
 
@@ -133,58 +149,92 @@ class TimelineViewGraph(pg.PlotWidget):
         self.visible = False
         self.updatePlot()
 
-    def spike_chan_changed(self, current_chan_info):
-        self.current_chan_info = current_chan_info
-        logger.debug(self.current_chan_info['Type'])
-        if self.current_chan_info['Type'] == 'Spikes':
-            self.visible = True
-            self.has_thr = True
-            self.has_spikes = True
+    def continuous_data_changed(self, new_raw_object, new_filted_object):
+        # new_raw_object, new_filted_object = new_continuous_objects
 
-            self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
-            self.thr = self.current_chan_info["Threshold"]
+        self.current_raw_object: ContinuousData | None = new_raw_object
+        self.current_filted_object: ContinuousData | None = new_filted_object
 
-            # self.spikes = self.data_object.getSpikes(self.current_chan_info['ID'],
-            #                                          self.current_chan_info['Label'])
-            # logger.debug(self.current_chan_info)
-            self.num_spike_units = self.current_chan_info["unitInfo"].shape[0]
-
-        elif self.current_chan_info['Type'] == 'Raws':
-            self.visible = True
-            self.has_thr = False
-            self.has_spikes = False
-
-            self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
-            self.thr = 0.0
-            # self.spikes = None
-            self.num_spike_units = 0
-
-        elif self.current_chan_info['Type'] == 'Filted':
-            self.visible = True
-            self.has_thr = True
-            self.has_spikes = False
-
-            self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
-            self.thr = self.current_chan_info["Threshold"]
-            # self.spikes = None
-            self.num_spike_units = 0
-
-        elif self.current_chan_info['Type'] == 'Events':
+        self.visible = True
+        if self.current_raw_object is None:
             self.visible = False
-            logger.critical('Not implement error.')
+            self.updatePlot()
+            return
 
-        self.spike_units_visible = [True] * self.num_spike_units
-
-    def filted_data_changed(self, filted_data):
-        self.filted_data = filted_data
-        if isinstance(self.filted_data, np.ndarray):
-            self.has_filted_data = True
-            self.data_scale = np.max(np.abs(self.filted_data)) / 2
-
+        if self.current_filted_object is None:
+            data = self.current_raw_object.data
+            # self.has_thr = False
         else:
-            self.has_filted_data = False
-        logger.debug('filted_data_changed')
+            data = self.current_filted_object.data
+            self.thr = self.current_filted_object.threshold
+            # self.has_thr = True
+
+        self.data_len = len(data)
+        self.data_scale = np.max(np.abs(data)) / 2
+        self.num_data_show = 1000  # initial number of data points show in window
         self.updatePlot()
+
+    def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+        self.current_spike_object = new_spike_object
+        # self.has_spikes = not self.current_spike_object is None
+        self.updatePlot()
+
+    def showing_units_changed(self, showing_unit_IDs):
+        self.current_showing_units = showing_unit_IDs
+        self.updatePlot()
+
+    # def spike_chan_changed(self, current_chan_info):
+    #     self.current_chan_info = current_chan_info
+    #     logger.debug(self.current_chan_info['Type'])
+    #     if self.current_chan_info['Type'] == 'Spikes':
+    #         self.visible = True
+    #         self.has_thr = True
+    #         self.has_spikes = True
+
+    #         self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
+    #         self.thr = self.current_chan_info["Threshold"]
+
+    #         # self.spikes = self.data_object.getSpikes(self.current_chan_info['ID'],
+    #         #                                          self.current_chan_info['Label'])
+    #         # logger.debug(self.current_chan_info)
+    #         self.num_spike_units = self.current_chan_info["unitInfo"].shape[0]
+
+    #     elif self.current_chan_info['Type'] == 'Raws':
+    #         self.visible = True
+    #         self.has_thr = False
+    #         self.has_spikes = False
+
+    #         self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
+    #         self.thr = 0.0
+    #         # self.spikes = None
+    #         self.num_spike_units = 0
+
+    #     elif self.current_chan_info['Type'] == 'Filted':
+    #         self.visible = True
+    #         self.has_thr = True
+    #         self.has_spikes = False
+
+    #         self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
+    #         self.thr = self.current_chan_info["Threshold"]
+    #         # self.spikes = None
+    #         self.num_spike_units = 0
+
+    #     elif self.current_chan_info['Type'] == 'Events':
+    #         self.visible = False
+    #         logger.critical('Not implement error.')
+
+    #     self.spike_units_visible = [True] * self.num_spike_units
+
+    # def filted_data_changed(self, filted_data):
+    #     self.filted_data = filted_data
+    #     if isinstance(self.filted_data, np.ndarray):
+    #         self.has_filted_data = True
+    #         self.data_scale = np.max(np.abs(self.filted_data)) / 2
+
+    #     else:
+    #         self.has_filted_data = False
+    #     logger.debug('filted_data_changed')
+    #     self.updatePlot()
 
     # def extract_wav_changed(self, wav_dict):
     #     self.has_spikes = True
@@ -205,27 +255,27 @@ class TimelineViewGraph(pg.PlotWidget):
     #     logger.debug('sorting_result_changed')
     #     self.updatePlot()
 
-    def showing_spikes_data_changed(self, spikes_data):
-        if self.has_spikes:
-            self.current_wav_units = spikes_data['current_wav_units']
-            self.current_showing_units = spikes_data['current_showing_units']
-            # self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
-            #                                  spikes_data['current_showing_units'])
-            # self.num_unit = len(np.unique(self.current_wav_units))
-        logger.debug('showing_spikes_data_changed')
-        # self.current_wav_colors = self.getColor(self.current_wav_units)
-        self.updatePlot()
+    # def showing_spikes_data_changed(self, spikes_data):
+    #     if self.has_spikes:
+    #         self.current_wav_units = spikes_data['current_wav_units']
+    #         self.current_showing_units = spikes_data['current_showing_units']
+    #         # self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
+    #         #                                  spikes_data['current_showing_units'])
+    #         # self.num_unit = len(np.unique(self.current_wav_units))
+    #     logger.debug('showing_spikes_data_changed')
+    #     # self.current_wav_colors = self.getColor(self.current_wav_units)
+    #     self.updatePlot()
 
-    def getRaw(self, raw):
-        self.raw_data = raw
-        self.data_len = len(raw)
-        self.data_scale = np.max(np.abs(self.raw_data)) / 2
-        self.num_data_show = 1000  # initial number of data points show in window
+    # def getRaw(self, raw):
+    #     self.raw_data = raw
+    #     self.data_len = len(raw)
+    #     self.data_scale = np.max(np.abs(self.raw_data)) / 2
+    #     self.num_data_show = 1000  # initial number of data points show in window
 
-    def getEvents(self, events):
-        # TODO: getEvents
-        self.events = events
-        self.has_events = True
+    # def getEvents(self, events):
+    #     # TODO: getEvents
+    #     self.events = events
+    #     self.has_events = True
 
     # def getSpikes(self, spikes):
     #     if spikes["unitInfo"] is None:
@@ -262,55 +312,79 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def showThreshold(self, show):
         """Control from TimelineView."""
-        self.thr_visible = show
+        self.show_thr = show
+        logger.debug(f'showThreshold: {show}')
         self.updatePlot()
 
     def showEvents(self, show):
         """Control from TimelineView."""
-        self.events_visible = show
+        self.show_events = show
+        logger.debug(f'showEvents: {show}')
         self.updatePlot()
 
     def showSpikes(self, show):
         """Control from TimelineView."""
-        self.spikes_visible = show
+        self.show_spikes = show
+        logger.debug(f'showSpikes: {show}')
         self.updatePlot()
 
     def showRaw(self, show):
         """Control from TimelineView."""
-        self.raw_data_visible = show
+        self.show_raw = show
         logger.debug(f'showRaw: {show}')
         self.updatePlot()
 
     def updatePlot(self):
+        logger.debug('updatePlot')
+        logger.debug(self.visible)
         if self.visible:
-            if not self.raw_data_visible and self.has_filted_data:
-                self.drawData(self.filted_data)
+            if self.show_raw:
+                logger.debug('draw raw')
+                self.drawData('raw')
             else:
-                self.drawData(self.raw_data)
+                logger.debug('draw filted')
+                self.drawData('filted')
 
-            if self.has_thr:
+            # if not self.show_raw and self.has_filted_data:
+            #     self.drawData(self.filted_data)
+            # else:
+            #     self.drawData(self.raw_data)
+
+            if self.show_thr and not self.current_filted_object is None:
+                logger.debug('draw thr')
                 self.drawThreshold()
 
-            if self.has_spikes:
+            if self.show_spikes and not self.current_spike_object is None:
+                logger.debug('draw spike')
                 self.drawSpikes()
 
         self.data_item.setVisible(self.visible)
         self.thr_item.setVisible(self.visible and
-                                 self.has_thr and
-                                 self.thr_visible)
+                                 self.show_thr and
+                                 not self.current_filted_object is None)
 
         for item in self.spikes_item_list:
             item.setVisible(self.visible and
-                            self.has_spikes and
-                            self.spikes_visible)
+                            self.show_spikes and
+                            not self.current_spike_object is None)
 
-    def drawData(self, data):
+    def drawData(self, data_type):
+        if data_type == 'raw':
+            data = self.current_raw_object.data
+        elif data_type == 'filted':
+            data = self.current_filted_object.data
+
+        self.data_len = len(data)
+
         self.data_item.setData(data)
         self.plot_item.getViewBox().setXRange(0, self.num_data_show, padding=0)
         self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
 
     def drawThreshold(self):
-        self.thr_item.setValue(self.thr)
+        if self.current_filted_object is None:
+            return
+
+        self.thr_item.setValue(self.current_filted_object.threshold)
 
     def drawEvents(self):
         """TODO"""
@@ -319,9 +393,9 @@ class TimelineViewGraph(pg.PlotWidget):
     def drawSpikes(self):
         self.removeSpikeItems()
 
-        self.spikes_item_list = self.tsToLines(self.current_chan_info["timestamps"],
-                                               unit_ID=self.current_showing_units,
-                                               all_unit_ID=self.current_wav_units,
+        self.spikes_item_list = self.tsToLines(self.current_spike_object.timestamps,
+                                               unit_IDs=self.current_spike_object.unit_IDs,
+                                               showing_unit_IDs=self.current_showing_units,
                                                data_type="spikes")
 
         [self.addItem(item) for item in self.spikes_item_list]
@@ -331,7 +405,7 @@ class TimelineViewGraph(pg.PlotWidget):
             self.removeItem(item)
         self.spikes_item_list = []
 
-    def tsToLines(self, ts, unit_ID, all_unit_ID, data_type):
+    def tsToLines(self, ts, showing_unit_IDs, unit_IDs, data_type):
         # FIXME: y軸縮小時上下界不會跟著改變
         item_list = []
         if data_type == "spikes":
@@ -342,8 +416,8 @@ class TimelineViewGraph(pg.PlotWidget):
             print('Unknown type of timestamps.')
             return
 
-        for ID in unit_ID:
-            data_filtered = ts[all_unit_ID == ID].copy()
+        for ID in showing_unit_IDs:
+            data_filtered = ts[unit_IDs == ID].copy()
 
             color = self.color_palette_list[ID]
             color = (np.array(color) * 255).astype(int)
