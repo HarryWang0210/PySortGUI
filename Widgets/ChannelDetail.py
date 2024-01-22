@@ -14,9 +14,8 @@ logger = logging.getLogger(__name__)
 
 class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     signal_data_file_name_changed = QtCore.pyqtSignal()
-    signal_continuous_data_changed = QtCore.pyqtSignal((ContinuousData,
-                                                       ContinuousData))
-    signal_spike_data_changed = QtCore.pyqtSignal(DiscreteData)
+    signal_continuous_data_changed = QtCore.pyqtSignal((object, object))
+    signal_spike_data_changed = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -243,7 +242,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 channel=chan_ID, reference=[self.current_spike_object.reference])
             self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
                                                                                    high=self.current_spike_object.high_cutoff)
-            self.setSpikeSetting()
+            # self.setSpikeSetting()
             self.setLabelCombox(labels=self.current_raw_object.spikes,
                                 current=self.current_spike_object.label)
         elif meta_data['Type'] == 'Raws':
@@ -251,8 +250,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             self.current_raw_object = self.current_data_object.getRaw(chan_ID)
             self.setLabelCombox(labels=self.current_raw_object.spikes)
 
-        self.signal_continuous_data_changed.emit((self.current_raw_object,
-                                                  self.current_filted_object))
+        self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                 self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object)
 
         logger.info(f'Selected type: {meta_data["Type"]}')
