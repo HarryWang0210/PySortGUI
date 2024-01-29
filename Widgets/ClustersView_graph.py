@@ -10,7 +10,6 @@ from scipy.spatial import KDTree
 from matplotlib.path import Path
 import seaborn as sns
 import time
-from DataStructure.data import SpikeSorterData
 from Widgets.WidgetsInterface import WidgetsInterface
 from sklearn.preprocessing import MaxAbsScaler
 from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
