@@ -510,7 +510,7 @@ def extract_waveforms(x, chan_ID, threshold, OffSet=0, wav_length=36, alg='Cross
     #     cHeader['Name'] = cHeader['Name'] + '_offline'
     # cHeader['Comment'] = "Extracted on {}".format(
     #     time.strftime('%Y-%B-%d', time.localtime()))
-    return Waveforms, crossings
+    return Waveforms['Waveforms'], crossings
     Waveforms['TimeStamps'] = PyEphys.Classes.DiscreteClasses.DiscreteArrayCLS(
         crossings, header=cHeader, Prefix=type_)
     Waveforms['TimeStamps'].Units.reset()
