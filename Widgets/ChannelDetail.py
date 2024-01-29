@@ -181,8 +181,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_filted_object = self.current_filted_object.createCopy(
             threshold=threshold)
         self.current_spike_object = None
-        self.signal_continuous_data_changed.emit((self.current_raw_object,
-                                                  self.current_filted_object))
+        self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                 self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object)
 
     def filtedData(self, ref: list = [],
@@ -197,13 +197,15 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 low, high)
 
     def extractWaveforms(self):
-        self.current_filted_object,
-        self.current_spike_object = self.current_filted_object.extractWaveforms(
+        self.current_filted_object, self.current_spike_object = self.current_filted_object.extractWaveforms(
             self.current_filted_object.threshold)
 
-        self.signal_continuous_data_changed.emit((self.current_raw_object,
-                                                  self.current_filted_object))
+        self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                 self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object)
+        logger.debug(type(self.current_filted_object))
+
+        logger.debug(self.current_spike_object)
 
     def sortChannel(self):
         self.current_spike_object = self.current_spike_object.autosort()
@@ -242,6 +244,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 channel=chan_ID, reference=[self.current_spike_object.reference])
             self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
                                                                                    high=self.current_spike_object.high_cutoff)
+            self.current_filted_object = self.current_filted_object.createCopy(
+                threshold=self.current_spike_object.threshold)
             # self.setSpikeSetting()
             self.setLabelCombox(labels=self.current_raw_object.spikes,
                                 current=self.current_spike_object.label)
