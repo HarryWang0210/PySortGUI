@@ -138,6 +138,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.data_object = data
 
     def spike_data_changed(self, new_spike_object: DiscreteData | None):
+        logger.debug('spike_data_changed')
         self.locked_rows_list = []
         self.selected_rows_list = []
         self.current_showing_units = []
@@ -184,10 +185,10 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             # selecting first row by default
             model = self.tableView.model()
             selection_model = self.tableView.selectionModel()
+            # selection_model.select(model.index(0, 0),
+            #                        QItemSelectionModel.Select)
             selection_model.select(model.index(0, 0),
-                                   QItemSelectionModel.Select)
-            selection_model.select(model.index(0, 1),
-                                   QItemSelectionModel.Select)
+                                   QItemSelectionModel.Rows | QItemSelectionModel.Select)
 
     def manual_waveforms(self, wav_index):
         if len(wav_index) == 0:
@@ -218,12 +219,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             self.locked_rows_list.append(row)
         elif state == Qt.Unchecked and row in self.locked_rows_list:
             self.locked_rows_list.remove(row)
+        logger.debug('checkboxStateChanged')
         self.sendShowingUnits()
 
     def onSelectionChanged(self, selected, deselected):
         selection_model = self.tableView.selectionModel()
         selected_indexes = selection_model.selectedRows()
         self.selected_rows_list = [index.row() for index in selected_indexes]
+        logger.debug('onSelectionChanged')
         self.sendShowingUnits()
 
     def setFeatureOnSelection(self, checked):
@@ -255,6 +258,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         # spikes = {'current_wav_units': self.current_wav_units,
         #           'current_showing_units': self.current_showing_units}
+        logger.info('Selected units: %s', self.current_showing_units)
         self.signal_showing_units_changed.emit(self.current_showing_units)
         # self.signal_showing_spikes_data_changed.emit(spikes)
 
@@ -287,6 +291,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     # ==================== Unit Actions ====================
     def mergeUnits(self):
+        logger.info('Merge Units')
         # TODO: contain unsorted unit, all unit merge warning
         merge_unit_IDs = self.current_showing_units
         if len(merge_unit_IDs) < 2:
@@ -311,6 +316,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.recoverySelection()
 
     def swapUnits(self):
+        logger.info('Swap Units')
         swap_unit_IDs = self.current_showing_units
         if len(swap_unit_IDs) != 2:
             logger.error('Swap Units action can only select 2 units.')
@@ -333,7 +339,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID()
+        self.reorderUnitID(new_unit_IDs)
 
         self.sendShowingSpikeData()
 
@@ -343,6 +349,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     def removeUnits(self):
         # TODO: all unit warning
+        logger.info('Remove Units')
         remove_unit_IDs = self.current_showing_units
         if len(remove_unit_IDs) == 0:
             return
@@ -352,7 +359,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     def invalidateUnits(self):
         # TODO: all unit warning
-
+        logger.info('Invalidate Units')
         invalid_unit_IDs = self.current_showing_units
         if len(invalid_unit_IDs) == 0:
             return
@@ -486,8 +493,6 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def createNewUnit(self, unit_type):
         new_unit_ID = int(self.df_table_data.index.max() + 1)
         new_unit_row = int(self.df_table_data['row'].max() + 1)
-        logger.debug(f'new_unit_row: {type(new_unit_row)}')
-        logger.debug(new_unit_row)
 
         new_unit_name_suffix = f'_{unit_type}' if unit_type in [
             'Unsorted', 'Invalid'] else ''
@@ -595,9 +600,9 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         selection_model = self.tableView.selectionModel()
         for row in self.selected_rows_list:
             selection_model.select(model.index(row, 0),
-                                   QItemSelectionModel.Select)
-            selection_model.select(model.index(row, 1),
-                                   QItemSelectionModel.Select)
+                                   QItemSelectionModel.Rows | QItemSelectionModel.Select)
+            # selection_model.select(model.index(row, 1),
+            #                        QItemSelectionModel.Select)
 
 
 class SelectTargetUnitDialog(QDialog):
