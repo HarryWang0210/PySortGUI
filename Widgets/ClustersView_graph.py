@@ -13,6 +13,7 @@ import time
 from DataStructure.data import SpikeSorterData
 from Widgets.WidgetsInterface import WidgetsInterface
 from sklearn.preprocessing import MaxAbsScaler
+from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,9 +29,9 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
 
-        self.data_object = None
-        self.spikes = None
-        self.has_spikes = False
+        # self.data_object = None
+        # self.spikes = None
+        # self.has_spikes = False
         self.color_palette_list = sns.color_palette('bright', 64)
         self.visible = False  # overall visible
 
@@ -40,15 +41,17 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.axis_label = ["PCA1", "PCA2", "PCA3"]
 
         # change only when waveforms change
-        self.num_wavs = 0  # N
-        self.current_wav_units = []  # waveform units (N,), int
-        self.current_wav_colors = []  # waveform colors (N, 3), float
+        # self.num_wavs = 0  # N
+        # self.current_wav_units = []  # waveform units (N,), int
+        # self.current_wav_colors = []  # waveform colors (N, 3), float
 
         # data use on showing
         self.current_wavs_mask = []  # visible waveforms (N,), bool
         self.current_pca = []  # current showing pca
         self.current_showing_data = []
 
+        self.current_spike_object = None
+        self.current_showing_units = []
         self.initPlotItem()
 
     def initPlotItem(self):
@@ -100,71 +103,102 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.manual_curve_item.setVisible(False)
 
     def data_file_name_changed(self, data):
-        self.data_object = data
+        # self.data_object = data
         self.visible = False
         self.updatePlot()
 
-    def spike_chan_changed(self, current_chan_info):
-        spikes = current_chan_info
-        if spikes["unitID"] is None:
-            self.has_spikes = False
-            self.spikes = None
+    def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+        self.current_spike_object = new_spike_object
+
+        # self.has_spikes = True
+        self.visible = True
+        if self.current_spike_object is None:
+            # self.has_spikes = False
             self.visible = False
-        else:
-            self.has_spikes = True
-            self.spikes = spikes
-
-            self.visible = True
-
-            # self.current_wav_colors = self.getColor(self.current_wav_units)
-
-            # self.current_pca = self.all_wavs_pca[self.current_wavs_mask]
-            # self.setCurrentShowingData()
-
+            return
+        # self.has_spikes = not self.current_spike_object is None
         # self.updatePlot()
 
-    def showing_spikes_data_changed(self, spikes_data):
-        if self.has_spikes:
-            self.current_wav_units = spikes_data['current_wav_units']
-            self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
-                                             spikes_data['current_showing_units'])
+    # def spike_chan_changed(self, current_chan_info):
+    #     spikes = current_chan_info
+    #     if spikes["unitID"] is None:
+    #         self.has_spikes = False
+    #         self.spikes = None
+    #         self.visible = False
+    #     else:
+    #         self.has_spikes = True
+    #         self.spikes = spikes
 
-            self.current_wav_colors = self.getColor(self.current_wav_units)
+    #         self.visible = True
 
-            self.setCurrentPCA()
-            self.setCurrentShowingData()
+    #         # self.current_wav_colors = self.getColor(self.current_wav_units)
+
+    #         # self.current_pca = self.all_wavs_pca[self.current_wavs_mask]
+    #         # self.setCurrentShowingData()
+
+    #     # self.updatePlot()
+
+    def showing_units_changed(self, showing_unit_IDs):
+        self.current_showing_units = showing_unit_IDs
         self.updatePlot()
 
-    def activate_manual_mode(self, state):
+    # def showing_spikes_data_changed(self, spikes_data):
+    #     if self.has_spikes:
+    #         self.current_wav_units = spikes_data['current_wav_units']
+    #         self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
+    #                                          spikes_data['current_showing_units'])
+
+    #         self.current_wav_colors = self.getColor(self.current_wav_units)
+
+    #         self.setCurrentPCA()
+    #         self.setCurrentShowingData()
+    #     self.updatePlot()
+
+    def manual_mode_state_changed(self, state):
         self.manual_mode = state
 
     def features_changed(self, features):
         self.axis_label = features.copy()
         for i in range(3):
             self.axis_label_item_list[i].setData(text=self.axis_label[i])
-        self.setCurrentShowingData()
+        # self.setCurrentShowingData()
         self.updatePlot()
 
-    def set_feature_on_selection(self, state):
+    def feature_on_selection_state_changed(self, state):
         self.feature_on_selection = state
-        self.setCurrentPCA()
-        self.setCurrentShowingData()
+        # self.setCurrentPCA()
+        # self.setCurrentShowingData()
         self.updatePlot()
 
     def updatePlot(self):
-        if self.visible and self.has_spikes:
-            self.scatter_item.setData(pos=self.current_showing_data,
-                                      size=3,
-                                      color=self.current_wav_colors[self.current_wavs_mask])
-        self.scatter_item.setVisible(self.visible and self.has_spikes)
+        if self.visible and not self.current_spike_object is None:
+            self.drawScatter()
+        self.scatter_item.setVisible(
+            self.visible and not self.current_spike_object is None)
+
+    def drawScatter(self):
+        self.current_wavs_mask = np.isin(self.current_spike_object.unit_IDs,
+                                         self.current_showing_units)
+        self.setCurrentPCA()
+        self.current_showing_data = self.setCurrentShowingData()
+        wav_colors = self.getColor(self.current_spike_object.unit_IDs)
+        self.scatter_item.setData(pos=self.current_showing_data,
+                                  size=3,
+                                  color=wav_colors)
 
     def setCurrentPCA(self):
         if self.feature_on_selection:
-            self.current_pca = self.computePCA(
-                self.spikes["waveforms"][self.current_wavs_mask])
+            self.current_pca = self.current_spike_object.waveformsPCA(selected_unit_IDs=self.current_showing_units,
+                                                                      n_components=3,
+                                                                      ignore_invalid=False)
+            self.current_pca = MaxAbsScaler().fit_transform(self.current_pca)
+
         else:
-            all_wavs_pca = self.computePCA(self.spikes["waveforms"])
-            self.current_pca = all_wavs_pca[self.current_wavs_mask]
+            self.current_pca = self.current_spike_object.waveformsPCA(selected_unit_IDs=None,
+                                                                      n_components=3,
+                                                                      ignore_invalid=False)
+            self.current_pca = MaxAbsScaler().fit_transform(self.current_pca)
+            self.current_pca = self.current_pca[self.current_wavs_mask]
 
     def setCurrentShowingData(self):
         # TODO: time, slice
@@ -177,7 +211,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             elif self.axis_label[i] == 'PCA3':
                 showing_data[:, i] = self.current_pca[:, 2]
             elif self.axis_label[i] == 'time':
-                ts = self.spikes["timestamps"].copy()
+                ts = self.current_spike_object.timestamps
+
                 transformed_ts = (MaxAbsScaler().fit_transform(
                     ts.reshape(-1, 1))).reshape(-1)
 
@@ -187,21 +222,24 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
             elif self.axis_label[i] == 'slice':
                 print("TODO: slice")
 
-        self.current_showing_data = showing_data
+        return showing_data
+        # self.current_showing_data = showing_data
 
-    def computePCA(self, wav_data):
-        pca = self.data_object.waveforms_pca(wav_data)
-        transformed_data = MaxAbsScaler().fit_transform(pca)
-        return transformed_data
+    # def computePCA(self, wav_data):
+    #     pca = self.data_object.waveforms_pca(wav_data)
+    #     transformed_data = MaxAbsScaler().fit_transform(pca)
+    #     return transformed_data
 
-    def getColor(self, unit_data):
-        n = len(unit_data)
+    def getColor(self, unit_IDs):
+        logger.debug('getColor')
+        n = len(unit_IDs)
         color = np.zeros((n, 3))
 
         for i in range(n):
-            color[i, :] = self.color_palette_list[int(unit_data[i])]
+            color[i, :] = self.color_palette_list[int(unit_IDs[i])]
         color = np.hstack((color, np.ones((n, 1))))
-        return color
+
+        return color[self.current_wavs_mask]
 
     def __project(self, obj_pos):
         # modify from pyqtgraph.opengl.items.GLTextItem
