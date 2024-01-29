@@ -610,14 +610,19 @@ class DiscreteData(object):
 
         return new_unit_header
 
-    def waveformsPCA(self, n_components: int = None, ignore_invalid: bool = False) -> np.ndarray:
+    def waveformsPCA(self, selected_unit_IDs: list = None, n_components: int = None, ignore_invalid: bool = False) -> np.ndarray:
+        if selected_unit_IDs is None:
+            selected_unit_IDs = np.unique(self._unit_IDs).tolist()
+        elif not isinstance(selected_unit_IDs, list):
+            selected_unit_IDs = list(selected_unit_IDs)
+
         if ignore_invalid and not self.invalid_unit_ID is None:
-            ignored_mask = ~(self._unit_IDs == self.invalid_unit_ID)
-            transformed_data = PCA(n_components).fit_transform(
-                self.waveforms[ignored_mask])
-        else:
-            transformed_data = PCA(n_components).fit_transform(
-                self.waveforms)
+            if self.invalid_unit_ID in selected_unit_IDs:
+                selected_unit_IDs.remove(self.invalid_unit_ID)
+
+        mask = np.isin(self._unit_IDs, selected_unit_IDs)
+        transformed_data = PCA(n_components).fit_transform(
+            self.waveforms[mask])
         return transformed_data
 
     def autosort(self):
