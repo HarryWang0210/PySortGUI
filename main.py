@@ -116,6 +116,20 @@ class PySortGUI(MainWindowDocks):
             self.children_dict["TimelineView"].showing_spike_data_changed)
         self.children_dict['UnitOperateTools'].signal_showing_units_changed.connect(
             self.children_dict["TimelineView"].showing_units_changed)
+
+        self.children_dict['UnitOperateTools'].signal_showing_spike_data_changed.connect(
+            self.children_dict["ClustersView"].showing_spike_data_changed)
+        self.children_dict['UnitOperateTools'].signal_showing_units_changed.connect(
+            self.children_dict["ClustersView"].showing_units_changed)
+        self.children_dict['UnitOperateTools'].signal_manual_mode_state_changed.connect(
+            self.children_dict["ClustersView"].manual_mode_state_changed)
+        self.children_dict['UnitOperateTools'].signal_features_changed.connect(
+            self.children_dict["ClustersView"].features_changed)
+        self.children_dict['UnitOperateTools'].signal_feature_on_selection_state_changed.connect(
+            self.children_dict["ClustersView"].feature_on_selection_state_changed)
+
+        self.children_dict['ClustersView'].signal_manual_waveforms.connect(
+            self.children_dict["UnitOperateTools"].manual_waveforms)
         # """send data object"""
         # self.children_dict["ChannelDetail"].signal_data_file_name_changed.connect(
         #     self.children_dict["TimelineView"].data_file_name_changed)
