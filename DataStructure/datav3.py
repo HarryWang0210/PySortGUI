@@ -357,7 +357,7 @@ class ContinuousData(object):
         # return result
 
     def _estimatedSD(self) -> float:
-        self._estimated_sd = float(np.median(np.abs(self) / 0.6745))
+        self._estimated_sd = float(np.median(np.abs(self._data) / 0.6745))
         return self.estimated_sd
 
     def extractWaveforms(self, threshold) -> tuple[ContinuousData, DiscreteData]:
@@ -366,9 +366,10 @@ class ContinuousData(object):
 
         result = self.createCopy(threshold=threshold)
 
-        unit_ID = np.zeros(len(timestamps))
-        spike = DiscreteData(filename=result.filename, header=result._header,
-                             unit_ID=unit_ID,
+        unit_IDs = np.zeros(len(timestamps), dtype=int)
+        spike = DiscreteData(filename=result.filename,
+                             header=result._header,
+                             unit_IDs=unit_IDs,
                              timestamps=timestamps,
                              waveforms=waveforms)
         return result, spike
@@ -418,12 +419,12 @@ class ContinuousData(object):
 
 
 class DiscreteData(object):
-    def __init__(self, filename: str, header: dict, unit_header: pd.DataFrame = pd.DataFrame(),
+    def __init__(self, filename: str, header: dict, unit_header: pd.DataFrame | None = None,
                  unit_IDs: np.ndarray = [], timestamps: np.ndarray = [], waveforms: np.ndarray = [],
                  data_type: str = 'Spikes', _from_file=False):
         self._filename = filename
         self._header = header.copy()
-        self._unit_header = unit_header.copy()
+
         self._unit_IDs = np.array(unit_IDs)
         self._timestamps = timestamps
         self._waveforms = waveforms
@@ -437,6 +438,14 @@ class DiscreteData(object):
                 raise
         else:
             self._data_loaded = True
+
+        if self._data_loaded == True:
+            if unit_header is None:
+                self._unit_header = self.createUnitHeader(unit_IDs=self._unit_IDs,
+                                                          unsorted_unit_ID=0)
+            else:
+                self._unit_header = unit_header.copy()
+
         self._data_type = data_type
 
         self._unsorted_unit_ID: int | None = None
@@ -577,7 +586,7 @@ class DiscreteData(object):
         values, counts = np.unique(unit_IDs, return_counts=True)
 
         new_unit_header = pd.DataFrame({'ID': values,
-                                        'Name': [f'CH{self.channel_ID}_Unit_{values:02}' for ID in values],
+                                        'Name': [f'CH{self.channel_ID}_Unit_{ID:02}' for ID in values],
                                         'NumRecords': counts,
                                         })
         new_unit_header['UnitType'] = 'Unit'
