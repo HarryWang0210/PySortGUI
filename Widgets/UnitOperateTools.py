@@ -376,12 +376,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID(new_unit_IDs)
+        map_new_ID_dict = self.reorderUnitID(new_unit_IDs)
 
         self.sendShowingSpikeData()
 
         self.setDataModel()
-
+        if len(self.selected_rows_list) < 1:
+            self.selected_rows_list = [
+                self.df_table_data.loc[map_new_ID_dict[new_unit_ID], 'row']]
         self.recoverySelection()
 
     def addToSelectedUnit(self, wav_index):
@@ -404,12 +406,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID(new_unit_IDs)
+        map_new_ID_dict = self.reorderUnitID(new_unit_IDs)
 
         self.sendShowingSpikeData()
 
         self.setDataModel()
-
+        if len(self.selected_rows_list) < 1:
+            self.selected_rows_list = [
+                self.df_table_data.loc[map_new_ID_dict[target_unit_ID], 'row']]
         self.recoverySelection()
 
     def removeWaveforms(self, wav_index):
@@ -429,12 +433,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID(new_unit_IDs)
+        map_new_ID_dict = self.reorderUnitID(new_unit_IDs)
 
         self.sendShowingSpikeData()
 
         self.setDataModel()
-
+        if len(self.selected_rows_list) < 1:
+            self.selected_rows_list = [
+                self.df_table_data.loc[map_new_ID_dict[unsorted_unit_ID], 'row']]
         self.recoverySelection()
 
     def invalidateWaveforms(self, wav_index):
@@ -454,12 +460,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.removeEmptyUnits()
 
-        self.reorderUnitID(new_unit_IDs)
+        map_new_ID_dict = self.reorderUnitID(new_unit_IDs)
 
         self.sendShowingSpikeData()
 
         self.setDataModel()
-
+        if len(self.selected_rows_list) < 1:
+            self.selected_rows_list = [
+                self.df_table_data.loc[map_new_ID_dict[invalid_unit_ID], 'row']]
         self.recoverySelection()
     # ========================================
 
@@ -589,6 +597,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.current_spike_object = self.current_spike_object.setUnit(new_unit_IDs,
                                                                       new_unit_header=self.df_table_data.reset_index())
+        return map_new_ID_dict
 
     def recoverySelection(self):
         model = self.tableView.model()
