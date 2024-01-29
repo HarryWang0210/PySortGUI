@@ -570,7 +570,7 @@ class DiscreteData(object):
                               header=self._header,
                               unit_header=new_unit_header,
                               timestamps=self._timestamps,
-                              unit_ID=new_unit_IDs,
+                              unit_IDs=new_unit_IDs,
                               waveforms=self._waveforms)
 
     def createUnitHeader(self, unit_IDs, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> pd.DataFrame:
