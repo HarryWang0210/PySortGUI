@@ -664,6 +664,7 @@ class TableColorDelegate(QStyledItemDelegate):
         self.color_palette_list = color_palette
 
     def initStyleOption(self, option, index):
+        # FIXME: the color of table do not consist with the views
         super().initStyleOption(option, index)
 
         if index.row() < 2:
