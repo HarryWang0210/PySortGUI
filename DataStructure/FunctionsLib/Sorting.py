@@ -223,9 +223,9 @@ def auto_sort(
 
 def _KlustaKwik_executable():
     if platform.system() == 'Windows':
-        relative_path = '../../External/bins/Klustakwik.exe'
+        relative_path = '../../External/bins/KlustaKwik.exe'
 
     else:
-        relative_path = '../../External/bins/Klustakwik'
+        relative_path = '../../External/bins/KlustaKwik'
     path = os.path.split(__file__)[0] + os.path.sep
     return os.path.abspath(path + relative_path)
