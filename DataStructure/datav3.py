@@ -593,7 +593,7 @@ class DiscreteData(object):
 
         if not unsorted_unit_ID is None:
             if unsorted_unit_ID in new_unit_header['ID']:
-                new_unit_header.loc[new_unit_header['ID'] == unsorted_unit_ID, ['Name', 'Unit']] = [
+                new_unit_header.loc[new_unit_header['ID'] == unsorted_unit_ID, ['Name', 'UnitType']] = [
                     f'CH{self.channel_ID}_Unit_{unsorted_unit_ID:02}_Unsorted', 'Unsorted']
             else:
                 unsorted_unit_header = pd.DataFrame({'ID': unsorted_unit_ID,
@@ -605,7 +605,7 @@ class DiscreteData(object):
 
         if not invalid_unit_ID is None:
             if invalid_unit_ID in new_unit_header['ID']:
-                new_unit_header.loc[new_unit_header['ID'] == invalid_unit_ID, ['Name', 'Unit']] = [
+                new_unit_header.loc[new_unit_header['ID'] == invalid_unit_ID, ['Name', 'UnitType']] = [
                     f'CH{self.channel_ID}_Unit_{invalid_unit_ID:02}_Invalid', 'Invalid']
             else:
                 invalid_unit_header = pd.DataFrame({'ID': invalid_unit_ID,
@@ -661,7 +661,9 @@ class DiscreteData(object):
                                      self.waveforms,
                                      self.timestamps, sorting=None, re_sort=False)
         # logger.critical('Unimplemented function.')
-        return self.setUnit(new_unit_IDs, unsorted_unit_ID=0, invalid_unit_ID=new_invalid_unit_ID)
+        return self.setUnit(new_unit_IDs=new_unit_IDs,
+                            unsorted_unit_ID=0,
+                            invalid_unit_ID=new_invalid_unit_ID)
 
 
 if __name__ == '__main__':
