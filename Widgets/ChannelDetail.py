@@ -230,6 +230,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_spike_object = None
         chan_ID = int(meta_data["ID"])
         label = meta_data['Label']
+        logger.info(f'Selected type: {meta_data["Type"]}')
+
         if meta_data['Type'] == 'Spikes':
             # raw
             self.current_data_object.loadRaw(channel=chan_ID)
@@ -257,8 +259,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object)
-
-        logger.info(f'Selected type: {meta_data["Type"]}')
 
     def setLabelCombox(self, labels: list | None = None, current: str | None = None):
         self.sorting_label_comboBox.clear()
