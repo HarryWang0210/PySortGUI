@@ -188,7 +188,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     def filtedData(self, ref: list = [],
                    low: int | float = None,
                    high: int | float = None):
-        self.current_filted_object = self.current_raw_object.copy()
+        self.current_filted_object = self.current_raw_object.createCopy()
         if len(ref) > 0:
             self.current_filted_object = self.current_data_object.subtractReference(channel=self.current_raw_object.channel_ID,
                                                                                     reference=ref)
