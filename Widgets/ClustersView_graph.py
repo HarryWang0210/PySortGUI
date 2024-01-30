@@ -114,6 +114,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         if self.current_spike_object is None:
             # self.has_spikes = False
             self.visible = False
+            self.updatePlot()
             return
         # self.has_spikes = not self.current_spike_object is None
         # self.updatePlot()

@@ -97,6 +97,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         if self.current_spike_object is None:
             # self.has_spikes = False
             self.visible = False
+            self.updatePlot()
             return
         self.data_scale = np.max(np.abs(self.current_spike_object.waveforms))
 
