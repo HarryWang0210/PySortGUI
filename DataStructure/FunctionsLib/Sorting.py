@@ -222,10 +222,15 @@ def auto_sort(
 
 
 def _KlustaKwik_executable():
+    print(platform.system())
     if platform.system() == 'Windows':
         relative_path = '../../External/bins/KlustaKwik.exe'
 
+    elif platform.system() == 'Linux':
+        relative_path = '../../External/bins/KlustaKwiklinux'
+
     else:
         relative_path = '../../External/bins/KlustaKwik'
+
     path = os.path.split(__file__)[0] + os.path.sep
     return os.path.abspath(path + relative_path)
