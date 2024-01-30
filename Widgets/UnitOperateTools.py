@@ -83,7 +83,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.appendUnitRow(0, "All")
         self.appendUnitRow(1, "All_Sorted_Units")
 
-        for i in range(self.df_table_data.shape[0]):
+        for i in self.df_table_data.index.to_list():
             self.appendUnitRow(
                 self.df_table_data.loc[i, "row"], self.df_table_data.loc[i, "Name"])
         self.tableView.resizeColumnToContents(0)
@@ -158,7 +158,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             # self.df_table_data[['ID', 'Name', 'NumRecords', 'UnitType']] = self.[[
             #     'ID', 'Name', 'NumRecords', 'UnitType']].copy()
             self.df_table_data.set_index('ID', inplace=True)
-            self.df_table_data['row'] = self.df_table_data.index + 2
+            self.df_table_data['row'] = np.arange(
+                self.df_table_data.shape[0]) + 2
         # self.spike_chan['ID'] = int(current_chan_info["ID"])
         # self.spike_chan['Name'] = current_chan_info["Name"]
         # self.spike_chan['Label'] = current_chan_info["Label"]
