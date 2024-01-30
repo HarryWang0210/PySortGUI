@@ -232,6 +232,10 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
             x_element[0], x_element[-1], padding=0)
         self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
 
+        unit_color_map = dict(zip(self.current_spike_object.unit_header['ID'], np.arange(
+            self.current_spike_object.unit_header.shape[0], dtype=int)))
+
+        logger.debug(unit_color_map)
         for ID in self.current_showing_units:
             data_filtered = waveforms[unit_IDs == ID]
             n = data_filtered.shape[0]
@@ -243,7 +247,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
             y = np.ravel(data_filtered)
             connect = np.tile(connect_element, n)
 
-            color = self.color_palette_list[int(ID)]
+            color = self.color_palette_list[unit_color_map[int(ID)]]
             color = (np.array(color) * 255).astype(int)
             pen = pg.mkPen(
                 color=color)
