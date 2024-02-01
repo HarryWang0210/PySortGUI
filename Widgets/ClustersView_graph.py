@@ -235,9 +235,18 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         n = len(unit_IDs)
         color = np.zeros((n, 3))
 
-        for i in range(n):
-            color[i, :] = self.color_palette_list[int(unit_IDs[i])]
+        unit_color_map = dict(zip(self.current_spike_object.unit_header['ID'], np.arange(
+            self.current_spike_object.unit_header.shape[0], dtype=int)))
+
+        def color_map(ID):
+            return self.color_palette_list[unit_color_map.get(int(ID))]
+
+        color = np.array(np.vectorize(color_map)(unit_IDs)).T
+
+        # for i in range(n):
+        #     color[i, :] = self.color_palette_list[int(unit_IDs[i])]
         color = np.hstack((color, np.ones((n, 1))))
+        # print(color)
 
         return color[self.current_wavs_mask]
 

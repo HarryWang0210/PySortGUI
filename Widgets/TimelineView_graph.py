@@ -410,6 +410,9 @@ class TimelineViewGraph(pg.PlotWidget):
         item_list = []
         if data_type == "spikes":
             y_element = np.array([-self.data_scale, self.thr])
+            unit_color_map = dict(zip(self.current_spike_object.unit_header['ID'], np.arange(
+                self.current_spike_object.unit_header.shape[0], dtype=int)))
+
         elif data_type == "events":
             y_element = np.array([self.data_scale, self.thr])
         else:
@@ -417,9 +420,9 @@ class TimelineViewGraph(pg.PlotWidget):
             return
 
         for ID in showing_unit_IDs:
-            data_filtered = ts[unit_IDs == ID].copy()
+            data_filtered = ts[unit_IDs == ID]
 
-            color = self.color_palette_list[ID]
+            color = self.color_palette_list[unit_color_map[int(ID)]]
             color = (np.array(color) * 255).astype(int)
 
             n = data_filtered.shape[0]
