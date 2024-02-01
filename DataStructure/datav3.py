@@ -586,7 +586,7 @@ class DiscreteData(object):
         values, counts = np.unique(unit_IDs, return_counts=True)
 
         new_unit_header = pd.DataFrame({'ID': values,
-                                        'Name': [f'CH{self.channel_ID}_Unit_{ID:02}' for ID in values],
+                                        'Name': [f'{self.channel_name}_Unit_{ID:02}' for ID in values],
                                         'NumRecords': counts,
                                         })
         new_unit_header['UnitType'] = 'Unit'
@@ -594,10 +594,10 @@ class DiscreteData(object):
         if not unsorted_unit_ID is None:
             if unsorted_unit_ID in new_unit_header['ID']:
                 new_unit_header.loc[new_unit_header['ID'] == unsorted_unit_ID, ['Name', 'UnitType']] = [
-                    f'CH{self.channel_ID}_Unit_{unsorted_unit_ID:02}_Unsorted', 'Unsorted']
+                    f'{self.channel_name}_Unit_{unsorted_unit_ID:02}_Unsorted', 'Unsorted']
             else:
                 unsorted_unit_header = pd.DataFrame({'ID': unsorted_unit_ID,
-                                                     'Name': f'CH{self.channel_ID}_Unit_{unsorted_unit_ID:02}_Unsorted',
+                                                     'Name': f'{self.channel_name}_Unit_{unsorted_unit_ID:02}_Unsorted',
                                                      'NumRecords': 0,
                                                      'UnitType': 'Unsorted'})
                 new_unit_header = pd.concat([new_unit_header, unsorted_unit_header],
@@ -606,10 +606,10 @@ class DiscreteData(object):
         if not invalid_unit_ID is None:
             if invalid_unit_ID in new_unit_header['ID']:
                 new_unit_header.loc[new_unit_header['ID'] == invalid_unit_ID, ['Name', 'UnitType']] = [
-                    f'CH{self.channel_ID}_Unit_{invalid_unit_ID:02}_Invalid', 'Invalid']
+                    f'{self.channel_name}_Unit_{invalid_unit_ID:02}_Invalid', 'Invalid']
             else:
                 invalid_unit_header = pd.DataFrame({'ID': invalid_unit_ID,
-                                                    'Name': f'CH{self.channel_ID}_Unit_{invalid_unit_ID:02}_Invalid',
+                                                    'Name': f'{self.channel_name}_Unit_{invalid_unit_ID:02}_Invalid',
                                                     'NumRecords': 0,
                                                     'UnitType': 'Invalid'})
                 new_unit_header = pd.concat([new_unit_header, invalid_unit_header],
