@@ -249,11 +249,9 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
             color = self.color_palette_list[unit_color_map[int(ID)]]
             color = (np.array(color) * 255).astype(int)
-            pen = pg.mkPen(
-                color=color)
 
             self.waveforms_item_list.append(
-                self.plot(x=x, y=y, connect=connect, pen=pen))
+                self.plot(x=x, y=y, connect=connect, pen=pg.mkPen(color=color)))
 
     def removeWaveformItems(self):
         for waveforms_item in self.waveforms_item_list:
