@@ -335,14 +335,14 @@ class TimelineViewGraph(pg.PlotWidget):
         self.updatePlot()
 
     def updatePlot(self):
-        logger.debug('updatePlot')
-        logger.debug(self.visible)
+        # logger.debug('updatePlot')
+        # logger.debug(self.visible)
         if self.visible:
             if self.show_raw:
-                logger.debug('draw raw')
+                # logger.debug('draw raw')
                 self.drawData('raw')
             else:
-                logger.debug('draw filted')
+                # logger.debug('draw filted')
                 self.drawData('filted')
 
             # if not self.show_raw and self.has_filted_data:
@@ -351,11 +351,11 @@ class TimelineViewGraph(pg.PlotWidget):
             #     self.drawData(self.raw_data)
 
             if self.show_thr and not self.current_filted_object is None:
-                logger.debug('draw thr')
+                # logger.debug('draw thr')
                 self.drawThreshold()
 
             if self.show_spikes and not self.current_spike_object is None:
-                logger.debug('draw spike')
+                # logger.debug('draw spike')
                 self.drawSpikes()
 
         self.data_item.setVisible(self.visible)

@@ -235,7 +235,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         unit_color_map = dict(zip(self.current_spike_object.unit_header['ID'], np.arange(
             self.current_spike_object.unit_header.shape[0], dtype=int)))
 
-        logger.debug(unit_color_map)
+        # logger.debug(unit_color_map)
         for ID in self.current_showing_units:
             data_filtered = waveforms[unit_IDs == ID]
             n = data_filtered.shape[0]

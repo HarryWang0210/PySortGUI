@@ -231,7 +231,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     #     return transformed_data
 
     def getColor(self, unit_IDs):
-        logger.debug('getColor')
+        # logger.debug('getColor')
         n = len(unit_IDs)
         color = np.zeros((n, 3))
 
