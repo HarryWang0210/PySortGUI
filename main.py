@@ -113,6 +113,9 @@ class PySortGUI(MainWindowDocks):
             self.children_dict["UnitOperateTools"].spike_data_changed)
 
         self.children_dict['UnitOperateTools'].signal_showing_spike_data_changed.connect(
+            self.children_dict["ChannelDetail"].showing_spike_data_changed)
+
+        self.children_dict['UnitOperateTools'].signal_showing_spike_data_changed.connect(
             self.children_dict["TimelineView"].showing_spike_data_changed)
         self.children_dict['UnitOperateTools'].signal_showing_units_changed.connect(
             self.children_dict["TimelineView"].showing_units_changed)
@@ -218,13 +221,13 @@ class PySortGUI(MainWindowDocks):
 
     def undo(self):
         """Undo the last change."""
+        self.children_dict['ChannelDetail'].undo_stack.undo()
         print("undo")
-        pass
 
     def redo(self):
         """Redo the change."""
+        self.children_dict['ChannelDetail'].undo_stack.redo()
         print("redo")
-        pass
 
     def saveLayout(self, id=0):
         """Save the layout changes."""

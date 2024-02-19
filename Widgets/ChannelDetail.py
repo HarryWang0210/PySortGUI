@@ -3,7 +3,8 @@ from UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QAbstractItemView, QDialog
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout,
+                             QWidget, QAbstractItemView, QDialog, QUndoStack, QUndoCommand)
 
 from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
 import numpy as np
@@ -32,6 +33,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.spikes_header = None
         self.events_header = None
 
+        self.undo_stack = QUndoStack()
         self.initDataModel()
         self.setupConnections()
 
@@ -276,6 +278,69 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     #                                             self.current_spike_object.high_cutoff)
     #     self.current_spike_setting['Threshold'] = ('MAD',
     #                                                self.current_spike_object.threshold / self.current_filted_object.estimated_sd)
+
+    def handleUndoRedo(self, action_type: str, new_raw_object: ContinuousData, new_spike_object: DiscreteData | None):
+        if new_spike_object is self.current_spike_object:
+            return
+
+        self.current_raw_object = new_raw_object
+        self.current_spike_object = new_spike_object
+
+        if action_type == 'ManualUnit':
+            chan_ID = self.current_spike_object.channel_ID
+            # filted
+            self.current_filted_object = self.current_data_object.subtractReference(
+                channel=chan_ID, reference=[self.current_spike_object.reference])
+            self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
+                                                                                   high=self.current_spike_object.high_cutoff)
+            self.current_filted_object = self.current_filted_object.createCopy(
+                threshold=self.current_spike_object.threshold)
+            # self.setSpikeSetting()
+            self.setLabelCombox(labels=self.current_raw_object.spikes,
+                                current=self.current_spike_object.label)
+
+            self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                     self.current_filted_object)
+            self.signal_spike_data_changed.emit(self.current_spike_object)
+
+    def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+        if new_spike_object is self.current_spike_object:
+            return
+        command = ManualUnitCommand("Manual Unit Operation",
+                                    self,
+                                    self.current_raw_object,
+                                    self.current_spike_object,
+                                    new_spike_object)
+        self.current_spike_object = new_spike_object
+        self.undo_stack.push(command)
+
+
+class ManualUnitCommand(QUndoCommand):
+    def __init__(self, text, widget, raw_object, old_spike_object: DiscreteData, new_spike_object: DiscreteData):
+        super().__init__(text)
+        self.widget = widget
+        self.action_type = 'ManualUnit'
+        self.raw_object = raw_object
+        self.old_spike_object = old_spike_object
+        self.new_spike_object = new_spike_object
+
+    def redo(self):
+        # 在这里执行操作，修改应用程序状态
+        self.widget.handleUndoRedo(
+            'ManualUnit', self.raw_object, self.new_spike_object)
+        # self.raw_object.setSpike(
+        #     self.new_spike_object, self.new_spike_object.label)
+        logger.info(
+            f"Redo: {self.text()}, Data: {self.new_spike_object}")
+
+    def undo(self):
+        # 撤销操作，回滚应用程序状态
+        self.widget.handleUndoRedo(
+            'ManualUnit', self.raw_object, self.old_spike_object)
+        # self.raw_object.setSpike(
+        #     self.old_spike_object, self.old_spike_object.label)
+        logger.info(
+            f"Undo: {self.text()}, Data: {self.old_spike_object}")
 
 
 class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
