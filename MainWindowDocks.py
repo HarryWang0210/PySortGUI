@@ -35,6 +35,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
                             QtWidgets.QMainWindow.AllowNestedDocks |
                             QtWidgets.QMainWindow.AllowTabbedDocks)
         self._initDocks()
+        self._initLayout()
         self._setupAppMenu()
         self._setupStatusBar()
         self.show()
@@ -177,6 +178,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self._generateDock(TimelineView)
         self._generateRightToolWidget(UnitOperateTools)
 
+    def _initLayout(self):
         geom = QtWidgets.QDesktopWidget().availableGeometry()
         self.splitDockWidget(self.children_dict["ChannelDetail_dock"],
                              self.children_dict["ISIView_dock"], QtCore.Qt.Horizontal)
