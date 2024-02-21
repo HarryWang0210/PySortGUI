@@ -204,7 +204,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         if widget_class is None:
             return
-        obj = widget_class(**kwargs)
+        obj = widget_class(parent=self, **kwargs)
 
         if name is None:
             name = obj.window_title
