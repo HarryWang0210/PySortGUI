@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     signal_data_file_name_changed = QtCore.pyqtSignal()
     signal_continuous_data_changed = QtCore.pyqtSignal((object, object))
-    signal_spike_data_changed = QtCore.pyqtSignal(object)
+    signal_spike_data_changed = QtCore.pyqtSignal((object, bool))
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -187,7 +187,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_spike_object = None
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
-        self.signal_spike_data_changed.emit(self.current_spike_object)
+        self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
     def filtedData(self, ref: list = [],
                    low: int | float = None,
@@ -206,14 +206,14 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
-        self.signal_spike_data_changed.emit(self.current_spike_object)
-        logger.debug(type(self.current_filted_object))
+        self.signal_spike_data_changed.emit(self.current_spike_object, True)
+        # logger.debug(type(self.current_filted_object))
 
-        logger.debug(self.current_spike_object)
+        # logger.debug(self.current_spike_object)
 
     def sortChannel(self):
         self.current_spike_object = self.current_spike_object.autosort()
-        self.signal_spike_data_changed.emit(self.current_spike_object)
+        self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
     def onSelectionChanged(self, selected, deselected):
         model = self.treeView.model()
@@ -280,7 +280,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
-        self.signal_spike_data_changed.emit(self.current_spike_object)
+        self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
     def setLabelCombox(self, labels: list | None = None, current: str | None = None):
         self.sorting_label_comboBox.clear()
@@ -321,7 +321,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
             self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                      self.current_filted_object)
-            self.signal_spike_data_changed.emit(self.current_spike_object)
+            self.signal_spike_data_changed.emit(
+                self.current_spike_object, False)
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         if new_spike_object is self.current_spike_object:
