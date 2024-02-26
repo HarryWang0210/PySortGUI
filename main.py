@@ -94,10 +94,10 @@ class PySortGUI(MainWindowDocks):
         self.children_dict['FileMenu']["Exit"].triggered.connect(
             self.close)
 
-        self.children_dict['EditMenu']["Undo"].triggered.connect(
-            self.undo)
-        self.children_dict['EditMenu']["Redo"].triggered.connect(
-            self.redo)
+        # self.children_dict['EditMenu']["Undo"].triggered.connect(
+        #     self.undo)
+        # self.children_dict['EditMenu']["Redo"].triggered.connect(
+        #     self.redo)
 
         self.children_dict['SettingMenu']["SaveLayout"].triggered.connect(
             self.saveLayout)
@@ -219,15 +219,15 @@ class PySortGUI(MainWindowDocks):
         self.saveChannel()
         pass
 
-    def undo(self):
-        """Undo the last change."""
-        self.children_dict['ChannelDetail'].undo_stack.undo()
-        print("undo")
+    # def undo(self):
+    #     """Undo the last change."""
+    #     self.children_dict['ChannelDetail'].undo_stack.undo()
+    #     print("undo")
 
-    def redo(self):
-        """Redo the change."""
-        self.children_dict['ChannelDetail'].undo_stack.redo()
-        print("redo")
+    # def redo(self):
+    #     """Redo the change."""
+    #     self.children_dict['ChannelDetail'].undo_stack.redo()
+    #     print("redo")
 
     def saveLayout(self, id=0):
         """Save the layout changes."""
