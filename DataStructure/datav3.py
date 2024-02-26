@@ -73,6 +73,8 @@ class SpikeSorterData(object):
             self._channel_name_to_ID[header['Name']] = header['ID']
 
     def _createSpikesData(self):
+        if self._headers['SpikesHeader'] is None:
+            return
         spikes_header = self._headers['SpikesHeader'].to_dict('records')
         for header in spikes_header:
             spike_object = DiscreteData(filename=self._filename,
