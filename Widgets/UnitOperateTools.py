@@ -137,11 +137,13 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def data_file_name_changed(self, data):
         self.data_object = data
 
-    def spike_data_changed(self, new_spike_object: DiscreteData | None):
+    def spike_data_changed(self, new_spike_object: DiscreteData | None, reset_selection: bool):
         logger.debug('spike_data_changed')
-        self.locked_rows_list = []
-        self.selected_rows_list = []
-        self.current_showing_units = []
+
+        if reset_selection:
+            self.locked_rows_list = []
+            self.selected_rows_list = []
+            self.current_showing_units = []
 
         self.current_spike_object = new_spike_object
 
@@ -188,8 +190,11 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             selection_model = self.tableView.selectionModel()
             # selection_model.select(model.index(0, 0),
             #                        QItemSelectionModel.Select)
-            selection_model.select(model.index(0, 0),
-                                   QItemSelectionModel.Rows | QItemSelectionModel.Select)
+            if reset_selection:
+                selection_model.select(model.index(0, 0),
+                                       QItemSelectionModel.Rows | QItemSelectionModel.Select)
+            else:
+                self.recoverySelection()
 
     def manual_waveforms(self, wav_index):
         if len(wav_index) == 0:
