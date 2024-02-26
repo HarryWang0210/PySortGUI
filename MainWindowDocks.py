@@ -29,6 +29,8 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         super().__init__(parent)
         if not hasattr(self, 'children_dict'):
             self.children_dict = dict()
+        if not hasattr(self, 'undo_group'):
+            self.undo_group = QtWidgets.QUndoGroup(self)
 
     def setupUi(self):
         self.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks |
@@ -103,14 +105,14 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         EditMenu = self.menu_bar.addMenu('&Edit')
         EditMenu_dict = dict()
 
-        UndoAction = QtWidgets.QAction('Undo', self)
-        UndoAction.setShortcut('Ctrl+Z')
+        UndoAction = self.undo_group.createUndoAction(self, 'Undo')
+        UndoAction.setShortcut(QtGui.QKeySequence.Undo)
         UndoAction.setAutoRepeat(False)
         EditMenu.addAction(UndoAction)
         EditMenu_dict["Undo"] = UndoAction
 
-        RedoAction = QtWidgets.QAction('Redo', self)
-        RedoAction.setShortcut('Ctrl+Y')
+        RedoAction = self.undo_group.createRedoAction(self, 'Redo')
+        RedoAction.setShortcut(QtGui.QKeySequence.Redo)
         RedoAction.setAutoRepeat(False)
         EditMenu.addAction(RedoAction)
         EditMenu_dict["Redo"] = RedoAction
