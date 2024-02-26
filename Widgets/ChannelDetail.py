@@ -342,6 +342,38 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_undo_stack.push(command)
 
 
+class ChangeFilterCommand(QUndoCommand):
+    def __init__(self, text, widget, raw_object,
+                 old_filted_object, new_filted_object,
+                 old_spike_object: DiscreteData, new_spike_object: DiscreteData):
+        super().__init__(text)
+        self.widget = widget
+        self.action_type = 'ChangeFilter'
+        self.raw_object = raw_object
+        self.old_filted_object = old_filted_object
+        self.new_filted_object = new_filted_object
+        self.old_spike_object = old_spike_object
+        self.new_spike_object = new_spike_object
+
+    def redo(self):
+        # 在这里执行操作，修改应用程序状态
+        self.widget.handleUndoRedo(
+            self.action_type, self.raw_object, self.new_filted_object, self.new_spike_object)
+        # self.raw_object.setSpike(
+        #     self.new_spike_object, self.new_spike_object.label)
+        # logger.info(
+        #     f"Redo: {self.text()}, Data: {self.new_spike_object}")
+
+    def undo(self):
+        # 撤销操作，回滚应用程序状态
+        self.widget.handleUndoRedo(
+            self.action_type, self.raw_object, self.old_filted_object, self.old_spike_object)
+        # self.raw_object.setSpike(
+        #     self.old_spike_object, self.old_spike_object.label)
+        # logger.info(
+        #     f"Undo: {self.text()}, Data: {self.old_spike_object}")
+
+
 class ManualUnitCommand(QUndoCommand):
     def __init__(self, text, widget, raw_object, filted_object, old_spike_object: DiscreteData, new_spike_object: DiscreteData):
         super().__init__(text)
