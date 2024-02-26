@@ -20,6 +20,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.main_window = parent
         self.window_title = "Channel Detail"
         self.setupUi(self)
         self.current_data_object: SpikeSorterData | None = None
@@ -32,8 +33,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.raws_header = None
         self.spikes_header = None
         self.events_header = None
-
-        self.undo_stack = QUndoStack()
+        self.undo_stack_dict = dict()
+        self.current_undo_stack: QUndoStack = None
         self.initDataModel()
         self.setupConnections()
 
@@ -66,6 +67,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_data_file_name_changed.emit()
 
         self.setDataModel()
+        self.undo_stack_dict = dict()
         self.sorting_label_comboBox.clear()
         self.file_name_lineEdit.setText(filename)
 
@@ -253,6 +255,24 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             # self.setSpikeSetting()
             self.setLabelCombox(labels=self.current_raw_object.spikes,
                                 current=self.current_spike_object.label)
+
+            if not self.current_undo_stack is None:
+                self.current_undo_stack.setActive(False)
+
+            if not chan_ID in self.undo_stack_dict:
+                self.current_undo_stack = QUndoStack(
+                    self.main_window.undo_group)
+                chan_ID_dict = {label: self.current_undo_stack}
+                self.undo_stack_dict[chan_ID] = chan_ID_dict
+
+            elif not label in self.undo_stack_dict[chan_ID]:
+                self.current_undo_stack = QUndoStack(
+                    self.main_window.undo_group)
+                self.undo_stack_dict[chan_ID][label] = self.current_undo_stack
+
+            logger.debug(self.current_undo_stack)
+            self.undo_stack_dict[chan_ID][label].setActive(True)
+
         elif meta_data['Type'] == 'Raws':
             self.current_data_object.loadRaw(channel=chan_ID)
             self.current_raw_object = self.current_data_object.getRaw(chan_ID)
@@ -312,7 +332,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                     self.current_spike_object,
                                     new_spike_object)
         self.current_spike_object = new_spike_object
-        self.undo_stack.push(command)
+        self.current_undo_stack.push(command)
 
 
 class ManualUnitCommand(QUndoCommand):
