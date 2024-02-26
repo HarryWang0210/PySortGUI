@@ -194,7 +194,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
                 selection_model.select(model.index(0, 0),
                                        QItemSelectionModel.Rows | QItemSelectionModel.Select)
             else:
-                self.recoverySelection()
+                self.restoreSelection()
 
     def manual_waveforms(self, wav_index):
         if len(wav_index) == 0:
@@ -319,7 +319,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.setDataModel()
 
-        self.recoverySelection()
+        self.restoreSelection()
 
     def swapUnits(self):
         logger.info('Swap Units')
@@ -351,7 +351,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.setDataModel()
 
-        self.recoverySelection()
+        self.restoreSelection()
 
     def removeUnits(self):
         # TODO: all unit warning
@@ -390,7 +390,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         if len(self.selected_rows_list) < 1:
             self.selected_rows_list = [
                 self.df_table_data.loc[map_new_ID_dict[new_unit_ID], 'row']]
-        self.recoverySelection()
+        self.restoreSelection()
 
     def addToSelectedUnit(self, wav_index):
         unit_ID_list = self.current_showing_units
@@ -420,7 +420,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         if len(self.selected_rows_list) < 1:
             self.selected_rows_list = [
                 self.df_table_data.loc[map_new_ID_dict[target_unit_ID], 'row']]
-        self.recoverySelection()
+        self.restoreSelection()
 
     def removeWaveforms(self, wav_index):
         unsorted_unit_ID = self.df_table_data[self.df_table_data['UnitType'] == 'Unsorted'].index.tolist(
@@ -447,7 +447,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         if len(self.selected_rows_list) < 1:
             self.selected_rows_list = [
                 self.df_table_data.loc[map_new_ID_dict[unsorted_unit_ID], 'row']]
-        self.recoverySelection()
+        self.restoreSelection()
 
     def invalidateWaveforms(self, wav_index):
         invalid_unit_ID = self.df_table_data[self.df_table_data['UnitType'] == 'Invalid'].index.tolist(
@@ -474,7 +474,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         if len(self.selected_rows_list) < 1:
             self.selected_rows_list = [
                 self.df_table_data.loc[map_new_ID_dict[invalid_unit_ID], 'row']]
-        self.recoverySelection()
+        self.restoreSelection()
     # ========================================
 
     def askTargetUnit(self, unit_ID_list):
@@ -607,7 +607,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
                                                                       new_unit_header=new_unit_header)
         return map_new_ID_dict
 
-    def recoverySelection(self):
+    def restoreSelection(self):
         model = self.tableView.model()
         for row in self.locked_rows_list:
             checkbox = self.tableView.indexWidget(
