@@ -362,19 +362,22 @@ class ContinuousData(object):
         self._estimated_sd = float(np.median(np.abs(self._data) / 0.6745))
         return self.estimated_sd
 
-    def extractWaveforms(self, threshold) -> tuple[ContinuousData, DiscreteData]:
+    def extractWaveforms(self, threshold=None) -> DiscreteData:
+        if threshold is None:
+            threshold = self.threshold
         waveforms, timestamps = extract_waveforms(
             self.data, self.channel_ID, threshold, alg='Valley-Peak')
 
-        result = self.createCopy(threshold=threshold)
+        self._setThreshold(threshold)
+        # result = self.createCopy(threshold=threshold)
 
         unit_IDs = np.zeros(len(timestamps), dtype=int)
-        spike = DiscreteData(filename=result.filename,
-                             header=result._header,
+        spike = DiscreteData(filename=self.filename,
+                             header=self.header,
                              unit_IDs=unit_IDs,
                              timestamps=timestamps,
                              waveforms=waveforms)
-        return result, spike
+        return spike
 
     def createCopy(self,
                    input_array: np.ndarray = None,
