@@ -610,12 +610,18 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def restoreSelection(self):
         model = self.tableView.model()
         for row in self.locked_rows_list:
+            if row > model.rowCount() - 1:
+                break
+
             checkbox = self.tableView.indexWidget(
                 model.index(row, 0)).layout().itemAt(0).widget()
             checkbox.setChecked(True)
 
         selection_model = self.tableView.selectionModel()
         for row in self.selected_rows_list:
+            if row > model.rowCount() - 1:
+                selection_model.select(model.index(0, 0),
+                                       QItemSelectionModel.Rows | QItemSelectionModel.Select)
             selection_model.select(model.index(row, 0),
                                    QItemSelectionModel.Rows | QItemSelectionModel.Select)
             # selection_model.select(model.index(row, 1),
