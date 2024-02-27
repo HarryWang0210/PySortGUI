@@ -217,8 +217,17 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         return new_filted_object
 
     def extractWaveforms(self):
-        self.current_filted_object, self.current_spike_object = self.current_filted_object.extractWaveforms(
+        new_spike_object = self.current_filted_object.extractWaveforms(
             self.current_filted_object.threshold)
+
+        command = ManualUnitCommand("Extract waveform",
+                                    self,
+                                    self.current_raw_object,
+                                    self.current_filted_object,
+                                    self.current_spike_object,
+                                    new_spike_object)
+        self.current_spike_object = new_spike_object
+        self.current_undo_stack.push(command)
 
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
@@ -344,7 +353,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                                  self.current_filted_object)
 
         self.signal_spike_data_changed.emit(
-            self.current_spike_object, action_type == 'ChangeFilter')
+            self.current_spike_object, action_type in ['Change filter', 'Extract waveform'])
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         if new_spike_object is self.current_spike_object:
@@ -365,7 +374,7 @@ class ChangeFilterCommand(QUndoCommand):
                  old_spike_object: DiscreteData, new_spike_object: DiscreteData):
         super().__init__(text)
         self.widget = widget
-        self.action_type = 'ChangeFilter'
+        self.action_type = text
         self.raw_object = raw_object
         self.old_filted_object = old_filted_object
         self.new_filted_object = new_filted_object
@@ -395,7 +404,7 @@ class ManualUnitCommand(QUndoCommand):
     def __init__(self, text, widget, raw_object, filted_object, old_spike_object: DiscreteData, new_spike_object: DiscreteData):
         super().__init__(text)
         self.widget = widget
-        self.action_type = 'ManualUnit'
+        self.action_type = text
         self.raw_object = raw_object
         self.filted_object = filted_object
         self.old_spike_object = old_spike_object
