@@ -175,30 +175,46 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         low = dialog.filter_low_doubleSpinBox.value()
         high = dialog.filter_high_doubleSpinBox.value()
 
-        self.filtedData(ref, low, high)
+        new_filted_object = self.filtedData(ref, low, high)
         if dialog.const_thr_radioButton.isChecked():
             threshold = dialog.const_thr_doubleSpinBox.value()
         elif dialog.mad_thr_radioButton.isChecked():
-            threshold = self.current_filted_object.estimated_sd * \
+            threshold = new_filted_object.estimated_sd * \
                 dialog.mad_thr_doubleSpinBox.value()
 
-        self.current_filted_object = self.current_filted_object.createCopy(
-            threshold=threshold)
-        self.current_spike_object = None
+        new_filted_object = new_filted_object.createCopy(threshold=threshold)
+        new_spike_object = None
+
+        command = ChangeFilterCommand("Change filter",
+                                      self,
+                                      self.current_raw_object,
+                                      self.current_filted_object,
+                                      new_filted_object,
+                                      self.current_spike_object,
+                                      new_spike_object)
+
+        self.current_filted_object = new_filted_object
+        self.current_spike_object = new_spike_object
+        self.current_undo_stack.push(command)
+
+        # self.current_filted_object = self.current_filted_object.createCopy(
+        #     threshold=threshold)
+        # self.current_spike_object = None
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
     def filtedData(self, ref: list = [],
                    low: int | float = None,
-                   high: int | float = None):
-        self.current_filted_object = self.current_raw_object.createCopy()
+                   high: int | float = None) -> ContinuousData:
+        new_filted_object = self.current_raw_object.createCopy()
         if len(ref) > 0:
-            self.current_filted_object = self.current_data_object.subtractReference(channel=self.current_raw_object.channel_ID,
-                                                                                    reference=ref)
+            new_filted_object = self.current_data_object.subtractReference(channel=self.current_raw_object.channel_ID,
+                                                                           reference=ref)
         if not low is None and not high is None:
-            self.current_filted_object = self.current_filted_object.bandpassFilter(
+            new_filted_object = new_filted_object.bandpassFilter(
                 low, high)
+        return new_filted_object
 
     def extractWaveforms(self):
         self.current_filted_object, self.current_spike_object = self.current_filted_object.extractWaveforms(
@@ -310,24 +326,25 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_filted_object = new_filted_object
         self.current_spike_object = new_spike_object
 
-        if action_type == 'ManualUnit':
-            # chan_ID = self.current_spike_object.channel_ID
-            label = self.current_spike_object.label
-            # filted
-            # self.current_filted_object = self.current_data_object.subtractReference(
-            #     channel=chan_ID, reference=[self.current_spike_object.reference])
-            # self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
-            #                                                                        high=self.current_spike_object.high_cutoff)
-            # self.current_filted_object = self.current_filted_object.createCopy(
-            #     threshold=self.current_spike_object.threshold)
-            # self.setSpikeSetting()
-            self.setLabelCombox(labels=self.current_raw_object.spikes,
-                                current=label)
+        # if action_type == 'ManualUnit':
+        # chan_ID = self.current_spike_object.channel_ID
+        # label = self.current_spike_object.label
+        # filted
+        # self.current_filted_object = self.current_data_object.subtractReference(
+        #     channel=chan_ID, reference=[self.current_spike_object.reference])
+        # self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
+        #                                                                        high=self.current_spike_object.high_cutoff)
+        # self.current_filted_object = self.current_filted_object.createCopy(
+        #     threshold=self.current_spike_object.threshold)
+        # self.setSpikeSetting()
+        # self.setLabelCombox(labels=self.current_raw_object.spikes,
+        #                     current=label)
 
-            self.signal_continuous_data_changed.emit(self.current_raw_object,
-                                                     self.current_filted_object)
-            self.signal_spike_data_changed.emit(
-                self.current_spike_object, False)
+        self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                 self.current_filted_object)
+
+        self.signal_spike_data_changed.emit(
+            self.current_spike_object, action_type == 'ChangeFilter')
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         if new_spike_object is self.current_spike_object:
