@@ -455,6 +455,7 @@ class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
 
         if filted_object is None:
             self.setting = self.default_spike_setting
+            logger.debug(filted_object)
         else:
             self.setting = {
                 'Reference': filted_object.reference,
@@ -469,7 +470,7 @@ class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
         if len(self.setting['Reference']) == 1:
             self.channel_ref_radioButton.setChecked(True)
             self.channel_ref_comboBox.setCurrentText(
-                str(self.setting['Reference']))
+                str(self.setting['Reference'][0]))
         elif len(self.setting['Reference']) > 1:
             logger.critical('Use median of channels: Not implemented error')
 
