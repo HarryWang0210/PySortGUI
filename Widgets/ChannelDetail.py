@@ -237,7 +237,20 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # logger.debug(self.current_spike_object)
 
     def sortChannel(self):
-        self.current_spike_object = self.current_spike_object.autosort()
+        new_spike_object = self.current_spike_object.autosort()
+        # self.signal_spike_data_changed.emit(self.current_spike_object, True)
+
+        command = ManualUnitCommand("Autosort",
+                                    self,
+                                    self.current_raw_object,
+                                    self.current_filted_object,
+                                    self.current_spike_object,
+                                    new_spike_object)
+        self.current_spike_object = new_spike_object
+        self.current_undo_stack.push(command)
+
+        self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                 self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
     def onSelectionChanged(self, selected, deselected):
