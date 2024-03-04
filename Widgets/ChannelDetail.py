@@ -283,6 +283,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 channel=chan_ID, label=label)
             self.current_spike_object = self.current_data_object.getSpike(
                 channel=chan_ID, label=label)
+            logger.debug(f'spike object { self.current_spike_object}')
             # filted
             self.current_filted_object = self.current_data_object.subtractReference(
                 channel=chan_ID, reference=[self.current_spike_object.reference])
@@ -309,7 +310,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 self.undo_stack_dict[chan_ID][label] = self.current_undo_stack
 
             # logger.debug(self.current_undo_stack)
-            self.undo_stack_dict[chan_ID][label].setActive(True)
+            self.current_undo_stack = self.undo_stack_dict[chan_ID][label]
+            self.current_undo_stack.setActive(True)
+            logger.debug(
+                f'Undostack {chan_ID} {label}: {self.current_undo_stack}')
 
         elif meta_data['Type'] == 'Raws':
             self.current_data_object.loadRaw(channel=chan_ID)
@@ -430,7 +434,7 @@ class ChangeSpikeCommand(QUndoCommand):
         self.raw_object.setSpike(
             self.new_spike_object, self.new_spike_object.label)
         logger.info(
-            f"Redo: {self.text()}")
+            f"Redo: {self.text()} {self.new_spike_object}")
 
     def undo(self):
         # 撤销操作，回滚应用程序状态
@@ -439,7 +443,7 @@ class ChangeSpikeCommand(QUndoCommand):
         self.raw_object.setSpike(
             self.old_spike_object, self.old_spike_object.label)
         logger.info(
-            f"Undo: {self.text()}")
+            f"Undo: {self.text()} {self.old_spike_object}")
 
 
 class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
