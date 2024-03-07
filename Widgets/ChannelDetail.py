@@ -254,6 +254,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
     def onSelectionChanged(self, selected, deselected):
+        self.test_edit_treeview()
         model = self.treeView.model()
         indexes = selected.indexes()
         items = [model.itemFromIndex(ind) for ind in indexes]
@@ -383,6 +384,33 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                      new_spike_object)
         self.current_spike_object = new_spike_object
         self.current_undo_stack.push(command)
+
+    def test_edit_treeview(self):
+        model = self.treeView.model()
+        # logger.debug(model)
+
+        selection_model = self.treeView.selectionModel()
+        selected_indexes = selection_model.selectedIndexes()
+        # selected_rows_list = [index.row() for index in selected_indexes]
+        # logger.debug(selected_indexes)
+        items = [model.itemFromIndex(ind) for ind in selected_indexes]
+        logger.debug(items[0].text())
+        if items[0].parent() is None:  # Group
+            # self.sorting_label_comboBox.clear()
+            return
+        elif not items[0].parent().parent() is None:  # Label
+            items[0] = items[0].parent()
+
+        logger.debug([item.text() for item in items])
+        items[0].setText(items[0].text() + '*')
+        # row_index = 1  # 第二行
+        # col_index = 2  # 第三列
+        # new_value = "New Value"
+
+        # item = model.item(row_index, col_index)
+        # logger.debug(item.text())
+        # if item is not None:
+        #     item.setData(new_value, QtCore.Qt.DisplayRole)
 
 
 class ChangeFilterCommand(QUndoCommand):
