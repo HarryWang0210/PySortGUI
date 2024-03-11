@@ -371,6 +371,11 @@ class ContinuousData(object):
         self._setThreshold(threshold)
         # result = self.createCopy(threshold=threshold)
 
+        header = self.header
+        header['Comment'] = 'TODO'
+        header['NumRecords'] = len(unit_IDs)
+        header['Type'] = 'Spikes'
+
         unit_IDs = np.zeros(len(timestamps), dtype=int)
         spike = DiscreteData(filename=self.filename,
                              header=self.header,
@@ -378,10 +383,6 @@ class ContinuousData(object):
                              timestamps=timestamps,
                              waveforms=waveforms)
         return spike
-
-    def createSpikeHeader(self):
-        header = self.header.copy()
-        header
 
     def createCopy(self,
                    input_array: np.ndarray = None,
@@ -459,6 +460,7 @@ class DiscreteData(object):
 
         self._unsorted_unit_ID: int | None = None
         self._invalid_unit_ID: int | None = None
+        self._header['NumUnits'] = len(np.unique(self.unit_IDs))
 
     @property
     def filename(self):
