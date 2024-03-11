@@ -185,24 +185,24 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         new_filted_object = new_filted_object.createCopy(threshold=threshold)
         new_spike_object = None
 
-        command = ChangeFilterCommand("Change filter",
-                                      self,
-                                      self.current_raw_object,
-                                      self.current_filted_object,
-                                      new_filted_object,
-                                      self.current_spike_object,
-                                      new_spike_object)
+        # command = ChangeFilterCommand("Change filter",
+        #                               self,
+        #                               self.current_raw_object,
+        #                               self.current_filted_object,
+        #                               new_filted_object,
+        #                               self.current_spike_object,
+        #                               new_spike_object)
 
         self.current_filted_object = new_filted_object
-        self.current_spike_object = new_spike_object
-        self.current_undo_stack.push(command)
+        # self.current_spike_object = new_spike_object
+        # self.current_undo_stack.push(command)
 
         # self.current_filted_object = self.current_filted_object.createCopy(
         #     threshold=threshold)
         # self.current_spike_object = None
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
-        self.signal_spike_data_changed.emit(self.current_spike_object, True)
+        self.signal_spike_data_changed.emit(new_spike_object, True)
 
     def filtedData(self, ref: list = [],
                    low: int | float = None,
@@ -394,11 +394,12 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         # import pandas as pd
-        logger.debug('Spike header')
-        logger.debug('\n' +
-                     '\n'.join([f'     {k}: {new_spike_object.header[k]}' for k in new_spike_object.header]))
+        # logger.debug('Spike header')
+        # logger.debug('\n' +
+        #              '\n'.join([f'     {k}: {new_spike_object.header[k]}' for k in new_spike_object.header]))
+        logger.debug(new_spike_object)
 
-        if new_spike_object is self.current_spike_object:
+        if new_spike_object is self.current_spike_object or new_spike_object is None:
             return
         command = ChangeSpikeCommand("Manual unit",
                                      self,
