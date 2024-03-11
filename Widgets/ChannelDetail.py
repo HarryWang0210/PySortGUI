@@ -166,7 +166,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             return
 
         if dialog.channel_ref_radioButton.isChecked():
-            ref = [int(dialog.channel_ref_comboBox.currentText())]
+            ref = int(dialog.channel_ref_comboBox.currentText())
 
         elif dialog.median_ref_radioButton.isChecked():
             ref = [int(i)
@@ -208,17 +208,36 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                    low: int | float = None,
                    high: int | float = None) -> ContinuousData:
         new_filted_object = self.current_raw_object.createCopy()
-        if len(ref) > 0:
-            new_filted_object = self.current_data_object.subtractReference(channel=self.current_raw_object.channel_ID,
-                                                                           reference=ref)
+        # if len(ref) > 0:
+        new_filted_object = self.current_data_object.subtractReference(channel=self.current_raw_object.channel_ID,
+                                                                       reference=ref)
         if not low is None and not high is None:
             new_filted_object = new_filted_object.bandpassFilter(
                 low, high)
         return new_filted_object
 
     def extractWaveforms(self):
+        model = self.treeView.model()
+        # logger.debug(model)
+
+        selection_model = self.treeView.selectionModel()
+        selected_indexes = selection_model.selectedIndexes()
+        # selected_rows_list = [index.row() for index in selected_indexes]
+        # logger.debug(selected_indexes)
+        items = [model.itemFromIndex(ind) for ind in selected_indexes]
+
+        if items[0].parent() == None:  # Group
+            return
+        elif items[0].parent().parent() != None:  # Label
+            items[0] = items[0].parent()
+
+        meta_data = [item.text() for item in items]
+        meta_data = dict(zip(self.header_name, meta_data))
+
+        label = meta_data['Label']
         new_spike_object = self.current_filted_object.extractWaveforms(
             self.current_filted_object.threshold)
+        new_spike_object.setLabel(label)
 
         command = ChangeSpikeCommand("Extract waveform",
                                      self,
@@ -254,7 +273,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
     def onSelectionChanged(self, selected, deselected):
-        self.test_edit_treeview()
+        # self.test_edit_treeview()
         model = self.treeView.model()
         indexes = selected.indexes()
         items = [model.itemFromIndex(ind) for ind in indexes]
@@ -287,7 +306,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             logger.debug(f'spike object { self.current_spike_object}')
             # filted
             self.current_filted_object = self.current_data_object.subtractReference(
-                channel=chan_ID, reference=[self.current_spike_object.reference])
+                channel=chan_ID, reference=self.current_spike_object.reference)
             self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
                                                                                    high=self.current_spike_object.high_cutoff)
             self.current_filted_object = self.current_filted_object.createCopy(
@@ -374,6 +393,11 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             self.current_spike_object, action_type in ['Change filter', 'Extract waveform'])
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+        # import pandas as pd
+        logger.debug('Spike header')
+        logger.debug('\n' +
+                     '\n'.join([f'     {k}: {new_spike_object.header[k]}' for k in new_spike_object.header]))
+
         if new_spike_object is self.current_spike_object:
             return
         command = ChangeSpikeCommand("Manual unit",
@@ -499,12 +523,12 @@ class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
         self.initSetting()
 
     def initSetting(self):
-        if len(self.setting['Reference']) == 1:
-            self.channel_ref_radioButton.setChecked(True)
-            self.channel_ref_comboBox.setCurrentText(
-                str(self.setting['Reference'][0]))
-        elif len(self.setting['Reference']) > 1:
-            logger.critical('Use median of channels: Not implemented error')
+        # if len(self.setting['Reference']) == 1:
+        self.channel_ref_radioButton.setChecked(True)
+        self.channel_ref_comboBox.setCurrentText(
+            str(self.setting['Reference']))
+        # elif len(self.setting['Reference']) > 1:
+        #     logger.critical('Use median of channels: Not implemented error')
 
         self.filter_low_doubleSpinBox.setValue(self.setting['Filter'][0])
         self.filter_high_doubleSpinBox.setValue(self.setting['Filter'][1])

@@ -150,11 +150,11 @@ class SpikeSorterData(object):
         logger.critical('Unimplemented function.')
         return
 
-    def subtractReference(self, channel: int | str, reference: list) -> ContinuousData:
+    def subtractReference(self, channel: int | str, reference: int | list) -> ContinuousData:
         ch_object = self.getRaw(channel, load_data=True)
 
-        if len(reference) == 1:
-            referenceID = self.validateChannel(reference[0])
+        if isinstance(reference, int):
+            referenceID = self.validateChannel(reference)
             ref_object = self.getRaw(referenceID, load_data=True)
 
         result = ch_object.subtractReference(ref_object.data, referenceID)
@@ -272,7 +272,7 @@ class ContinuousData(object):
         if self._header['ReferenceID'] == '':
             self._header['ReferenceID'] = None
         if isinstance(self._header['ReferenceID'], str):
-            self._header['ReferenceID'] = [int(self._header['ReferenceID'])]
+            self._header['ReferenceID'] = int(self._header['ReferenceID'])
         return self._header['ReferenceID']
 
     @property
@@ -322,10 +322,10 @@ class ContinuousData(object):
     def getSpike(self, label: str) -> DiscreteData | None:
         return self._spikes.get(label)
 
-    def _setReference(self, referenceID: list):
-        if isinstance(referenceID, int):
-            referenceID = [referenceID]
-        self._header['ReferenceID'] = list(referenceID)
+    def _setReference(self, referenceID: int):
+        # if isinstance(referenceID, int):
+        #     referenceID = [referenceID]
+        self._header['ReferenceID'] = referenceID
 
     def _setFilter(self, low: int | float | None = None, high: int | float | None = None):
         if isinstance(low, (int, float)):
@@ -378,6 +378,10 @@ class ContinuousData(object):
                              timestamps=timestamps,
                              waveforms=waveforms)
         return spike
+
+    def createSpikeHeader(self):
+        header = self.header.copy()
+        header
 
     def createCopy(self,
                    input_array: np.ndarray = None,
