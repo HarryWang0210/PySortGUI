@@ -38,11 +38,12 @@ def loadPyephys(filename):
                 df_spikes_header['Label'] = "default"
 
             # ========== Test Label ==========
-            new_row = df_spikes_header.iloc[0, :].copy()
+            new_row = df_spikes_header.iloc[0:2, :].copy()
             new_row['Label'] = 'test label'
             df_spikes_header = pd.concat(
-                [df_spikes_header, new_row.to_frame().T], axis=0, ignore_index=True)
+                [df_spikes_header, new_row], axis=0, ignore_index=True)
             # ================================
+            logger.debug(df_spikes_header.dtypes)
             df_spikes_header = df_spikes_header.sort_values('ID')
 
         else:
@@ -152,7 +153,7 @@ def saveSpikes(filename, header: dict, unit_header: pd.DataFrame | None = None,
         object_cols = unit_header.dtypes[unit_header.dtypes == 'object'].index
         string_len = unit_header[object_cols].applymap(len)
         max_length = string_len.max()
-        max_length = max_length.apply(lambda x: f'S{x}')
+        max_length = max_length.apply(lambda x: f'S{x}' if x > 0 else 'S1')
         unit_table = unit_header.to_records(
             index=False, column_dtypes=max_length.to_dict())
         file.create_table(path, "UnitsHeader", unit_table)
@@ -162,6 +163,28 @@ def saveSpikes(filename, header: dict, unit_header: pd.DataFrame | None = None,
             ID_group = file.create_group(path, f'Unit_{unit_ID:02}')
             file.create_array(ID_group, 'Indxs',
                               (unit_IDs == unit_ID).nonzero()[0])
+
+
+def saveSpikesHeader(filename, header: pd.DataFrame | None = None):
+    path = '/SpikesHeader'
+    with tables.open_file(filename, mode="a") as file:
+        if path in file.root:
+            spike_chan = file.get_node(path)
+            spike_chan._f_remove()
+
+        object_cols = header.dtypes[header.dtypes == 'object'].index
+        # # logger.debug(header.dtypes)
+        # # logger.debug(header)
+
+        string_len = header[object_cols].applymap(len)
+        max_length = string_len.max()
+        # # logger.debug(max_length)
+        max_length = max_length.apply(lambda x: f'S{x}' if x > 0 else 'S1')
+        spike_table = header.to_records(index=False,
+                                        column_dtypes=max_length.to_dict())
+        # logger.debug(spike_table)
+        logger.debug(spike_table.dtype)
+        file.create_table('/', 'SpikesHeader', spike_table)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ import os
 import pandas as pd
 import numpy as np
 from DataStructure.pyephysv3 import (loadPyephys, loadRaws, loadSpikes,
-                                     saveSpikes)
+                                     saveSpikes, saveSpikesHeader)
 # from pyephysv2 import loadPyephys, loadRaws, loadSpikes
 from DataStructure.FunctionsLib.SignalProcessing import design_and_filter
 from DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
@@ -181,16 +181,17 @@ class SpikeSorterData(object):
 
     def saveChannel(self, channel):
         ch = self.getRaw(channel)
+        records = []
         for label in ch.spikes:
             spike = ch.getSpike(label)
-            spike._header['H5FileName'] = self.filename
+            spike._header['H5Name'] = 'TimeStamps'
             if label == 'default':
                 spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}'
             else:
                 spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}{label}'
-
+            logger.debug(label)
             spike._unit_header['H5Location'] = spike._unit_header['ID'].apply(
-                lambda ID: spike._header['H5Location'] + '/Unit_{ID:02}')
+                lambda ID: spike._header['H5Location'] + f'/Unit_{ID:02}')
             spike._unit_header['H5Name'] = 'Indxs'
             spike._unit_header['ParentID'] = ch.channel_ID
             spike._unit_header['ParentType'] = 'Spikes'
@@ -198,6 +199,19 @@ class SpikeSorterData(object):
 
             saveSpikes(self.filename, spike.header, spike.unit_header,
                        spike.unit_IDs, spike.timestamps, spike.waveforms)
+            records.append(spike.header)
+        spikes_header = self._headers['SpikesHeader']
+        new_spikes_header = pd.DataFrame(
+            spikes_header[spikes_header['ID'] != ch.channel_ID])
+        # logger.debug(pd.DataFrame.from_records(records).dtypes)
+
+        new_spikes_header = pd.concat([new_spikes_header, pd.DataFrame.from_records(records)],
+                                      axis=0, ignore_index=True)
+        # logger.debug(new_spikes_header.dtypes)
+        self._headers['SpikesHeader'] = new_spikes_header
+        # logger.debug(new_spikes_header)
+        saveSpikesHeader(self.filename, self._headers['SpikesHeader'])
+        # logger.debug(self.spikes_header)
 
     def validateChannel(self, channel: int | str) -> int:
         if isinstance(channel, str):
@@ -400,7 +414,7 @@ class ContinuousData(object):
         header['Type'] = 'Spikes'
 
         spike = DiscreteData(filename=self.filename,
-                             header=self.header,
+                             header=header,
                              unit_IDs=unit_IDs,
                              timestamps=timestamps,
                              waveforms=waveforms)
