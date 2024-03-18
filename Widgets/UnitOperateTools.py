@@ -603,6 +603,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         new_unit_header = self.df_table_data.copy()
         new_unit_header['ID'] = self.df_table_data.index
+        new_unit_header.drop(columns=['row'], inplace=True)
         self.current_spike_object = self.current_spike_object.setUnit(new_unit_IDs,
                                                                       new_unit_header=new_unit_header)
         return map_new_ID_dict
