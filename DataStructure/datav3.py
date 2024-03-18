@@ -4,7 +4,8 @@ import tables
 import os
 import pandas as pd
 import numpy as np
-from DataStructure.pyephysv3 import loadPyephys, loadRaws, loadSpikes
+from DataStructure.pyephysv3 import (loadPyephys, loadRaws, loadSpikes,
+                                     saveSpikes)
 # from pyephysv2 import loadPyephys, loadRaws, loadSpikes
 from DataStructure.FunctionsLib.SignalProcessing import design_and_filter
 from DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
@@ -177,6 +178,18 @@ class SpikeSorterData(object):
         # TODO
         logger.critical('Unimplemented function.')
         return
+
+    def saveChannel(self, channel):
+        ch = self.getRaw(channel)
+        for label in ch.spikes:
+            spike = ch.getSpike(label)
+            if label == 'default':
+                spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}'
+            else:
+                spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}{label}'
+
+            saveSpikes(self.filename, spike.header, spike.unit_header,
+                       spike.unit_IDs, spike.timestamps, spike.waveforms)
 
     def validateChannel(self, channel: int | str) -> int:
         if isinstance(channel, str):
