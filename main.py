@@ -210,8 +210,7 @@ class PySortGUI(MainWindowDocks):
 
     def saveChannel(self):
         """Save single channel."""
-        print("saveChannel")
-        pass
+        self.children_dict["ChannelDetail"].saveChannel()
 
     def saveAll(self):
         """Save all channels."""

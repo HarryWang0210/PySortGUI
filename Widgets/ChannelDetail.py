@@ -410,6 +410,27 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_spike_object = new_spike_object
         self.current_undo_stack.push(command)
 
+    def saveChannel(self):
+        model = self.treeView.model()
+        # logger.debug(model)
+
+        selection_model = self.treeView.selectionModel()
+        selected_indexes = selection_model.selectedIndexes()
+        # selected_rows_list = [index.row() for index in selected_indexes]
+        # logger.debug(selected_indexes)
+        items = [model.itemFromIndex(ind) for ind in selected_indexes]
+        logger.debug(items[0].text())
+        if items[0].parent() is None:  # Group
+            # self.sorting_label_comboBox.clear()
+            return
+        elif not items[0].parent().parent() is None:  # Label
+            items[0] = items[0].parent()
+
+        self.current_data_object.saveChannel(int(items[0].text()))
+        # self.current_data_object.saveChannel
+        # self.current_spike_object
+        pass
+
     def test_edit_treeview(self):
         model = self.treeView.model()
         # logger.debug(model)
