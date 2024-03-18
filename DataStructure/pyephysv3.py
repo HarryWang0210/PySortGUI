@@ -134,6 +134,36 @@ def loadSpikes(filename, path):
                 "waveforms": waveforms}
 
 
+def saveSpikes(filename, header: dict, unit_header: pd.DataFrame | None = None,
+               unit_IDs: np.ndarray = [], timestamps: np.ndarray = [], waveforms: np.ndarray = []):
+    basename, extname = os.path.splitext(filename)
+    # if extname == "h5raw":
+    #     filename = ".".join(basename, "h5")
+    path = header['H5Location']
+    path_split = path.split('/')
+    with tables.open_file(filename, mode="a") as file:
+        if path in file.root:
+            spike_chan = file.get_node(path)
+            spike_chan._f_remove(force=True)
+        file.create_group('/'+path_split[-2], path_split[-1])
+        file.create_array(path, "TimeStamps", timestamps)
+        file.create_array(path, "Waveforms", waveforms)
+
+        object_cols = unit_header.dtypes[unit_header.dtypes == 'object'].index
+        string_len = unit_header[object_cols].applymap(len)
+        max_length = string_len.max()
+        max_length = max_length.apply(lambda x: f'S{x}')
+        unit_table = unit_header.to_records(
+            index=False, column_dtypes=max_length.to_dict())
+        file.create_table(path, "UnitsHeader", unit_table)
+
+        not_zero_unit = unit_header.loc[unit_header['NumRecords'] > 0, 'ID']
+        for unit_ID in not_zero_unit:
+            ID_group = file.create_group(path, f'Unit_{unit_ID:02}')
+            file.create_array(ID_group, 'Indxs',
+                              (unit_IDs == unit_ID).nonzero()[0])
+
+
 if __name__ == '__main__':
     filename = "data/MX6-22_2020-06-17_17-07-48_no_ref.h5"
     headers = loadPyephys(filename)
