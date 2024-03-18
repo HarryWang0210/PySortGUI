@@ -183,10 +183,18 @@ class SpikeSorterData(object):
         ch = self.getRaw(channel)
         for label in ch.spikes:
             spike = ch.getSpike(label)
+            spike._header['H5FileName'] = self.filename
             if label == 'default':
                 spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}'
             else:
                 spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}{label}'
+
+            spike._unit_header['H5Location'] = spike._unit_header['ID'].apply(
+                lambda ID: spike._header['H5Location'] + '/Unit_{ID:02}')
+            spike._unit_header['H5Name'] = 'Indxs'
+            spike._unit_header['ParentID'] = ch.channel_ID
+            spike._unit_header['ParentType'] = 'Spikes'
+            spike._unit_header['Type'] = 'Unit'
 
             saveSpikes(self.filename, spike.header, spike.unit_header,
                        spike.unit_IDs, spike.timestamps, spike.waveforms)
