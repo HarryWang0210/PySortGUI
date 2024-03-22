@@ -16,7 +16,7 @@ import pdb
 
 import re
 
-#from matplotlib import pylab as pyl
+# from matplotlib import pylab as pyl
 
 # from PyQt4 import QtGui
 from numpy.fft import fft, ifft
@@ -68,7 +68,7 @@ def PSTH_PEM(TS, Event=None, bin_size=1, time_window=(.2, .41), return_PEM=False
 
     _, _, M, ind = sparse_raster(TS,
                                  Event, TimeWindow=time_window, x_ind=True)
-    #time = np.arange(-time_window[0], time_window[1], 1. / 1000)
+    # time = np.arange(-time_window[0], time_window[1], 1. / 1000)
 
     PSTH, _ = PSTH_from_PEM(
         M, bin_size=bin_size, background=(0, int(time_window[0] * 1000)), return_CI=True, **kwargs)
@@ -79,6 +79,7 @@ def PSTH_PEM(TS, Event=None, bin_size=1, time_window=(.2, .41), return_PEM=False
         return PSTH, M
 
     return PSTH
+
 
 def PSTH_from_PEM(M, in_units='counts', out_units='Hz', bin_size=1,
                   kernel='box', kernel_size=20, background_norm=False, background=None, return_CI=False):
@@ -163,11 +164,26 @@ def next_pow_of_two(n):
     return int(pow(2, np.ceil(np.log2(n))))
 
 
-def ISI(x, sampling_freq=None, bin_size=.1, t_max=.1,
-        log_scale_y=False, normalized=True, add_ts=None):
+def ISI(x: np.ndarray, sampling_freq: int | float, bin_size=.1, t_max=.1,
+        log_scale_y=False, normalized=True, add_ts=None) -> tuple[np.ndarray, np.ndarray]:
+    """Compute the interspike interval distribution.
 
-    if not sampling_freq:
-        sf = getattr(x, 'SamplingFreq', 30000) * 1.
+    Args:
+        x (np.ndarray): timestamps
+        sampling_freq (int | float): _description_
+        bin_size (float, optional): _description_. Defaults to .1.
+        t_max (float, optional): _description_. Defaults to .1.
+        log_scale_y (bool, optional): _description_. Defaults to False.
+        normalized (bool, optional): Normalize the isi array to % of total spikes. Defaults to True.
+        add_ts (_type_, optional): _description_. Defaults to None.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: The first array is the bins from 0ms to 1000ms, 
+        the second array is the isi distribution.
+    """
+
+    # if not sampling_freq:
+    #     sf = getattr(x, 'SamplingFreq', 30000) * 1.
 
     x = np.asarray(x)
     if add_ts is not None:
@@ -175,15 +191,15 @@ def ISI(x, sampling_freq=None, bin_size=.1, t_max=.1,
         x.sort()
 
     ISI = np.diff(x)
-    ISI = ISI[ISI < t_max * sf]
+    ISI = ISI[ISI < t_max * sampling_freq]
 
-    ISI = (ISI / sf)
+    ISI = (ISI / sampling_freq)
 
     start = 0
     stop = t_max
-    bins = t_max * 1000 / bin_size + 1
+    num = int(t_max * 1000 / bin_size + 1)
     # print(ISI)
-    ISI, bins = np.histogram(ISI, np.linspace(start, stop, bins))
+    ISI, bins = np.histogram(ISI, np.linspace(start, stop, num))
     bins = bins[:-1]
     if normalized:
         # % of total spikes
@@ -194,14 +210,24 @@ def ISI(x, sampling_freq=None, bin_size=.1, t_max=.1,
     return bins, ISI
 
 
-def firing_rate(x, sampling_freq=None, out_units='Hz'):
-    if not sampling_freq:
-        sf = getattr(x, 'SamplingFreq', 30000) * 1.
+def firing_rate(x: np.ndarray, sampling_freq: int | float, out_units='Hz') -> float:
+    """Compute the firing rate.
+
+    Args:
+        x (np.ndarray): timestamps
+        sampling_freq (int | float): _description_
+        out_units (str, optional): _description_. Defaults to 'Hz'.
+
+    Returns:
+        float: firing rate
+    """
+    # if not sampling_freq:
+    #     sf = getattr(x, 'SamplingFreq', 30000) * 1.
 
     if len(x) == 0:
         return 0
 
-    return float(x.size / (x.max() / sf))
+    return float(x.size / (x.max() / sampling_freq))
 
 
 def xcorrelation(ts_unit1, ts_unit2=None, bin_size=10, method='ephys',
@@ -805,7 +831,7 @@ def sparse_raster_v2(x, y, TimeWindow=(2, 2), BinSize=1, SFx=30000, SFy=30000, x
     TimePre_x = TimePre / x_mult
     TimePost_x = TimePost / x_mult
     y_x = (y * y_mult / x_mult).astype(x.dtype)
-    #msg = "TimePre_x:{}|TimePost_x:{},y_x:{}".format(TimePre_x,TimePost_x,y_x)
+    # msg = "TimePre_x:{}|TimePost_x:{},y_x:{}".format(TimePre_x,TimePost_x,y_x)
     # print(msg)
     Xind = np.where(
         [(x >= y_x.min() - TimePre) & (x < y_x.max() + TimePost)])[1]
@@ -833,7 +859,7 @@ def sparse_raster_v2(x, y, TimeWindow=(2, 2), BinSize=1, SFx=30000, SFy=30000, x
             row[0:np.max(diff) + 1] = np.bincount(diff)
 
     Trial, Time = np.where(Out)
-    #Counts = Out[np.where(Out)]
+    # Counts = Out[np.where(Out)]
 
     Time = (Time - TimePre) / OutSF
     Trial = Trial
@@ -1066,9 +1092,9 @@ def distance_matrix(x, y, rounding=None):
     # pdb.set_trace()
 
     # making sure x and y are numpy array
-    #if not isinstance(x, np.ndarray):
+    # if not isinstance(x, np.ndarray):
     x = np.array(x)
-    #if not isinstance(y, np.ndarray):
+    # if not isinstance(y, np.ndarray):
     y = np.array(y)
 
     # x = x.reshape(1, -1)
