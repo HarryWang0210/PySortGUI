@@ -43,7 +43,7 @@ def loadPyephys(filename):
             df_spikes_header = pd.concat(
                 [df_spikes_header, new_row], axis=0, ignore_index=True)
             # ================================
-            logger.debug(df_spikes_header.dtypes)
+            # logger.debug(df_spikes_header.dtypes)
             df_spikes_header = df_spikes_header.sort_values('ID')
 
         else:
@@ -183,7 +183,7 @@ def saveSpikesHeader(filename, header: pd.DataFrame | None = None):
         spike_table = header.to_records(index=False,
                                         column_dtypes=max_length.to_dict())
         # logger.debug(spike_table)
-        logger.debug(spike_table.dtype)
+        # logger.debug(spike_table.dtype)
         file.create_table('/', 'SpikesHeader', spike_table)
 
 
