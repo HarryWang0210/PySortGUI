@@ -4,12 +4,13 @@ import tables
 import os
 import pandas as pd
 import numpy as np
-from DataStructure.pyephysv3 import (loadPyephys, loadRaws, loadSpikes,
-                                     saveSpikes, saveSpikesHeader)
+from .pyephysv3 import (loadPyephys, loadRaws, loadSpikes,
+                        saveSpikes, saveSpikesHeader)
 # from pyephysv2 import loadPyephys, loadRaws, loadSpikes
-from DataStructure.FunctionsLib.SignalProcessing import design_and_filter
-from DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
-from DataStructure.FunctionsLib.Sorting import auto_sort
+from .FunctionsLib.SignalProcessing import design_and_filter
+from .FunctionsLib.ThresholdOperations import extract_waveforms
+from .FunctionsLib.Sorting import auto_sort
+from .FunctionsLib.DiscreteSignalLib import ISI, firing_rate
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MaxAbsScaler
@@ -581,6 +582,12 @@ class DiscreteData(object):
         return self._waveforms.copy()
 
     @property
+    def fs(self):
+        if not isinstance(self._header['SamplingFreq'], (int, float)):
+            self._header['SamplingFreq'] = int(self._header['SamplingFreq'])
+        return self._header['SamplingFreq']
+
+    @property
     def data_type(self) -> str:
         return self._data_type
 
@@ -667,6 +674,16 @@ class DiscreteData(object):
         return new_unit_header
 
     def waveformsPCA(self, selected_unit_IDs: list = None, n_components: int = None, ignore_invalid: bool = False) -> np.ndarray:
+        """Performing PCA on given units.
+
+        Args:
+            selected_unit_IDs (list, optional): The list of unit ids that want to perform PCA. If the value is None, use all unit. Defaults to None.
+            n_components (int, optional): The arg for PCA. If the value is None, return all. Defaults to None.
+            ignore_invalid (bool, optional): If the value is True, excluding invalid unit before perform PCA . Defaults to False.
+
+        Returns:
+            np.ndarray: The finial PCA result.
+        """
         if selected_unit_IDs is None:
             selected_unit_IDs = np.unique(self._unit_IDs).tolist()
         elif not isinstance(selected_unit_IDs, list):
@@ -711,6 +728,35 @@ class DiscreteData(object):
         return self.setUnit(new_unit_IDs=new_unit_IDs,
                             unsorted_unit_ID=0,
                             invalid_unit_ID=new_invalid_unit_ID)
+
+    def ISI(self, selected_unit_IDs: list = None):
+        """Compute the interspike interval distribution of given units.
+
+        Args:
+            selected_unit_IDs (list, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        timestamps_mask = np.isin(self.unit_IDs, selected_unit_IDs)
+        ts = self.timestamps[timestamps_mask]
+        # logger.debug(timestamps_mask)
+        result = ISI(ts, sampling_freq=self.fs)
+        return result
+
+    def firingRate(self, selected_unit_IDs: list = None) -> float:
+        """Compute the firing rate of given units.
+
+        Args:
+            selected_unit_IDs (list, optional): _description_. Defaults to None.
+
+        Returns:
+            float: The firing rate of given units.
+        """
+        timestamps_mask = np.isin(self.unit_IDs, selected_unit_IDs)
+        ts = self.timestamps[timestamps_mask]
+        result = firing_rate(ts, sampling_freq=self.fs)
+        return result
 
 
 if __name__ == '__main__':
