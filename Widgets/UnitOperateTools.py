@@ -50,7 +50,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         # self.current_wav_units = []  # all waveform units (N,), int
         self.current_showing_units = []  # the unit id that are showing
-
+        self.isi_result = None
         # store the table data(contain only units)
         # index: 'ID'
         # column: 'Name', 'NumRecords', 'UnitType', 'row'
@@ -131,7 +131,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.features_on_selection_pushButton.clicked.connect(
             self.setFeatureOnSelection)
 
-        self.isi_thr_doubleSpinBox
+        self.isi_thr_doubleSpinBox.valueChanged.connect(self.computeUnderISIPercentage)
 
     # ========== Slot ==========
     def data_file_name_changed(self, data):
@@ -266,7 +266,24 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         #           'current_showing_units': self.current_showing_units}
         logger.info('Selected units: %s', self.current_showing_units)
         self.signal_showing_units_changed.emit(self.current_showing_units)
+        self.unit_ids_value_label.setText(
+            ', '.join(str(x) for x in self.current_showing_units))
+        # self.spikes_value_label.setText()
+        self.rate_value_label.setText(str(round(self.current_spike_object.firingRate(
+            self.current_showing_units), 2)))
+        self.isi_result = self.current_spike_object.ISI(
+            self.current_showing_units)
+        self.computeUnderISIPercentage()
+
+        # logger.debug(self.current_spike_object.firingRate(
+        #     self.current_showing_units))
         # self.signal_showing_spikes_data_changed.emit(spikes)
+    def computeUnderISIPercentage(self):
+        time_unit = 0.001
+        thr = self.isi_thr_doubleSpinBox.value() * time_unit
+        under_thr_mask = self.isi_result[0] < thr
+        result = self.isi_result[1][under_thr_mask].sum() * 100
+        self.under_isi_thr_value_label.setText(str(round(result, 1)))
 
     def sendShowingSpikeData(self):
         self.signal_showing_spike_data_changed.emit(self.current_spike_object)
