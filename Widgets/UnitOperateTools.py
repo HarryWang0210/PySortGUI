@@ -131,7 +131,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.features_on_selection_pushButton.clicked.connect(
             self.setFeatureOnSelection)
 
-        self.isi_thr_doubleSpinBox.valueChanged.connect(self.computeUnderISIPercentage)
+        self.isi_thr_doubleSpinBox.valueChanged.connect(
+            self.computeUnderISIPercentage)
 
     # ========== Slot ==========
     def data_file_name_changed(self, data):
@@ -268,7 +269,10 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.signal_showing_units_changed.emit(self.current_showing_units)
         self.unit_ids_value_label.setText(
             ', '.join(str(x) for x in self.current_showing_units))
-        # self.spikes_value_label.setText()
+        # logger.debug(
+        #     self.df_table_data.loc[self.current_showing_units, 'NumRecords'].sum())
+        self.spikes_value_label.setText(str(
+            self.df_table_data.loc[self.current_showing_units, 'NumRecords'].sum()))
         self.rate_value_label.setText(str(round(self.current_spike_object.firingRate(
             self.current_showing_units), 2)))
         self.isi_result = self.current_spike_object.ISI(
