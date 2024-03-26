@@ -155,7 +155,10 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             model = self.tableView.model()
             model.clear()
             model.setHorizontalHeaderLabels(["Locked", "UnitName"])
-
+            self.unit_ids_value_label.setText('')
+            self.rate_value_label.setText('')
+            self.spikes_value_label.setText('')
+            self.under_isi_thr_value_label.setText('')
         else:
             self.df_table_data = self.current_spike_object.unit_header
             # self.df_table_data[['ID', 'Name', 'NumRecords', 'UnitType']] = self.[[
