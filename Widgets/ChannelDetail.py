@@ -50,27 +50,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         selection_model = self.treeView.selectionModel()
         selection_model.selectionChanged.connect(self.onSelectionChanged)
 
-    def openFile(self):
-        """Open file manager and load selected file. """
-        self.file_type_dict = {  # "openephy": "Open Ephys Format (*.continuous)",
-            "pyephys": "pyephys format (*.h5)"}  # File types to load
-        filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
-                                                                   ";;".join(self.file_type_dict.values()))  # start path
-        if filename == "":
-            return
-
-        if isinstance(self.current_data_object, SpikeSorterData):
-            if filename == self.current_data_object.filename:
-                return
-
-        self.current_data_object = SpikeSorterData(filename)
-        self.signal_data_file_name_changed.emit()
-
-        self.setDataModel()
-        self.undo_stack_dict = dict()
-        self.sorting_label_comboBox.clear()
-        self.file_name_lineEdit.setText(filename)
-
     def initDataModel(self):
         model = QStandardItemModel()
         model.setHorizontalHeaderLabels(self.header_name)
@@ -146,6 +125,119 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                     [QStandardItem(str(col_value))
                      for col_value in sub_data.iloc[0, 1:]]
                 group_item.appendRow(first_items)
+
+    # ========== Slot ==========
+    def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+        # import pandas as pd
+        # logger.debug('Spike header')
+        # logger.debug('\n' +
+        #              '\n'.join([f'     {k}: {new_spike_object.header[k]}' for k in new_spike_object.header]))
+        logger.debug(new_spike_object)
+
+        if new_spike_object is self.current_spike_object or new_spike_object is None:
+            return
+        command = ChangeSpikeCommand("Manual unit",
+                                     self,
+                                     self.current_raw_object,
+                                     self.current_filted_object,
+                                     self.current_spike_object,
+                                     new_spike_object)
+        self.current_spike_object = new_spike_object
+        self.current_undo_stack.push(command)
+
+    def onSelectionChanged(self, selected, deselected):
+        # self.test_edit_treeview()
+        model = self.treeView.model()
+        indexes = selected.indexes()
+        items = [model.itemFromIndex(ind) for ind in indexes]
+
+        if items[0].parent() == None:  # Group
+            self.sorting_label_comboBox.clear()
+            return
+        elif items[0].parent().parent() != None:  # Label
+            items[0] = items[0].parent()
+
+        meta_data = [item.text() for item in items]
+        meta_data = dict(zip(self.header_name, meta_data))
+
+        self.current_raw_object = None
+        self.current_filted_object = None
+        self.current_spike_object = None
+        chan_ID = int(meta_data["ID"])
+        label = meta_data['Label']
+        logger.info(f'Selected type: {meta_data["Type"]}')
+
+        if meta_data['Type'] == 'Spikes':
+            # raw
+            self.current_data_object.loadRaw(channel=chan_ID)
+            self.current_raw_object = self.current_data_object.getRaw(chan_ID)
+            # spike
+            self.current_data_object.loadSpike(
+                channel=chan_ID, label=label)
+            self.current_spike_object = self.current_data_object.getSpike(
+                channel=chan_ID, label=label)
+            logger.debug(f'spike object { self.current_spike_object}')
+            # filted
+            self.current_filted_object = self.current_data_object.subtractReference(
+                channel=chan_ID, reference=self.current_spike_object.reference)
+            self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
+                                                                                   high=self.current_spike_object.high_cutoff)
+            self.current_filted_object = self.current_filted_object.createCopy(
+                threshold=self.current_spike_object.threshold)
+            # self.setSpikeSetting()
+            self.setLabelCombox(labels=self.current_raw_object.spikes,
+                                current=self.current_spike_object.label)
+
+            if not self.current_undo_stack is None:
+                self.current_undo_stack.setActive(False)
+
+            if not chan_ID in self.undo_stack_dict:
+                self.current_undo_stack = QUndoStack(
+                    self.main_window.undo_group)
+                chan_ID_dict = {label: self.current_undo_stack}
+                self.undo_stack_dict[chan_ID] = chan_ID_dict
+
+            elif not label in self.undo_stack_dict[chan_ID]:
+                self.current_undo_stack = QUndoStack(
+                    self.main_window.undo_group)
+                self.undo_stack_dict[chan_ID][label] = self.current_undo_stack
+
+            # logger.debug(self.current_undo_stack)
+            self.current_undo_stack = self.undo_stack_dict[chan_ID][label]
+            self.current_undo_stack.setActive(True)
+            logger.debug(
+                f'Undostack {chan_ID} {label}: {self.current_undo_stack}')
+
+        elif meta_data['Type'] == 'Raws':
+            self.current_data_object.loadRaw(channel=chan_ID)
+            self.current_raw_object = self.current_data_object.getRaw(chan_ID)
+            self.setLabelCombox(labels=self.current_raw_object.spikes)
+
+        self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                 self.current_filted_object)
+        self.signal_spike_data_changed.emit(self.current_spike_object, True)
+
+    # ========== Actions ==========
+    def openFile(self):
+        """Open file manager and load selected file. """
+        self.file_type_dict = {  # "openephy": "Open Ephys Format (*.continuous)",
+            "pyephys": "pyephys format (*.h5)"}  # File types to load
+        filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
+                                                                   ";;".join(self.file_type_dict.values()))  # start path
+        if filename == "":
+            return
+
+        if isinstance(self.current_data_object, SpikeSorterData):
+            if filename == self.current_data_object.filename:
+                return
+
+        self.current_data_object = SpikeSorterData(filename)
+        self.signal_data_file_name_changed.emit()
+
+        self.setDataModel()
+        self.undo_stack_dict = dict()
+        self.sorting_label_comboBox.clear()
+        self.file_name_lineEdit.setText(filename)
 
     def setExtractWaveformParams(self):
         if self.current_data_object is None:
@@ -272,78 +364,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
-    def onSelectionChanged(self, selected, deselected):
-        # self.test_edit_treeview()
-        model = self.treeView.model()
-        indexes = selected.indexes()
-        items = [model.itemFromIndex(ind) for ind in indexes]
-
-        if items[0].parent() == None:  # Group
-            self.sorting_label_comboBox.clear()
-            return
-        elif items[0].parent().parent() != None:  # Label
-            items[0] = items[0].parent()
-
-        meta_data = [item.text() for item in items]
-        meta_data = dict(zip(self.header_name, meta_data))
-
-        self.current_raw_object = None
-        self.current_filted_object = None
-        self.current_spike_object = None
-        chan_ID = int(meta_data["ID"])
-        label = meta_data['Label']
-        logger.info(f'Selected type: {meta_data["Type"]}')
-
-        if meta_data['Type'] == 'Spikes':
-            # raw
-            self.current_data_object.loadRaw(channel=chan_ID)
-            self.current_raw_object = self.current_data_object.getRaw(chan_ID)
-            # spike
-            self.current_data_object.loadSpike(
-                channel=chan_ID, label=label)
-            self.current_spike_object = self.current_data_object.getSpike(
-                channel=chan_ID, label=label)
-            logger.debug(f'spike object { self.current_spike_object}')
-            # filted
-            self.current_filted_object = self.current_data_object.subtractReference(
-                channel=chan_ID, reference=self.current_spike_object.reference)
-            self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
-                                                                                   high=self.current_spike_object.high_cutoff)
-            self.current_filted_object = self.current_filted_object.createCopy(
-                threshold=self.current_spike_object.threshold)
-            # self.setSpikeSetting()
-            self.setLabelCombox(labels=self.current_raw_object.spikes,
-                                current=self.current_spike_object.label)
-
-            if not self.current_undo_stack is None:
-                self.current_undo_stack.setActive(False)
-
-            if not chan_ID in self.undo_stack_dict:
-                self.current_undo_stack = QUndoStack(
-                    self.main_window.undo_group)
-                chan_ID_dict = {label: self.current_undo_stack}
-                self.undo_stack_dict[chan_ID] = chan_ID_dict
-
-            elif not label in self.undo_stack_dict[chan_ID]:
-                self.current_undo_stack = QUndoStack(
-                    self.main_window.undo_group)
-                self.undo_stack_dict[chan_ID][label] = self.current_undo_stack
-
-            # logger.debug(self.current_undo_stack)
-            self.current_undo_stack = self.undo_stack_dict[chan_ID][label]
-            self.current_undo_stack.setActive(True)
-            logger.debug(
-                f'Undostack {chan_ID} {label}: {self.current_undo_stack}')
-
-        elif meta_data['Type'] == 'Raws':
-            self.current_data_object.loadRaw(channel=chan_ID)
-            self.current_raw_object = self.current_data_object.getRaw(chan_ID)
-            self.setLabelCombox(labels=self.current_raw_object.spikes)
-
-        self.signal_continuous_data_changed.emit(self.current_raw_object,
-                                                 self.current_filted_object)
-        self.signal_spike_data_changed.emit(self.current_spike_object, True)
-
     def setLabelCombox(self, labels: list | None = None, current: str | None = None):
         self.sorting_label_comboBox.clear()
         if labels is None:
@@ -391,24 +411,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.signal_spike_data_changed.emit(
             self.current_spike_object, action_type in ['Change filter', 'Extract waveform'])
-
-    def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
-        # import pandas as pd
-        # logger.debug('Spike header')
-        # logger.debug('\n' +
-        #              '\n'.join([f'     {k}: {new_spike_object.header[k]}' for k in new_spike_object.header]))
-        logger.debug(new_spike_object)
-
-        if new_spike_object is self.current_spike_object or new_spike_object is None:
-            return
-        command = ChangeSpikeCommand("Manual unit",
-                                     self,
-                                     self.current_raw_object,
-                                     self.current_filted_object,
-                                     self.current_spike_object,
-                                     new_spike_object)
-        self.current_spike_object = new_spike_object
-        self.current_undo_stack.push(command)
 
     def saveChannel(self):
         model = self.treeView.model()
