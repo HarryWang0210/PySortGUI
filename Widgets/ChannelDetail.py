@@ -126,7 +126,21 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                      for col_value in sub_data.iloc[0, 1:]]
                 group_item.appendRow(first_items)
 
+    def getSelectedRowItems(self) -> list:
+        model = self.treeView.model()
+        selection_model = self.treeView.selectionModel()
+        selected_indexes = selection_model.selectedIndexes()
+
+        items = [model.itemFromIndex(ind) for ind in selected_indexes]
+        logger.debug(items[0].text())
+        if items[0].parent() is None:  # Group
+            return
+        elif not items[0].parent().parent() is None:  # Label
+            items[0] = items[0].parent()
+
+        return items
     # ========== Slot ==========
+
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         # import pandas as pd
         # logger.debug('Spike header')
@@ -146,17 +160,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_undo_stack.push(command)
 
     def onSelectionChanged(self, selected, deselected):
-        # self.test_edit_treeview()
-        model = self.treeView.model()
-        indexes = selected.indexes()
-        items = [model.itemFromIndex(ind) for ind in indexes]
-
-        if items[0].parent() == None:  # Group
-            self.sorting_label_comboBox.clear()
+        items = self.getSelectedRowItems()
+        if items is None:
             return
-        elif items[0].parent().parent() != None:  # Label
-            items[0] = items[0].parent()
-
         meta_data = [item.text() for item in items]
         meta_data = dict(zip(self.header_name, meta_data))
 
@@ -413,41 +419,16 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             self.current_spike_object, action_type in ['Change filter', 'Extract waveform'])
 
     def saveChannel(self):
-        model = self.treeView.model()
-        # logger.debug(model)
-
-        selection_model = self.treeView.selectionModel()
-        selected_indexes = selection_model.selectedIndexes()
-        # selected_rows_list = [index.row() for index in selected_indexes]
-        # logger.debug(selected_indexes)
-        items = [model.itemFromIndex(ind) for ind in selected_indexes]
-        logger.debug(items[0].text())
-        if items[0].parent() is None:  # Group
-            # self.sorting_label_comboBox.clear()
+        items = self.getSelectedRowItems()
+        if items is None:
             return
-        elif not items[0].parent().parent() is None:  # Label
-            items[0] = items[0].parent()
 
         self.current_data_object.saveChannel(int(items[0].text()))
-        # self.current_data_object.saveChannel
-        # self.current_spike_object
-        pass
 
     def test_edit_treeview(self):
-        model = self.treeView.model()
-        # logger.debug(model)
-
-        selection_model = self.treeView.selectionModel()
-        selected_indexes = selection_model.selectedIndexes()
-        # selected_rows_list = [index.row() for index in selected_indexes]
-        # logger.debug(selected_indexes)
-        items = [model.itemFromIndex(ind) for ind in selected_indexes]
-        logger.debug(items[0].text())
-        if items[0].parent() is None:  # Group
-            # self.sorting_label_comboBox.clear()
+        items = self.getSelectedRowItems()
+        if items is None:
             return
-        elif not items[0].parent().parent() is None:  # Label
-            items[0] = items[0].parent()
 
         logger.debug([item.text() for item in items])
         items[0].setText(items[0].text() + '*')
