@@ -273,7 +273,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         low = dialog.filter_low_doubleSpinBox.value()
         high = dialog.filter_high_doubleSpinBox.value()
 
-        new_filted_object = self.filtedData(ref, low, high)
+        new_filted_object = self.preprocessing(ref, low, high)
         if dialog.const_thr_radioButton.isChecked():
             threshold = dialog.const_thr_doubleSpinBox.value()
         elif dialog.mad_thr_radioButton.isChecked():
@@ -302,9 +302,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(new_spike_object, True)
 
-    def filtedData(self, ref: list = [],
-                   low: int | float = None,
-                   high: int | float = None) -> ContinuousData:
+    def preprocessing(self, ref: list = [],
+                      low: int | float = None,
+                      high: int | float = None) -> ContinuousData:
         new_filted_object = self.current_raw_object.createCopy()
         # if len(ref) > 0:
         new_filted_object = self.current_data_object.subtractReference(channel=self.current_raw_object.channel_ID,
