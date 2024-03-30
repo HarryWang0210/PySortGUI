@@ -158,6 +158,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                      new_spike_object)
         self.current_spike_object = new_spike_object
         self.current_undo_stack.push(command)
+        self.setUnsavedChangeReminder(self.current_spike_object)
 
     def onSelectionChanged(self, selected, deselected):
         items = self.getSelectedRowItems()
@@ -169,8 +170,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_raw_object = None
         self.current_filted_object = None
         self.current_spike_object = None
-        chan_ID = int(meta_data["ID"])
-        label = meta_data['Label']
+        chan_ID = int(
+            meta_data["ID"][:-1] if meta_data["ID"].endswith('*') else meta_data["ID"])
+        label = meta_data["Label"][:-
+                                   1] if meta_data["Label"].endswith('*') else meta_data["Label"]
         logger.info(f'Selected type: {meta_data["Type"]}')
 
         if meta_data['Type'] == 'Spikes':
@@ -349,6 +352,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
+        self.setUnsavedChangeReminder(self.current_spike_object)
+
         # logger.debug(type(self.current_filted_object))
 
         # logger.debug(self.current_spike_object)
@@ -369,6 +374,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
+        self.setUnsavedChangeReminder(self.current_spike_object)
 
     def setLabelCombox(self, labels: list | None = None, current: str | None = None):
         self.sorting_label_comboBox.clear()
@@ -417,21 +423,56 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.signal_spike_data_changed.emit(
             self.current_spike_object, action_type in ['Change filter', 'Extract waveform'])
+        self.setUnsavedChangeReminder(self.current_spike_object)
 
     def saveChannel(self):
         items = self.getSelectedRowItems()
         if items is None:
             return
+        ID_item = items[0]
+        chan_ID = int(
+            ID_item.text()[:-1] if ID_item.text().endswith('*') else ID_item.text())
+        self.current_data_object.saveChannel(chan_ID)
 
-        self.current_data_object.saveChannel(int(items[0].text()))
+        raw_object = self.current_data_object.getRaw(chan_ID)
+        for label in raw_object.spikes:
+            spike_object = raw_object.getSpike(label)
+            self.setUnsavedChangeReminder(spike_object)
 
-    def test_edit_treeview(self):
+    def setUnsavedChangeReminder(self, spike_object):
+        if spike_object is None:
+            return
         items = self.getSelectedRowItems()
         if items is None:
             return
 
-        logger.debug([item.text() for item in items])
-        items[0].setText(items[0].text() + '*')
+        ID_item = items[0]
+        label_item = items[1]
+        meta_items = items[2:]
+        if spike_object._from_file:
+            if ID_item.text().endswith('*'):
+                ID_item.setText(ID_item.text()[:-1])
+
+            if label_item.text().endswith('*'):
+                label_item.setText(label_item.text()[:-1])
+
+            for item in items:
+                font = item.font()
+                font.setBold(False)
+                item.setFont(font)
+
+        else:
+            if not ID_item.text().endswith('*'):
+                ID_item.setText(ID_item.text() + '*')
+
+            if not label_item.text().endswith('*'):
+                label_item.setText(label_item.text() + '*')
+
+            for item in items:
+                font = item.font()
+                font.setBold(True)
+                item.setFont(font)
+
         # row_index = 1  # 第二行
         # col_index = 2  # 第三列
         # new_value = "New Value"
