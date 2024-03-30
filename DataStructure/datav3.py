@@ -201,6 +201,7 @@ class SpikeSorterData(object):
             saveSpikes(self.filename, spike.header, spike.unit_header,
                        spike.unit_IDs, spike.timestamps, spike.waveforms)
             records.append(spike.header)
+            spike._from_file = True
         spikes_header = self._headers['SpikesHeader']
         new_spikes_header = pd.DataFrame(
             spikes_header[spikes_header['ID'] != ch.channel_ID])
@@ -475,7 +476,7 @@ class DiscreteData(object):
         self._unit_IDs = np.array(unit_IDs)
         self._timestamps = timestamps
         self._waveforms = waveforms
-
+        self._from_file = _from_file
         if len(self._timestamps) < 1:
             if _from_file and data_type == 'Spikes':
                 self._data_loaded = False
