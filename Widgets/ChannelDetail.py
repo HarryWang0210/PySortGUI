@@ -72,8 +72,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             spikes_header['Reference'] = spikes_header['ReferenceID']
             spikes_header = spikes_header[self.header_name]
 
-            group_item = QStandardItem('Spikes')  # Top level, Group
-            model.appendRow(group_item)
+            self.spike_group_item = QStandardItem('Spikes')  # Top level, Group
+            model.appendRow(self.spike_group_item)
 
             for chan_ID in spikes_header['ID'].unique():
                 chan_ID_item = QStandardItem(str(chan_ID))
@@ -82,7 +82,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 first_items = [chan_ID_item] + \
                     [QStandardItem(str(col_value))
                      for col_value in sub_data.iloc[0, 1:]]
-                group_item.appendRow(first_items)
+                self.spike_group_item.appendRow(first_items)
 
                 for sub_row in sub_data.iloc[1:, 1:].values:
                     values = [QStandardItem("")] + \
@@ -139,6 +139,30 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             items[0] = items[0].parent()
 
         return items
+
+    def getRowItemsFromChannel(self, channel: int) -> list:
+        num_row = self.spike_group_item.rowCount()
+        num_col = self.spike_group_item.columnCount()
+
+        channel_items = [self.spike_group_item.child(
+            row, 0) for row in range(num_row)]
+        channel_IDs = [item.text()[:-1] if item.text().endswith('*')
+                       else item.text() for item in channel_items]
+        row = channel_IDs.index(str(channel))
+
+        result = [[self.spike_group_item.child(row, col)
+                   for col in range(num_col)]]
+        logger.debug([item.text() for item in result[0]])
+        if result[0][0].hasChildren():
+            ID_item = result[0][0]
+            for row in range(ID_item.rowCount()):
+                temp = [ID_item.child(row, col)
+                        for col in range(ID_item.columnCount())]
+                temp[0] = ID_item
+                result.append(temp)
+                logger.debug([item.text() for item in result[-1]])
+        return result
+
     # ========== Slot ==========
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
@@ -158,7 +182,11 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                      new_spike_object)
         self.current_spike_object = new_spike_object
         self.current_undo_stack.push(command)
-        self.setUnsavedChangeReminder(self.current_spike_object)
+
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
+            return
+        self.setUnsavedChangeReminder(row_items, self.current_spike_object)
 
     def onSelectionChanged(self, selected, deselected):
         items = self.getSelectedRowItems()
@@ -352,8 +380,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
-        self.setUnsavedChangeReminder(self.current_spike_object)
-
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
+            return
+        self.setUnsavedChangeReminder(row_items, self.current_spike_object)
         # logger.debug(type(self.current_filted_object))
 
         # logger.debug(self.current_spike_object)
@@ -374,7 +404,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
-        self.setUnsavedChangeReminder(self.current_spike_object)
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
+            return
+        self.setUnsavedChangeReminder(row_items, self.current_spike_object)
 
     def setLabelCombox(self, labels: list | None = None, current: str | None = None):
         self.sorting_label_comboBox.clear()
@@ -423,7 +456,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.signal_spike_data_changed.emit(
             self.current_spike_object, action_type in ['Change filter', 'Extract waveform'])
-        self.setUnsavedChangeReminder(self.current_spike_object)
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
+            return
+        self.setUnsavedChangeReminder(row_items, self.current_spike_object)
 
     def saveChannel(self):
         items = self.getSelectedRowItems()
@@ -435,20 +471,21 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_data_object.saveChannel(chan_ID)
 
         raw_object = self.current_data_object.getRaw(chan_ID)
-        for label in raw_object.spikes:
-            spike_object = raw_object.getSpike(label)
-            self.setUnsavedChangeReminder(spike_object)
 
-    def setUnsavedChangeReminder(self, spike_object):
+        row_items_ist = self.getRowItemsFromChannel(chan_ID)
+        for row_items in row_items_ist:
+            label_item = row_items[1]
+            label = label_item.text(
+            )[:-1] if label_item.text().endswith('*') else label_item.text()
+            spike_object = raw_object.getSpike(label)
+            self.setUnsavedChangeReminder(row_items, spike_object)
+
+    def setUnsavedChangeReminder(self, row_items, spike_object):
         if spike_object is None:
             return
-        items = self.getSelectedRowItems()
-        if items is None:
-            return
-
-        ID_item = items[0]
-        label_item = items[1]
-        meta_items = items[2:]
+        ID_item = row_items[0]
+        label_item = row_items[1]
+        meta_items = row_items[2:]
         if spike_object._from_file:
             if ID_item.text().endswith('*'):
                 ID_item.setText(ID_item.text()[:-1])
@@ -456,7 +493,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             if label_item.text().endswith('*'):
                 label_item.setText(label_item.text()[:-1])
 
-            for item in items:
+            for item in row_items:
                 font = item.font()
                 font.setBold(False)
                 item.setFont(font)
@@ -468,7 +505,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             if not label_item.text().endswith('*'):
                 label_item.setText(label_item.text() + '*')
 
-            for item in items:
+            for item in row_items:
                 font = item.font()
                 font.setBold(True)
                 item.setFont(font)
