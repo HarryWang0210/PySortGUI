@@ -32,10 +32,10 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
         self.graphWidget.data_file_name_changed(data)
 
     def continuous_data_changed(self, new_raw_object, new_filted_object):
-        self.raw_pushButton.setChecked(new_filted_object is None)
         # print(new_raw_object, new_filted_object)
         self.graphWidget.continuous_data_changed(
             new_raw_object, new_filted_object)
+        self.raw_pushButton.setChecked(new_filted_object is None)
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         self.graphWidget.showing_spike_data_changed(new_spike_object)
@@ -101,7 +101,7 @@ class TimelineViewGraph(pg.PlotWidget):
         # self.filted_data = None
         # self.has_filted_data = False
 
-        self.show_raw = False
+        self.show_raw = True
 
         self.data_len = 0
         self.data_scale = 1000  # maximun height of data
