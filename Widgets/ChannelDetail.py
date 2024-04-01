@@ -164,7 +164,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         return result
 
     # ========== Slot ==========
-
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         # import pandas as pd
         # logger.debug('Spike header')
@@ -172,8 +171,18 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         #              '\n'.join([f'     {k}: {new_spike_object.header[k]}' for k in new_spike_object.header]))
         logger.debug(new_spike_object)
 
-        if new_spike_object is self.current_spike_object or new_spike_object is None:
+        if new_spike_object is None:
             return
+
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
+            return
+        self.updataSpikeInfo(row_items, new_spike_object)
+        self.setUnsavedChangeReminder(row_items, new_spike_object)
+
+        if new_spike_object is self.current_spike_object:
+            return
+
         command = ChangeSpikeCommand("Manual unit",
                                      self,
                                      self.current_raw_object,
@@ -182,11 +191,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                      new_spike_object)
         self.current_spike_object = new_spike_object
         self.current_undo_stack.push(command)
-
-        row_items = self.getSelectedRowItems()
-        if row_items is None:
-            return
-        self.setUnsavedChangeReminder(row_items, self.current_spike_object)
 
     def onSelectionChanged(self, selected, deselected):
         items = self.getSelectedRowItems()
@@ -364,6 +368,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         meta_data = dict(zip(self.header_name, meta_data))
 
         label = meta_data['Label']
+        label = label[:-1] if label.endswith('*') else label
         new_spike_object = self.current_filted_object.extractWaveforms(
             self.current_filted_object.threshold)
         new_spike_object.setLabel(label)
@@ -380,10 +385,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
-        row_items = self.getSelectedRowItems()
-        if row_items is None:
-            return
-        self.setUnsavedChangeReminder(row_items, self.current_spike_object)
+        # row_items = self.getSelectedRowItems()
+        # if row_items is None:
+        #     return
+        # self.setUnsavedChangeReminder(row_items, self.current_spike_object)
         # logger.debug(type(self.current_filted_object))
 
         # logger.debug(self.current_spike_object)
@@ -404,10 +409,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
-        row_items = self.getSelectedRowItems()
-        if row_items is None:
-            return
-        self.setUnsavedChangeReminder(row_items, self.current_spike_object)
+        # row_items = self.getSelectedRowItems()
+        # if row_items is None:
+        #     return
+        # self.setUnsavedChangeReminder(row_items, self.current_spike_object)
 
     def setLabelCombox(self, labels: list | None = None, current: str | None = None):
         self.sorting_label_comboBox.clear()
@@ -456,10 +461,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.signal_spike_data_changed.emit(
             self.current_spike_object, action_type in ['Change filter', 'Extract waveform'])
-        row_items = self.getSelectedRowItems()
-        if row_items is None:
-            return
-        self.setUnsavedChangeReminder(row_items, self.current_spike_object)
+        # row_items = self.getSelectedRowItems()
+        # if row_items is None:
+        #     return
+        # self.setUnsavedChangeReminder(row_items, self.current_spike_object)
 
     def saveChannel(self):
         items = self.getSelectedRowItems()
@@ -518,6 +523,12 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # logger.debug(item.text())
         # if item is not None:
         #     item.setData(new_value, QtCore.Qt.DisplayRole)
+
+    def updataSpikeInfo(self, row_items, spike_object: DiscreteData):
+        for index, key in enumerate(self.header_name):
+            if key == 'Reference':
+                key = 'ReferenceID'
+            row_items[index].setText(str(spike_object.header.get(key, '')))
 
 
 class ChangeFilterCommand(QUndoCommand):
