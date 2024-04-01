@@ -33,6 +33,7 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
 
     def continuous_data_changed(self, new_raw_object, new_filted_object):
         # print(new_raw_object, new_filted_object)
+        self.raw_pushButton.setChecked(True)
         self.graphWidget.continuous_data_changed(
             new_raw_object, new_filted_object)
         self.raw_pushButton.setChecked(new_filted_object is None)
