@@ -176,6 +176,7 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         self.current_spike_object = new_spike_object
+        self.current_showing_units = []
         # self.has_spikes = not self.current_spike_object is None
         self.updatePlot()
 
@@ -392,6 +393,8 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def drawSpikes(self):
         self.removeSpikeItems()
+        if self.current_showing_units == []:
+            return
 
         self.spikes_item_list = self.tsToLines(self.current_spike_object.timestamps,
                                                unit_IDs=self.current_spike_object.unit_IDs,
