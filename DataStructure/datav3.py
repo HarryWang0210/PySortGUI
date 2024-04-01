@@ -185,21 +185,22 @@ class SpikeSorterData(object):
         records = []
         for label in ch.spikes:
             spike = ch.getSpike(label)
-            spike._header['H5Name'] = 'TimeStamps'
-            if label == 'default':
-                spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}'
-            else:
-                spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}{label}'
-            logger.debug(label)
-            spike._unit_header['H5Location'] = spike._unit_header['ID'].apply(
-                lambda ID: spike._header['H5Location'] + f'/Unit_{ID:02}')
-            spike._unit_header['H5Name'] = 'Indxs'
-            spike._unit_header['ParentID'] = ch.channel_ID
-            spike._unit_header['ParentType'] = 'Spikes'
-            spike._unit_header['Type'] = 'Unit'
+            if not spike._from_file:
+                spike._header['H5Name'] = 'TimeStamps'
+                if label == 'default':
+                    spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}'
+                else:
+                    spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}{label}'
 
-            saveSpikes(self.filename, spike.header, spike.unit_header,
-                       spike.unit_IDs, spike.timestamps, spike.waveforms)
+                spike._unit_header['H5Location'] = spike._unit_header['ID'].apply(
+                    lambda ID: spike._header['H5Location'] + f'/Unit_{ID:02}')
+                spike._unit_header['H5Name'] = 'Indxs'
+                spike._unit_header['ParentID'] = ch.channel_ID
+                spike._unit_header['ParentType'] = 'Spikes'
+                spike._unit_header['Type'] = 'Unit'
+
+                saveSpikes(self.filename, spike.header, spike.unit_header,
+                           spike.unit_IDs, spike.timestamps, spike.waveforms)
             records.append(spike.header)
             spike._from_file = True
         spikes_header = self._headers['SpikesHeader']
