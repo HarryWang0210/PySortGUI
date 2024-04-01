@@ -5,6 +5,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout,
                              QWidget, QAbstractItemView, QDialog, QUndoStack, QUndoCommand)
+from PyQt5.QtCore import QItemSelectionModel
 
 from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
 import numpy as np
@@ -372,25 +373,107 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         meta_data = [item.text() for item in row_items]
         meta_data = dict(zip(self.header_name, meta_data))
+        row_type = meta_data['Type']
 
-        label = meta_data['Label']
-        label = label[:-1] if label.endswith('*') else label
         new_spike_object = self.current_filted_object.extractWaveforms(
             self.current_filted_object.threshold)
-        new_spike_object.setLabel(label)
 
-        command = ChangeSpikeCommand("Extract waveform",
-                                     self,
-                                     self.current_raw_object,
-                                     self.current_filted_object,
-                                     self.current_spike_object,
-                                     new_spike_object)
-        self.current_spike_object = new_spike_object
-        self.current_undo_stack.push(command)
+        if row_type == 'Spikes':
+            label = meta_data['Label']
+            label = label[:-1] if label.endswith('*') else label
+            new_spike_object.setLabel(label)
 
-        self.signal_continuous_data_changed.emit(self.current_raw_object,
-                                                 self.current_filted_object)
-        self.signal_spike_data_changed.emit(self.current_spike_object, True)
+            command = ChangeSpikeCommand("Extract waveform",
+                                         self,
+                                         self.current_raw_object,
+                                         self.current_filted_object,
+                                         self.current_spike_object,
+                                         new_spike_object)
+            self.current_spike_object = new_spike_object
+            self.current_undo_stack.push(command)
+
+            self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                     self.current_filted_object)
+            self.signal_spike_data_changed.emit(self.current_spike_object,
+                                                True)
+
+        elif row_type == 'Raws':
+            chan_ID = meta_data['ID']
+            chan_ID = int(chan_ID[:-1]) \
+                if chan_ID.endswith('*') else int(chan_ID)
+
+            # add new spike row
+            if self.current_raw_object.spikes == []:
+                label = 'default'
+                new_spike_object.setLabel(label)
+                self.current_raw_object.setSpike(new_spike_object, label)
+
+                num_row = self.spike_group_item.rowCount()
+                num_col = self.spike_group_item.columnCount()
+
+                channel_items = [self.spike_group_item.child(row, 0)
+                                 for row in range(num_row)]
+                channel_IDs = [int(item.text()[:-1])
+                               if item.text().endswith('*') else int(item.text())
+                               for item in channel_items] + [chan_ID]
+                channel_IDs.sort()
+                new_row = channel_IDs.index(chan_ID)
+
+                values = []
+                for key in self.header_name:
+                    if key == 'Reference':
+                        key = 'ReferenceID'
+                    if key == 'Label':
+                        label_item = QStandardItem(
+                            str(new_spike_object.header.get(key, '')))
+                        values.append(label_item)
+                        continue
+
+                    values.append(QStandardItem(
+                        str(new_spike_object.header.get(key, ''))))
+
+                self.spike_group_item.insertRow(new_row, values)
+
+            else:
+                i = 1
+                while True:
+                    label = f'label{i}'
+                    if label in self.current_raw_object.spikes:
+                        i += 1
+                    else:
+                        break
+
+                new_spike_object.setLabel(label)
+                self.current_raw_object.setSpike(new_spike_object, label)
+
+                num_row = self.spike_group_item.rowCount()
+                num_col = self.spike_group_item.columnCount()
+
+                row_items_list = self.getRowItemsFromChannel(chan_ID)
+                channel_item = row_items_list[0][0]
+
+                values = []
+                for key in self.header_name:
+                    if key == 'Reference':
+                        key = 'ReferenceID'
+                    if key == 'Label':
+                        label_item = QStandardItem(
+                            str(new_spike_object.header.get(key, '')))
+                        values.append(label_item)
+                        continue
+
+                    values.append(QStandardItem(
+                        str(new_spike_object.header.get(key, ''))))
+
+                values[0] = QStandardItem('')
+                channel_item.appendRow(values)
+
+            selection_model = self.treeView.selectionModel()
+            selection_model.select(
+                label_item.index(), QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
+            self.treeView.scrollTo(label_item.index())
+            # if len(row_items_list) == 1:
+            # select row
         # row_items = self.getSelectedRowItems()
         # if row_items is None:
         #     return
