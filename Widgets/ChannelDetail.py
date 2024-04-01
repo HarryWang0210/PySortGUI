@@ -355,21 +355,22 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         return new_filted_object
 
     def extractWaveforms(self):
-        model = self.treeView.model()
-        # logger.debug(model)
+        row_items = self.getSelectedRowItems()
+        # model = self.treeView.model()
+        # # logger.debug(model)
 
-        selection_model = self.treeView.selectionModel()
-        selected_indexes = selection_model.selectedIndexes()
-        # selected_rows_list = [index.row() for index in selected_indexes]
-        # logger.debug(selected_indexes)
-        items = [model.itemFromIndex(ind) for ind in selected_indexes]
+        # selection_model = self.treeView.selectionModel()
+        # selected_indexes = selection_model.selectedIndexes()
+        # # selected_rows_list = [index.row() for index in selected_indexes]
+        # # logger.debug(selected_indexes)
+        # items = [model.itemFromIndex(ind) for ind in selected_indexes]
 
-        if items[0].parent() == None:  # Group
-            return
-        elif items[0].parent().parent() != None:  # Label
-            items[0] = items[0].parent()
+        # if items[0].parent() == None:  # Group
+        #     return
+        # elif items[0].parent().parent() != None:  # Label
+        #     items[0] = items[0].parent()
 
-        meta_data = [item.text() for item in items]
+        meta_data = [item.text() for item in row_items]
         meta_data = dict(zip(self.header_name, meta_data))
 
         label = meta_data['Label']
