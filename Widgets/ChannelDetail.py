@@ -277,6 +277,11 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.setDataModel()
         self.undo_stack_dict = dict()
+
+        # Clear all undo stack
+        for undo_stack in self.main_window.undo_group.stacks():
+            self.main_window.undo_group.removeStack(undo_stack)
+
         self.sorting_label_comboBox.clear()
         self.file_name_lineEdit.setText(filename)
 
