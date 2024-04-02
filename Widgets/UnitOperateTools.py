@@ -138,6 +138,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     def data_file_name_changed(self, data):
         self.data_object = data
 
+        model = self.tableView.model()
+        model.clear()
+        model.setHorizontalHeaderLabels(["Locked", "UnitName"])
+        self.unit_ids_value_label.setText('')
+        self.rate_value_label.setText('')
+        self.spikes_value_label.setText('')
+        self.under_isi_thr_value_label.setText('')
+
     def spike_data_changed(self, new_spike_object: DiscreteData | None, reset_selection: bool):
         logger.debug('spike_data_changed')
 
