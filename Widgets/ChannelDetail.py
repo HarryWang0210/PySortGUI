@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
-    signal_data_file_name_changed = QtCore.pyqtSignal()
+    signal_data_file_name_changed = QtCore.pyqtSignal(object)
     signal_continuous_data_changed = QtCore.pyqtSignal((object, object))
     signal_spike_data_changed = QtCore.pyqtSignal((object, bool))
 
@@ -274,7 +274,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 return
 
         self.current_data_object = SpikeSorterData(filename)
-        self.signal_data_file_name_changed.emit()
+        self.signal_data_file_name_changed.emit(self.current_data_object)
 
         self.setDataModel()
         self.undo_stack_dict = dict()
