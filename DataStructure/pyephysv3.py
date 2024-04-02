@@ -38,10 +38,10 @@ def loadPyephys(filename):
                 df_spikes_header['Label'] = "default"
 
             # ========== Test Label ==========
-            new_row = df_spikes_header.iloc[0:2, :].copy()
-            new_row['Label'] = 'test label'
-            df_spikes_header = pd.concat(
-                [df_spikes_header, new_row], axis=0, ignore_index=True)
+            # new_row = df_spikes_header.iloc[0:2, :].copy()
+            # new_row['Label'] = 'test_label'
+            # df_spikes_header = pd.concat(
+            #     [df_spikes_header, new_row], axis=0, ignore_index=True)
             # ================================
             # logger.debug(df_spikes_header.dtypes)
             df_spikes_header = df_spikes_header.sort_values('ID')
