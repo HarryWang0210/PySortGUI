@@ -716,7 +716,7 @@ class DiscreteData(object):
             ignored_mask = ~(self._unit_IDs == self.invalid_unit_ID)
             new_sort_unit_ID = auto_sort(self.filename, self.channel_ID, feat,
                                          self.waveforms[ignored_mask],
-                                         self.timestamps[ignored_mask], sorting=None, re_sort=False)
+                                         self.timestamps[ignored_mask], sorting=None, re_sort=True)
             # by default invalid unit is last one
             new_invalid_unit_ID = np.max(new_unit_IDs) + 1
             new_unit_IDs = np.ones(len(self._unit_IDs)) * new_invalid_unit_ID
@@ -725,7 +725,7 @@ class DiscreteData(object):
         else:
             new_unit_IDs = auto_sort(self.filename, self.channel_ID, feat,
                                      self.waveforms,
-                                     self.timestamps, sorting=None, re_sort=False)
+                                     self.timestamps, sorting=None, re_sort=True)
         # logger.critical('Unimplemented function.')
         return self.setUnit(new_unit_IDs=new_unit_IDs,
                             unsorted_unit_ID=0,
