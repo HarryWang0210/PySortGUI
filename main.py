@@ -6,7 +6,9 @@ Created on Dec 5, 2022
 @author: harry.wang0210
 '''
 # This Python file uses the following encoding: utf-8
+import logging
 import sys
+
 from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtCore, QtWidgets
 # Important:
@@ -18,7 +20,6 @@ from PyQt5 import QtCore, QtWidgets
 from MainWindowDocks import MainWindowDocks
 from DataStructure.data import SpikeSorterData
 
-import logging
 logging.basicConfig(
     level=logging.DEBUG,
     format="[%(asctime)s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",

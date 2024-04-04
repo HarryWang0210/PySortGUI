@@ -1,21 +1,18 @@
+import logging
 from __future__ import annotations
-from numpy import ndarray, ufunc
-import tables
-import os
-import pandas as pd
-import numpy as np
-from .pyephysv3 import (loadPyephys, loadRaws, loadSpikes,
-                        saveSpikes, saveSpikesHeader)
-# from pyephysv2 import loadPyephys, loadRaws, loadSpikes
-from .FunctionsLib.SignalProcessing import design_and_filter
-from .FunctionsLib.ThresholdOperations import extract_waveforms
-from .FunctionsLib.Sorting import auto_sort
-from .FunctionsLib.DiscreteSignalLib import ISI, firing_rate
 
+import numpy as np
+import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MaxAbsScaler
 
-import logging
+from .FunctionsLib.DiscreteSignalLib import ISI, firing_rate
+from .FunctionsLib.SignalProcessing import design_and_filter
+from .FunctionsLib.Sorting import auto_sort
+from .FunctionsLib.ThresholdOperations import extract_waveforms
+from .pyephysv3 import (loadPyephys, loadRaws, loadSpikes,
+                        saveSpikes, saveSpikesHeader)
+
 logger = logging.getLogger(__name__)
 
 

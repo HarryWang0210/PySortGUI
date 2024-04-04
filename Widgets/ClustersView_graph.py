@@ -1,20 +1,21 @@
-from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QColor, QPainter
+import logging
+
+import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
-from OpenGL.GL import *  # noqa
-import numpy as np
-from scipy.spatial import KDTree
-from matplotlib.path import Path
 import seaborn as sns
-import time
-from Widgets.WidgetsInterface import WidgetsInterface
+from matplotlib.path import Path
+from OpenGL.GL import *  # noqa
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtGui import QColor, QPainter
+from PyQt5.QtWidgets import QApplication
+from scipy.spatial import KDTree
 from sklearn.preprocessing import MaxAbsScaler
-from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
 
-import logging
+from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
+from Widgets.WidgetsInterface import WidgetsInterface
+
 logger = logging.getLogger(__name__)
 
 

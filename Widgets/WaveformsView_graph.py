@@ -1,15 +1,16 @@
+import logging
+
+import numpy as np
+import pyqtgraph as pg
+import seaborn as sns
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-import pyqtgraph as pg
-import numpy as np
-import seaborn as sns
-import time
-from Widgets.WidgetsInterface import WidgetsInterface
-from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
+from PyQt5.QtWidgets import QApplication
 
-import logging
+from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
+from Widgets.WidgetsInterface import WidgetsInterface
+
 logger = logging.getLogger(__name__)
 
 

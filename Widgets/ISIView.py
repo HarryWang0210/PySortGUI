@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QOpenGLWidget
 from OpenGL.GL import *
+from PyQt5.QtWidgets import QOpenGLWidget
 
 
 class ISIView(QOpenGLWidget):

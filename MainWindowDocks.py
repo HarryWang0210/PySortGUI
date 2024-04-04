@@ -5,19 +5,17 @@ Created on Dec 5, 2022
 
 @author: harrywang
 '''
-from PyQt5 import QtGui, QtCore, QtWidgets
-from Widgets.ChannelDetail import ChannelDetail
-# from Widgets.WaveformsView import WaveformsView
-from Widgets.WaveformsView_graph import WaveformsView
+import logging
 
+from PyQt5 import QtGui, QtCore, QtWidgets
+
+from Widgets.ChannelDetail import ChannelDetail
 from Widgets.ClustersView_graph import ClustersView
-# from Widgets.TimelineView import TimelineView
+from Widgets.ISIView import ISIView
 from Widgets.TimelineView_graph import TimelineView
 from Widgets.UnitOperateTools import UnitOperateTools
+from Widgets.WaveformsView_graph import WaveformsView
 
-from Widgets.ISIView import ISIView
-
-import logging
 logger = logging.getLogger(__name__)
 
 organization = 'None'

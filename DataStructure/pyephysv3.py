@@ -1,8 +1,10 @@
-import tables
-import os
-import pandas as pd
-import numpy as np
 import logging
+import os
+
+import numpy as np
+import pandas as pd
+import tables
+
 logger = logging.getLogger(__name__)
 
 

@@ -1,16 +1,16 @@
-from UI.ChannelDetailv2_ui import Ui_ChannelDetail
-from UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
+import logging
 
+import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QItemSelectionModel
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout,
                              QWidget, QAbstractItemView, QDialog, QUndoStack, QUndoCommand)
-from PyQt5.QtCore import QItemSelectionModel
 
 from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
-import numpy as np
+from UI.ChannelDetailv2_ui import Ui_ChannelDetail
+from UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
 
-import logging
 logger = logging.getLogger(__name__)
 
 
