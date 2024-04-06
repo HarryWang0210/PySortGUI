@@ -435,7 +435,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 new_row = channel_IDs.index(chan_ID)
 
                 new_row_items = self.createRowItems(new_spike_object)
-                label_item = row_items[1]
+                label_item = new_row_items[1]
                 self.spike_group_item.insertRow(new_row, new_row_items)
 
             else:
@@ -458,7 +458,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
                 new_row_items = self.createRowItems(new_spike_object)
                 new_row_items[0] = QStandardItem('')
-                label_item = row_items[1]
+                label_item = new_row_items[1]
 
                 channel_item.appendRow(new_row_items)
 
