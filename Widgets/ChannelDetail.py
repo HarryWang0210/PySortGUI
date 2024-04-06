@@ -127,6 +127,21 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                      for col_value in sub_data.iloc[0, 1:]]
                 group_item.appendRow(first_items)
 
+    def createRowItems(self, spike_object: DiscreteData) -> list[QStandardItem]:
+        row_items = []
+        for key in self.header_name:
+            if key == 'Reference':
+                key = 'ReferenceID'
+            # if key == 'Label':
+            #     label_item = QStandardItem(
+            #         str(spike_object.header.get(key, '')))
+            #     row_items.append(label_item)
+            #     continue
+
+            row_items.append(QStandardItem(
+                str(spike_object.header.get(key, ''))))
+        return row_items
+
     def getSelectedRowItems(self) -> list:
         model = self.treeView.model()
         selection_model = self.treeView.selectionModel()
@@ -419,20 +434,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 channel_IDs.sort()
                 new_row = channel_IDs.index(chan_ID)
 
-                values = []
-                for key in self.header_name:
-                    if key == 'Reference':
-                        key = 'ReferenceID'
-                    if key == 'Label':
-                        label_item = QStandardItem(
-                            str(new_spike_object.header.get(key, '')))
-                        values.append(label_item)
-                        continue
-
-                    values.append(QStandardItem(
-                        str(new_spike_object.header.get(key, ''))))
-
-                self.spike_group_item.insertRow(new_row, values)
+                new_row_items = self.createRowItems(new_spike_object)
+                label_item = row_items[1]
+                self.spike_group_item.insertRow(new_row, new_row_items)
 
             else:
                 i = 1
@@ -452,21 +456,11 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 row_items_list = self.getRowItemsFromChannel(chan_ID)
                 channel_item = row_items_list[0][0]
 
-                values = []
-                for key in self.header_name:
-                    if key == 'Reference':
-                        key = 'ReferenceID'
-                    if key == 'Label':
-                        label_item = QStandardItem(
-                            str(new_spike_object.header.get(key, '')))
-                        values.append(label_item)
-                        continue
+                new_row_items = self.createRowItems(new_spike_object)
+                new_row_items[0] = QStandardItem('')
+                label_item = row_items[1]
 
-                    values.append(QStandardItem(
-                        str(new_spike_object.header.get(key, ''))))
-
-                values[0] = QStandardItem('')
-                channel_item.appendRow(values)
+                channel_item.appendRow(new_row_items)
 
             selection_model = self.treeView.selectionModel()
             selection_model.select(
