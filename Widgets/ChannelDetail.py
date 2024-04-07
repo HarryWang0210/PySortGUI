@@ -202,7 +202,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if row_items is None:
             return
         self.updataSpikeInfo(row_items, new_spike_object)
-        self.setUnsavedChangeReminder(row_items, new_spike_object)
+        self.setUnsavedChangeIndicator(row_items, new_spike_object)
 
         if new_spike_object is self.current_spike_object:
             return
@@ -517,7 +517,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # row_items = self.getSelectedRowItems()
         # if row_items is None:
         #     return
-        # self.setUnsavedChangeReminder(row_items, self.current_spike_object)
+        # self.setUnsavedChangeIndicator(row_items, self.current_spike_object)
         # logger.debug(type(self.current_filted_object))
 
         # logger.debug(self.current_spike_object)
@@ -541,7 +541,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # row_items = self.getSelectedRowItems()
         # if row_items is None:
         #     return
-        # self.setUnsavedChangeReminder(row_items, self.current_spike_object)
+        # self.setUnsavedChangeIndicator(row_items, self.current_spike_object)
 
     def setLabelCombox(self, labels: list | None = None, current: str | None = None):
         self.sorting_label_comboBox.clear()
@@ -593,7 +593,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # row_items = self.getSelectedRowItems()
         # if row_items is None:
         #     return
-        # self.setUnsavedChangeReminder(row_items, self.current_spike_object)
+        # self.setUnsavedChangeIndicator(row_items, self.current_spike_object)
 
     def saveChannel(self):
         items = self.getSelectedRowItems()
@@ -612,9 +612,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             label = label_item.text(
             )[:-1] if label_item.text().endswith('*') else label_item.text()
             spike_object = raw_object.getSpike(label)
-            self.setUnsavedChangeReminder(row_items, spike_object)
+            self.setUnsavedChangeIndicator(row_items, spike_object)
 
-    def setUnsavedChangeReminder(self, row_items: list, spike_object: DiscreteData):
+    def setUnsavedChangeIndicator(self, row_items: list, spike_object: DiscreteData):
         if spike_object is None:
             return
         ID_item = row_items[0]
