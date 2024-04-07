@@ -758,6 +758,22 @@ class DiscreteData(object):
         result = firing_rate(ts, sampling_freq=self.fs)
         return result
 
+    def createCopy(self) -> DiscreteData:
+        if not self.isLoaded():
+            self._loadData()
+
+        header = self.header
+        unit_header = self.unit_header
+        timestamps = self.timestamps
+        unit_IDs = self.unit_IDs
+        waveforms = self.waveforms
+        return self.__class__(filename=self._filename,
+                              header=header,
+                              unit_header=unit_header,
+                              timestamps=timestamps,
+                              unit_IDs=unit_IDs,
+                              waveforms=waveforms)
+
 
 if __name__ == '__main__':
     import logging
