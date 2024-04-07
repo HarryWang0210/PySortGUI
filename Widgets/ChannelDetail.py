@@ -614,20 +614,17 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             spike_object = raw_object.getSpike(label)
             self.setUnsavedChangeReminder(row_items, spike_object)
 
-    def setUnsavedChangeReminder(self, row_items, spike_object):
+    def setUnsavedChangeReminder(self, row_items: list, spike_object: DiscreteData):
         if spike_object is None:
             return
         ID_item = row_items[0]
         label_item = row_items[1]
         meta_items = row_items[2:]
         if spike_object._from_file:
-            if ID_item.text().endswith('*'):
-                ID_item.setText(ID_item.text()[:-1])
-
             if label_item.text().endswith('*'):
                 label_item.setText(label_item.text()[:-1])
 
-            for item in row_items:
+            for item in row_items[1:]:
                 font = item.font()
                 font.setBold(False)
                 item.setFont(font)
@@ -643,6 +640,23 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 font = item.font()
                 font.setBold(True)
                 item.setFont(font)
+
+        # Check ID
+        channel_ID = spike_object.channel_ID
+        raw_object = self.current_data_object.getRaw(channel_ID)
+        if raw_object.allSaved():
+            if ID_item.text().endswith('*'):
+                ID_item.setText(ID_item.text()[:-1])
+                logger.debug(raw_object.allSaved())
+            font = ID_item.font()
+            font.setBold(False)
+            ID_item.setFont(font)
+        else:
+            if not ID_item.text().endswith('*'):
+                ID_item.setText(ID_item.text() + '*')
+            font = ID_item.font()
+            font.setBold(True)
+            ID_item.setFont(font)
 
         # row_index = 1  # 第二行
         # col_index = 2  # 第三列
