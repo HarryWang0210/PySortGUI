@@ -115,6 +115,20 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         EditMenu.addAction(RedoAction)
         EditMenu_dict["Redo"] = RedoAction
 
+        EditMenu.addSeparator()
+
+        CopySpikeAction = QtWidgets.QAction('Copy this Spike Data', self)
+        EditMenu.addAction(CopySpikeAction)
+        EditMenu_dict["CopySpike"] = CopySpikeAction
+
+        DeleteSpikeAction = QtWidgets.QAction('Delete this Spike Data', self)
+        EditMenu.addAction(DeleteSpikeAction)
+        EditMenu_dict["DeleteSpike"] = DeleteSpikeAction
+
+        RenameSpikeAction = QtWidgets.QAction('Rename this Spike Data', self)
+        EditMenu.addAction(RenameSpikeAction)
+        EditMenu_dict["RenameSpike"] = RenameSpikeAction
+
         self.children_dict["EditMenu"] = EditMenu_dict
 
     def _addViewMenu(self):

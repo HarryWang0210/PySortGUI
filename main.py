@@ -99,6 +99,12 @@ class PySortGUI(MainWindowDocks):
         #     self.undo)
         # self.children_dict['EditMenu']["Redo"].triggered.connect(
         #     self.redo)
+        self.children_dict['EditMenu']["CopySpike"].triggered.connect(
+            self.copySpike)
+        self.children_dict['EditMenu']["DeleteSpike"].triggered.connect(
+            self.deleteSpike)
+        self.children_dict['EditMenu']["RenameSpike"].triggered.connect(
+            self.renameSpike)
 
         self.children_dict['SettingMenu']["SaveLayout"].triggered.connect(
             self.saveLayout)
@@ -237,6 +243,17 @@ class PySortGUI(MainWindowDocks):
     #     """Redo the change."""
     #     self.children_dict['ChannelDetail'].undo_stack.redo()
     #     print("redo")
+    def copySpike(self):
+        """Copy the spike data."""
+        self.children_dict["ChannelDetail"].copySpike()
+
+    def deleteSpike(self):
+        """Delete the spike data."""
+        print("deleteSpike")
+
+    def renameSpike(self):
+        """Rename the spike data."""
+        print("renameSpike")
 
     def saveLayout(self, id=0):
         """Save the layout changes."""

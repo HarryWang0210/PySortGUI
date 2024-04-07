@@ -142,6 +142,14 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 str(spike_object.header.get(key, ''))))
         return row_items
 
+    def rowItemsToMetadata(self, row_items: list[QStandardItem]) -> dict:
+        meta_data = [item.text() for item in row_items]
+        meta_data = dict(zip(self.header_name, meta_data))
+        return meta_data
+
+    def dropSuffix(self, text: str, suffix: str = '*') -> str:
+        return text[:-1] if text.endswith(suffix) else text
+
     def getSelectedRowItems(self) -> list:
         model = self.treeView.model()
         selection_model = self.treeView.selectionModel()
@@ -300,6 +308,44 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.sorting_label_comboBox.clear()
         self.file_name_lineEdit.setText(filename)
+
+    def copySpike(self):
+        row_items = self.getSelectedRowItems()
+        meta_data = self.rowItemsToMetadata(row_items)
+        row_type = meta_data['Type']
+
+        if row_type != 'Spikes':
+            return
+
+        channel_ID = int(self.dropSuffix(meta_data['ID']))
+        label = self.dropSuffix(meta_data['Label'])
+        raw_object = self.current_data_object.getRaw(channel_ID)
+        spike_object = self.current_raw_object.getSpike(label)
+        new_spike_object = spike_object.createCopy()
+
+        i = 1
+        while True:
+            new_label = f'label{i}'
+            if new_label in raw_object.spikes:
+                i += 1
+            else:
+                break
+
+        new_spike_object.setLabel(new_label)
+        raw_object.setSpike(new_spike_object, new_label)
+
+        channel_item = row_items[0]
+
+        new_row_items = self.createRowItems(new_spike_object)
+        new_row_items[0] = QStandardItem('')
+        label_item = new_row_items[1]
+
+        channel_item.appendRow(new_row_items)
+
+        selection_model = self.treeView.selectionModel()
+        selection_model.select(
+            label_item.index(), QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
+        self.treeView.scrollTo(label_item.index())
 
     def setExtractWaveformParams(self):
         if self.current_data_object is None:
