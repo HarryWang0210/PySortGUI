@@ -269,7 +269,7 @@ class ContinuousData(object):
             self._data_loaded = True
 
         self._estimated_sd = None
-        self._spikes = dict()
+        self._spikes: dict[str, DiscreteData] = dict()
 
     @property
     def filename(self):
@@ -463,6 +463,11 @@ class ContinuousData(object):
             new_object._setThreshold(threshold)
 
         return new_object
+
+    def allSaved(self) -> bool:
+        """Return True if all spike changed belong to this channel were saved
+        """
+        return np.all([spike_object._from_file for spike_object in self._spikes.values()])
 
 
 class DiscreteData(object):
