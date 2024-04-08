@@ -226,10 +226,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_raw_object = None
         self.current_filted_object = None
         self.current_spike_object = None
-        chan_ID = int(
-            meta_data["ID"][:-1] if meta_data["ID"].endswith('*') else meta_data["ID"])
-        label = meta_data["Label"][:-
-                                   1] if meta_data["Label"].endswith('*') else meta_data["Label"]
+        chan_ID = int(self.dropSuffix(meta_data["ID"]))
+        label = self.dropSuffix(meta_data["Label"])
         logger.info(f'Selected type: {meta_data["Type"]}')
 
         if meta_data['Type'] == 'Spikes':
@@ -241,7 +239,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 channel=chan_ID, label=label)
             self.current_spike_object = self.current_data_object.getSpike(
                 channel=chan_ID, label=label)
-            logger.debug(f'spike object { self.current_spike_object}')
+            if self.current_spike_object is None:
+                pass
             # filted
             self.current_filted_object = self.current_data_object.subtractReference(
                 channel=chan_ID, reference=self.current_spike_object.reference)
@@ -358,34 +357,39 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         channel_ID = int(self.dropSuffix(meta_data['ID']))
         label = self.dropSuffix(meta_data['Label'])
         raw_object = self.current_data_object.getRaw(channel_ID)
-        raw_object.deleteSpike(label)
+        raw_object.removeSpike(label)
 
-        ID_item = row_items[0]
+        # ID_item = row_items[0]
         label_item = row_items[1]
-        spike_group_item = ID_item.parent()
+        # spike_group_item = ID_item.parent()
 
-        if label_item.parent() is spike_group_item:
-            # deleting node
-            if ID_item.hasChildren():
-                # has leaves
-                channel_ID = int(self.dropSuffix(ID_item.text()))
-                channel_row_items = self.getRowItemsFromChannel(channel_ID)
-                next_row_items = channel_row_items[1]
-                for i in range(1, len(row_items)):
-                    old = row_items[i]
-                    new = next_row_items[i]
-                    old.setText(new.text())
-                    old.setFont(new.font())
-                row = next_row_items[1].row()
-                ID_item.removeRow(row)
-            else:
-                # no leaves
-                spike_group_item.removeRow(ID_item.row())
-        else:
-            # deleting leaf
-            ID_item.removeRow(label_item.row())
+        # for item in row_items[1:]:
+        font = label_item.font()
+        font.setStrikeOut(True)
+        label_item.setFont(font)
 
-            # self.signal_data_file_name_changed.emit(self.current_data_object)
+        # if label_item.parent() is spike_group_item:
+        #     # deleting node
+        #     if ID_item.hasChildren():
+        #         # has leaves
+        #         channel_ID = int(self.dropSuffix(ID_item.text()))
+        #         channel_row_items = self.getRowItemsFromChannel(channel_ID)
+        #         next_row_items = channel_row_items[1]
+        #         for i in range(1, len(row_items)):
+        #             old = row_items[i]
+        #             new = next_row_items[i]
+        #             old.setText(new.text())
+        #             old.setFont(new.font())
+        #         row = next_row_items[1].row()
+        #         ID_item.removeRow(row)
+        #     else:
+        #         # no leaves
+        #         spike_group_item.removeRow(ID_item.row())
+        # else:
+        #     # deleting leaf
+        #     ID_item.removeRow(label_item.row())
+
+        # self.signal_data_file_name_changed.emit(self.current_data_object)
 
     def setExtractWaveformParams(self):
         if self.current_data_object is None:
