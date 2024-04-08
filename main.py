@@ -249,7 +249,7 @@ class PySortGUI(MainWindowDocks):
 
     def deleteSpike(self):
         """Delete the spike data."""
-        print("deleteSpike")
+        self.children_dict["ChannelDetail"].deleteSpike()
 
     def renameSpike(self):
         """Rename the spike data."""

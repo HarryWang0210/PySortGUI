@@ -142,7 +142,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 str(spike_object.header.get(key, ''))))
         return row_items
 
-    def rowItemsToMetadata(self, row_items: list[QStandardItem]) -> dict:
+    def rowItemsToMetadata(self, row_items: list[QStandardItem]) -> dict[str, str]:
         meta_data = [item.text() for item in row_items]
         meta_data = dict(zip(self.header_name, meta_data))
         return meta_data
@@ -346,6 +346,46 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         selection_model.select(
             label_item.index(), QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
         self.treeView.scrollTo(label_item.index())
+
+    def deleteSpike(self):
+        row_items = self.getSelectedRowItems()
+        meta_data = self.rowItemsToMetadata(row_items)
+        row_type = meta_data['Type']
+
+        if row_type != 'Spikes':
+            return
+
+        channel_ID = int(self.dropSuffix(meta_data['ID']))
+        label = self.dropSuffix(meta_data['Label'])
+        raw_object = self.current_data_object.getRaw(channel_ID)
+        raw_object.deleteSpike(label)
+
+        ID_item = row_items[0]
+        label_item = row_items[1]
+        spike_group_item = ID_item.parent()
+
+        if label_item.parent() is spike_group_item:
+            # deleting node
+            if ID_item.hasChildren():
+                # has leaves
+                channel_ID = int(self.dropSuffix(ID_item.text()))
+                channel_row_items = self.getRowItemsFromChannel(channel_ID)
+                next_row_items = channel_row_items[1]
+                for i in range(1, len(row_items)):
+                    old = row_items[i]
+                    new = next_row_items[i]
+                    old.setText(new.text())
+                    old.setFont(new.font())
+                row = next_row_items[1].row()
+                ID_item.removeRow(row)
+            else:
+                # no leaves
+                spike_group_item.removeRow(ID_item.row())
+        else:
+            # deleting leaf
+            ID_item.removeRow(label_item.row())
+
+            # self.signal_data_file_name_changed.emit(self.current_data_object)
 
     def setExtractWaveformParams(self):
         if self.current_data_object is None:
