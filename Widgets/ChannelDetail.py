@@ -207,12 +207,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if new_spike_object is self.current_spike_object:
             return
 
-        command = ChangeSpikeCommand("Manual unit",
-                                     self,
-                                     self.current_raw_object,
-                                     self.current_filted_object,
-                                     self.current_spike_object,
-                                     new_spike_object)
+        command = ChangeSpikeCommand(text="Manual unit",
+                                     widget=self,
+                                     raw_object=self.current_raw_object,
+                                     old_filted_object=self.current_filted_object,
+                                     new_filted_object=self.current_filted_object,
+                                     old_spike_object=self.current_spike_object,
+                                     new_spike_object=new_spike_object)
         self.current_spike_object = new_spike_object
         self.current_undo_stack.push(command)
 
@@ -488,12 +489,20 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             label = label[:-1] if label.endswith('*') else label
             new_spike_object.setLabel(label)
 
-            command = ChangeSpikeCommand("Extract waveform",
-                                         self,
-                                         self.current_raw_object,
-                                         self.current_filted_object,
-                                         self.current_spike_object,
-                                         new_spike_object)
+            old_filted_object = self.current_data_object.subtractReference(
+                channel=self.current_spike_object.channel_ID, reference=self.current_spike_object.reference)
+            old_filted_object = old_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
+                                                                 high=self.current_spike_object.high_cutoff)
+            old_filted_object = old_filted_object.createCopy(
+                threshold=self.current_spike_object.threshold)
+            command = ChangeSpikeCommand(text="Extract waveform",
+                                         widget=self,
+                                         raw_object=self.current_raw_object,
+                                         old_filted_object=old_filted_object,
+                                         new_filted_object=self.current_filted_object,
+                                         old_spike_object=self.current_spike_object,
+                                         new_spike_object=new_spike_object)
+
             self.current_spike_object = new_spike_object
             self.current_undo_stack.push(command)
 
@@ -570,12 +579,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         new_spike_object = self.current_spike_object.autosort()
         # self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
-        command = ChangeSpikeCommand("Autosort",
-                                     self,
-                                     self.current_raw_object,
-                                     self.current_filted_object,
-                                     self.current_spike_object,
-                                     new_spike_object)
+        command = ChangeSpikeCommand(text="Autosort",
+                                     widget=self,
+                                     raw_object=self.current_raw_object,
+                                     old_filted_object=self.current_filted_object,
+                                     new_filted_object=self.current_filted_object,
+                                     old_spike_object=self.current_spike_object,
+                                     new_spike_object=new_spike_object)
         self.current_spike_object = new_spike_object
         self.current_undo_stack.push(command)
 
@@ -751,30 +761,35 @@ class ChangeFilterCommand(QUndoCommand):
 
 
 class ChangeSpikeCommand(QUndoCommand):
-    def __init__(self, text, widget, raw_object: ContinuousData, filted_object: ContinuousData, old_spike_object: DiscreteData, new_spike_object: DiscreteData):
+    def __init__(self, text, widget, raw_object: ContinuousData,
+                 old_filted_object: ContinuousData, new_filted_object: ContinuousData,
+                 old_spike_object: DiscreteData, new_spike_object: DiscreteData):
         super().__init__(text)
         self.widget = widget
         self.action_type = text
         self.raw_object = raw_object
-        self.filted_object = filted_object
+        self.old_filted_object = old_filted_object
+        self.new_filted_object = new_filted_object
         self.old_spike_object = old_spike_object
         self.new_spike_object = new_spike_object
 
     def redo(self):
         # 在这里执行操作，修改应用程序状态
-        self.widget.handleUndoRedo(
-            self.action_type, self.raw_object, self.filted_object, self.new_spike_object)
         self.raw_object.setSpike(
             self.new_spike_object, self.new_spike_object.label)
+        self.widget.handleUndoRedo(
+            self.action_type, self.raw_object, self.new_filted_object, self.new_spike_object)
+
         logger.info(
             f"Redo: {self.text()} {self.new_spike_object}")
 
     def undo(self):
         # 撤销操作，回滚应用程序状态
-        self.widget.handleUndoRedo(
-            self.action_type, self.raw_object, self.filted_object, self.old_spike_object)
         self.raw_object.setSpike(
             self.old_spike_object, self.old_spike_object.label)
+        self.widget.handleUndoRedo(
+            self.action_type, self.raw_object, self.old_filted_object, self.old_spike_object)
+
         logger.info(
             f"Undo: {self.text()} {self.old_spike_object}")
 
