@@ -218,11 +218,10 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_undo_stack.push(command)
 
     def onSelectionChanged(self, selected, deselected):
-        items = self.getSelectedRowItems()
-        if items is None:
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
             return
-        meta_data = [item.text() for item in items]
-        meta_data = dict(zip(self.header_name, meta_data))
+        meta_data = self.rowItemsToMetadata(row_items)
 
         self.current_raw_object = None
         self.current_filted_object = None
@@ -234,24 +233,27 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if meta_data['Type'] == 'Spikes':
             # raw
             self.current_data_object.loadRaw(channel=chan_ID)
-            self.current_raw_object = self.current_data_object.getRaw(chan_ID)
+            new_raw_object = self.current_data_object.getRaw(chan_ID)
             # spike
-            self.current_data_object.loadSpike(
-                channel=chan_ID, label=label)
-            self.current_spike_object = self.current_data_object.getSpike(
-                channel=chan_ID, label=label)
-            if self.current_spike_object is None:
-                pass
-            # filted
-            self.current_filted_object = self.current_data_object.subtractReference(
-                channel=chan_ID, reference=self.current_spike_object.reference)
-            self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
-                                                                                   high=self.current_spike_object.high_cutoff)
-            self.current_filted_object = self.current_filted_object.createCopy(
-                threshold=self.current_spike_object.threshold)
-            # self.setSpikeSetting()
-            self.setLabelCombox(labels=self.current_raw_object.spikes,
-                                current=self.current_spike_object.label)
+            self.current_data_object.loadSpike(channel=chan_ID, label=label)
+            new_spike_object = self.current_data_object.getSpike(channel=chan_ID,
+                                                                 label=label)
+            if (new_spike_object is None) and (label in new_raw_object.spikes):
+                # This spike is waiting remove
+                new_raw_object = None
+                new_filted_object = None
+                new_spike_object = None
+            else:
+                # Use spike to generate filted
+                new_filted_object = self.current_data_object.subtractReference(
+                    channel=chan_ID, reference=new_spike_object.reference)
+                new_filted_object = new_filted_object.bandpassFilter(low=new_spike_object.low_cutoff,
+                                                                     high=new_spike_object.high_cutoff)
+                new_filted_object = new_filted_object.createCopy(
+                    threshold=new_spike_object.threshold)
+                # self.setSpikeSetting()
+                self.setLabelCombox(labels=new_raw_object.spikes,
+                                    current=label)
 
             if not self.current_undo_stack is None:
                 self.current_undo_stack.setActive(False)
@@ -267,6 +269,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                     self.main_window.undo_group)
                 self.undo_stack_dict[chan_ID][label] = self.current_undo_stack
 
+            self.current_raw_object = new_raw_object
+            self.current_filted_object = new_filted_object
+            self.current_spike_object = new_spike_object
             # logger.debug(self.current_undo_stack)
             self.current_undo_stack = self.undo_stack_dict[chan_ID][label]
             self.current_undo_stack.setActive(True)
