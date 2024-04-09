@@ -253,9 +253,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     def setFeatureOnSelection(self, checked):
         self.signal_feature_on_selection_state_changed.emit(checked)
-    # ====================
 
-    # def sendShowingSpikeData(self):
+    # ====================
     def sendShowingUnits(self):
         # if not self.has_spikes:
         #     spikes = {'current_wav_units': self.current_wav_units,
@@ -297,12 +296,6 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         # logger.debug(self.current_spike_object.firingRate(
         #     self.current_showing_units))
         # self.signal_showing_spikes_data_changed.emit(spikes)
-    def computeUnderISIPercentage(self):
-        time_unit = 0.001
-        thr = self.isi_thr_doubleSpinBox.value() * time_unit
-        under_thr_mask = self.isi_result[0] < thr
-        result = self.isi_result[1][under_thr_mask].sum() * 100
-        self.under_isi_thr_value_label.setText(str(round(result, 1)))
 
     def sendShowingSpikeData(self):
         self.signal_showing_spike_data_changed.emit(self.current_spike_object)
@@ -330,6 +323,13 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
                 if self.wav_actions_state[object_name][1] == True:
                     self.wav_actions_state[object_name][0].setChecked(False)
                     self.wav_actions_state[object_name][1] = False
+
+    def computeUnderISIPercentage(self):
+        time_unit = 0.001  # ms
+        thr = self.isi_thr_doubleSpinBox.value() * time_unit
+        under_thr_mask = self.isi_result[0] < thr
+        result = self.isi_result[1][under_thr_mask].sum() * 100
+        self.under_isi_thr_value_label.setText(str(round(result, 1)))
 
     # ==================== Unit Actions ====================
     def mergeUnits(self):
