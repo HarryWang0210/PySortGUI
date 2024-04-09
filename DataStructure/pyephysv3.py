@@ -189,6 +189,16 @@ def saveSpikesHeader(filename, header: pd.DataFrame | None = None):
         file.create_table('/', 'SpikesHeader', spike_table)
 
 
+def deleteSpikes(filename, path):
+    basename, extname = os.path.splitext(filename)
+    # if extname == "h5raw":
+    #     filename = ".".join(basename, "h5")
+    with tables.open_file(filename, mode="a") as file:
+        if path in file.root:
+            spike_chan = file.get_node(path)
+            spike_chan._f_remove(force=True)
+
+
 if __name__ == '__main__':
     filename = "data/MX6-22_2020-06-17_17-07-48_no_ref.h5"
     headers = loadPyephys(filename)

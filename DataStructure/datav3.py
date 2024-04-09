@@ -12,7 +12,8 @@ from .FunctionsLib.SignalProcessing import design_and_filter
 from .FunctionsLib.Sorting import auto_sort
 from .FunctionsLib.ThresholdOperations import extract_waveforms
 from .pyephysv3 import (loadPyephys, loadRaws, loadSpikes,
-                        saveSpikes, saveSpikesHeader)
+                        saveSpikes, saveSpikesHeader,
+                        deleteSpikes)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,8 @@ class SpikeSorterData(object):
             raw_object = self.getRaw(ID)
             for label in raw_object.spikes:
                 spike_object = self.getSpike(ID, label)
+                if spike_object is None:
+                    continue
                 records.append(spike_object.header)
         if len(records) < 1:
             return None
@@ -142,6 +145,7 @@ class SpikeSorterData(object):
         """
         spike_object = self.getSpike(channel, label)
         if spike_object is None:
+            logger.warning('No spike data.')
             return
         spike_object._loadData()
 
@@ -179,31 +183,36 @@ class SpikeSorterData(object):
         return
 
     def saveChannel(self, channel):
-        ch = self.getRaw(channel)
+        raw_object = self.getRaw(channel)
         records = []
-        for label in ch.spikes:
-            spike = ch.getSpike(label)
-            if not spike._from_file:
-                spike._header['H5Name'] = 'TimeStamps'
-                if label == 'default':
-                    spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}'
-                else:
-                    spike._header['H5Location'] = f'/Spikes/spike{ch.channel_ID:03}{label}'
+        for label, spike_object in raw_object._spikes.items():
+            if label == 'default':
+                h5_location = f'/Spikes/spike{raw_object.channel_ID:03}'
+            else:
+                h5_location = f'/Spikes/spike{raw_object.channel_ID:03}{label}'
+            if spike_object is None:
+                # try delete spike
+                deleteSpikes(self.filename, h5_location)
+                del raw_object._spikes[label]
+                continue
+            # spike = raw_object.getSpike(label)
+            if not spike_object._from_file:
+                spike_object._header['H5Name'] = 'TimeStamps'
+                spike_object._header['H5Location'] = h5_location
+                spike_object._unit_header['H5Location'] = spike_object._unit_header['ID'].apply(
+                    lambda ID: spike_object._header['H5Location'] + f'/Unit_{ID:02}')
+                spike_object._unit_header['H5Name'] = 'Indxs'
+                spike_object._unit_header['ParentID'] = raw_object.channel_ID
+                spike_object._unit_header['ParentType'] = 'Spikes'
+                spike_object._unit_header['Type'] = 'Unit'
 
-                spike._unit_header['H5Location'] = spike._unit_header['ID'].apply(
-                    lambda ID: spike._header['H5Location'] + f'/Unit_{ID:02}')
-                spike._unit_header['H5Name'] = 'Indxs'
-                spike._unit_header['ParentID'] = ch.channel_ID
-                spike._unit_header['ParentType'] = 'Spikes'
-                spike._unit_header['Type'] = 'Unit'
-
-                saveSpikes(self.filename, spike.header, spike.unit_header,
-                           spike.unit_IDs, spike.timestamps, spike.waveforms)
-            records.append(spike.header)
-            spike._from_file = True
+                saveSpikes(self.filename, spike_object.header, spike_object.unit_header,
+                           spike_object.unit_IDs, spike_object.timestamps, spike_object.waveforms)
+            records.append(spike_object.header)
+            spike_object._from_file = True
         spikes_header = self._headers['SpikesHeader']
         new_spikes_header = pd.DataFrame(
-            spikes_header[spikes_header['ID'] != ch.channel_ID])
+            spikes_header[spikes_header['ID'] != raw_object.channel_ID])
         # logger.debug(pd.DataFrame.from_records(records).dtypes)
 
         new_spikes_header = pd.concat([new_spikes_header, pd.DataFrame.from_records(records)],
@@ -467,7 +476,16 @@ class ContinuousData(object):
     def allSaved(self) -> bool:
         """Return True if all spike changed belong to this channel were saved
         """
-        return np.all([spike_object._from_file for spike_object in self._spikes.values()])
+        return np.all([spike_object._from_file if spike_object else False
+                       for spike_object in self._spikes.values()])
+
+    def removeSpike(self, label: str):
+        """Delete the spike.
+
+        Args:
+            label (str): The label of spike.
+        """
+        self._spikes[label] = None
 
 
 class DiscreteData(object):
