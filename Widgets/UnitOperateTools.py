@@ -4,11 +4,13 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, QItemSelectionModel
-from PyQt5.QtGui import QStandardItem, QStandardItemModel, QColor
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QCheckBox, QStyledItemDelegate, QDialog, QComboBox, QPushButton, QLabel, QMessageBox
+from PyQt5.QtCore import QItemSelectionModel, Qt
+from PyQt5.QtGui import QColor, QStandardItem, QStandardItemModel
+from PyQt5.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
+                             QHBoxLayout, QLabel, QMessageBox, QPushButton,
+                             QStyledItemDelegate, QVBoxLayout, QWidget)
 
-from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
+from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
 from UI.UnitOperateToolsUIv3_ui import Ui_UnitOperateTools
 
 logger = logging.getLogger(__name__)

@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QGuiApplication
 from PyQt5.QtWidgets import QApplication
 
-from DataStructure.datav3 import SpikeSorterData, ContinuousData, DiscreteData
+from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
 from UI.TimelineView_ui import Ui_TimelineView
 
 logger = logging.getLogger(__name__)

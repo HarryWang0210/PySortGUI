@@ -11,9 +11,8 @@ from .FunctionsLib.DiscreteSignalLib import ISI, firing_rate
 from .FunctionsLib.SignalProcessing import design_and_filter
 from .FunctionsLib.Sorting import auto_sort
 from .FunctionsLib.ThresholdOperations import extract_waveforms
-from .pyephysv3 import (loadPyephys, loadRaws, loadSpikes,
-                        saveSpikes, saveSpikesHeader,
-                        deleteSpikes)
+from .pyephysv3 import (deleteSpikes, loadPyephys, loadRaws, loadSpikes,
+                        saveSpikes, saveSpikesHeader)
 
 logger = logging.getLogger(__name__)
 
