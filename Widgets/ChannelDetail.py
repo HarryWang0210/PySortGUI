@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QItemSelectionModel
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5.QtGui import QColor, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (QAbstractItemView, QApplication, QDialog,
                              QMainWindow, QUndoCommand, QUndoStack,
                              QVBoxLayout, QWidget)
@@ -157,7 +157,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         selected_indexes = selection_model.selectedIndexes()
 
         items = [model.itemFromIndex(ind) for ind in selected_indexes]
-        logger.debug(items[0].text())
+        if items == []:  # No select
+            return
         if items[0].parent() is None:  # Group
             return
         elif not items[0].parent().parent() is None:  # Label
@@ -234,15 +235,16 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             self.current_data_object.loadRaw(channel=chan_ID)
             new_raw_object = self.current_data_object.getRaw(chan_ID)
             # spike
-            self.current_data_object.loadSpike(channel=chan_ID, label=label)
             new_spike_object = self.current_data_object.getSpike(channel=chan_ID,
                                                                  label=label)
-            if (new_spike_object is None) and (label in new_raw_object.spikes):
-                # This spike is waiting remove
+            if new_spike_object == 'Removed':
+                # This spike is removed but unsaved
                 new_raw_object = None
                 new_filted_object = None
                 new_spike_object = None
             else:
+                self.current_data_object.loadSpike(
+                    channel=chan_ID, label=label)
                 # Use spike to generate filted
                 new_filted_object = self.current_data_object.subtractReference(
                     channel=chan_ID, reference=new_spike_object.reference)
@@ -366,19 +368,12 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if row_type != 'Spikes':
             return
 
-        channel_ID = int(self.dropSuffix(meta_data['ID']))
-        label = self.dropSuffix(meta_data['Label'])
-        raw_object = self.current_data_object.getRaw(channel_ID)
-        raw_object.removeSpike(label)
-
-        # ID_item = row_items[0]
-        label_item = row_items[1]
-        # spike_group_item = ID_item.parent()
-
-        # for item in row_items[1:]:
-        font = label_item.font()
-        font.setStrikeOut(True)
-        label_item.setFont(font)
+        command = DeleteSpikeCommand(text="Delete spike",
+                                     widget=self,
+                                     raw_object=self.current_raw_object,
+                                     old_filted_object=self.current_filted_object,
+                                     old_spike_object=self.current_spike_object)
+        self.current_undo_stack.push(command)
 
         # if label_item.parent() is spike_group_item:
         #     # deleting node
@@ -636,64 +631,149 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                        new_raw_object: ContinuousData,
                        new_filted_object: ContinuousData,
                        new_spike_object: DiscreteData | None):
+        reset_selection = False
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
+            logger.warning('No selected row.')
+            return
 
+        if action_type == 'Delete spike':
+            ID_item = row_items[0]
+            label_item = row_items[1]
+
+            label_item.setText(self.dropSuffix(label_item.text()))
+            # font = label_item.font()
+            # font.setStrikeOut(True)
+            # label_item.setFont(font)
+            for item in row_items[1:]:
+                font = ID_item.font()
+                font.setBold(False)
+                item.setFont(font)
+                item.setForeground(QColor('darkGray'))
+
+            # Check ID
+            if not ID_item.text().endswith('*'):
+                ID_item.setText(ID_item.text() + '*')
+            font = ID_item.font()
+            font.setBold(True)
+            ID_item.setFont(font)
+
+            self.current_raw_object = None
+            self.current_filted_object = None
+            self.current_spike_object = None
+            reset_selection = True
+
+        else:
+            if new_spike_object is None:
+                logger.warning('No spike data.')
+                return
+
+            if action_type == 'Recovery spike':
+                ID_item = row_items[0]
+                label_item = row_items[1]
+
+                # font = label_item.font()
+                # font.setStrikeOut(False)
+                # label_item.setFont(font)
+                for item in row_items[1:]:
+                    item.setForeground(QColor('black'))
+
+            logger.debug('undo/redo')
+            self.updataSpikeInfo(row_items, new_spike_object)
+            self.setUnsavedChangeIndicator(row_items, new_spike_object)
+
+            if (new_spike_object is self.current_spike_object) and \
+                    (new_filted_object is self.current_filted_object):
+                return
+
+            self.current_raw_object = new_raw_object
+            self.current_filted_object = new_filted_object
+            self.current_spike_object = new_spike_object
+
+        if action_type in ['Recovery spike', 'Extract waveform']:
+            reset_selection = True
+        self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                 self.current_filted_object)
+        self.signal_spike_data_changed.emit(self.current_spike_object,
+                                            reset_selection)
+
+    def saveChannel(self):
         row_items = self.getSelectedRowItems()
         if row_items is None:
             return
+        ID_item = row_items[0]
+        selecting_label = self.dropSuffix(row_items[1].text())
+        new_selecting_item = None
+        channel_row = ID_item.row()
+        spike_group_item = ID_item.parent()
 
-        logger.debug('undo/redo')
-        self.updataSpikeInfo(row_items, new_spike_object)
-        self.setUnsavedChangeIndicator(row_items, new_spike_object)
+        channel_ID = int(self.dropSuffix(ID_item.text()))
+        self.current_data_object.saveChannel(channel_ID)
 
-        if new_spike_object is self.current_spike_object and new_filted_object is self.current_filted_object:
-            return
+        raw_object = self.current_data_object.getRaw(channel_ID)
+        labels = sorted(raw_object.spikes)
 
-        self.current_raw_object = new_raw_object
-        self.current_filted_object = new_filted_object
-        self.current_spike_object = new_spike_object
+        # Modify row items
+        spike_group_item.removeRow(channel_row)
+        if len(labels) > 0:
+            spike_object = raw_object.getSpike(labels[0])
+            first_row_items = self.createRowItems(spike_object)
 
-        # if action_type == 'ManualUnit':
-        # chan_ID = self.current_spike_object.channel_ID
-        # label = self.current_spike_object.label
-        # filted
-        # self.current_filted_object = self.current_data_object.subtractReference(
-        #     channel=chan_ID, reference=[self.current_spike_object.reference])
-        # self.current_filted_object = self.current_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
-        #                                                                        high=self.current_spike_object.high_cutoff)
-        # self.current_filted_object = self.current_filted_object.createCopy(
-        #     threshold=self.current_spike_object.threshold)
-        # self.setSpikeSetting()
-        # self.setLabelCombox(labels=self.current_raw_object.spikes,
-        #                     current=label)
+            new_ID_item = first_row_items[0]
+            for label in labels[1:]:
+                spike_object = raw_object.getSpike(label)
+                new_row_items = self.createRowItems(spike_object)
+                new_row_items[0] = QStandardItem('')
+                if new_row_items[1].text() == selecting_label:
+                    new_selecting_item = new_row_items[1]
+                new_ID_item.appendRow(new_row_items)
+            spike_group_item.insertRow(channel_row, first_row_items)
 
-        self.signal_continuous_data_changed.emit(self.current_raw_object,
-                                                 self.current_filted_object)
+            if new_selecting_item is None:
+                new_selecting_item = first_row_items[1]
 
-        self.signal_spike_data_changed.emit(
-            self.current_spike_object, action_type in ['Change filter', 'Extract waveform'])
-        # row_items = self.getSelectedRowItems()
-        # if row_items is None:
-        #     return
-        # self.setUnsavedChangeIndicator(row_items, self.current_spike_object)
+        # Undo stack
+        channel_undo_stack_dict = self.undo_stack_dict[channel_ID]
+        labels_in_undo_stack = list(channel_undo_stack_dict.keys())
+        for label in labels_in_undo_stack:
+            if not label in labels:
+                undo_stack = channel_undo_stack_dict[label]
+                self.main_window.undo_group.removeStack(undo_stack)
+                del channel_undo_stack_dict[label]
 
-    def saveChannel(self):
-        items = self.getSelectedRowItems()
-        if items is None:
-            return
-        ID_item = items[0]
-        chan_ID = int(
-            ID_item.text()[:-1] if ID_item.text().endswith('*') else ID_item.text())
-        self.current_data_object.saveChannel(chan_ID)
+        if new_selecting_item:
+            selection_model = self.treeView.selectionModel()
+            selection_model.select(
+                new_selecting_item.index(), QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
+            self.treeView.scrollTo(new_selecting_item.index())
 
-        raw_object = self.current_data_object.getRaw(chan_ID)
+        # row_items_list = self.getRowItemsFromChannel(channel_ID)
+        # for row_items in row_items_list:
+        #     label_item = row_items[1]
+        #     label = self.dropSuffix(label_item.text())
+        #     spike_object = raw_object.getSpike(label)
+        #     self.setUnsavedChangeIndicator(row_items, spike_object)
 
-        row_items_ist = self.getRowItemsFromChannel(chan_ID)
-        for row_items in row_items_ist:
-            label_item = row_items[1]
-            label = label_item.text(
-            )[:-1] if label_item.text().endswith('*') else label_item.text()
-            spike_object = raw_object.getSpike(label)
-            self.setUnsavedChangeIndicator(row_items, spike_object)
+        # if label_item.parent() is spike_group_item:
+        #     # deleting node
+        #     if ID_item.hasChildren():
+        #         # has leaves
+        #         channel_ID = int(self.dropSuffix(ID_item.text()))
+        #         channel_row_items = self.getRowItemsFromChannel(channel_ID)
+        #         next_row_items = channel_row_items[1]
+        #         for i in range(1, len(row_items)):
+        #             old = row_items[i]
+        #             new = next_row_items[i]
+        #             old.setText(new.text())
+        #             old.setFont(new.font())
+        #         row = next_row_items[1].row()
+        #         ID_item.removeRow(row)
+        #     else:
+        #         # no leaves
+        #         spike_group_item.removeRow(ID_item.row())
+        # else:
+        #     # deleting leaf
+        #     ID_item.removeRow(label_item.row())
 
     def setUnsavedChangeIndicator(self, row_items: list, spike_object: DiscreteData):
         if spike_object is None:
@@ -755,32 +835,38 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             row_items[index].setText(str(spike_object.header.get(key, '')))
 
 
-class ChangeFilterCommand(QUndoCommand):
+class DeleteSpikeCommand(QUndoCommand):
     def __init__(self, text, widget, raw_object: ContinuousData,
-                 old_filted_object: ContinuousData, new_filted_object: ContinuousData,
-                 old_spike_object: DiscreteData, new_spike_object: DiscreteData):
+                 old_filted_object: ContinuousData,
+                 old_spike_object: DiscreteData):
         super().__init__(text)
         self.widget = widget
-        self.action_type = text
+        self.action_type = 'Delete spike'
         self.raw_object = raw_object
         self.old_filted_object = old_filted_object
-        self.new_filted_object = new_filted_object
         self.old_spike_object = old_spike_object
-        self.new_spike_object = new_spike_object
 
     def redo(self):
-        # 在这里执行操作，修改应用程序状态
+        self.raw_object.removeSpike(self.old_spike_object.label)
         self.widget.handleUndoRedo(
-            self.action_type, self.raw_object, self.new_filted_object, self.new_spike_object)
-        # self.raw_object.setSpike(
-        #     self.new_spike_object, self.new_spike_object.label)
-        # logger.info(
-        #     f"Redo: {self.text()}, Data: {self.new_spike_object}")
+            'Delete spike', self.raw_object, None, None)
+        logger.info(
+            f"Redo: {self.text()}, "
+            f"Spike: {self.old_spike_object.channel_ID} {self.old_spike_object.label}")
+        logger.debug(
+            f"Redo: {self.text()}, Data: {None}")
 
     def undo(self):
-        # 撤销操作，回滚应用程序状态
+        self.raw_object.setSpike(
+            self.old_spike_object, self.old_spike_object.label)
         self.widget.handleUndoRedo(
-            self.action_type, self.raw_object, self.old_filted_object, self.old_spike_object)
+            'Recovery spike', self.raw_object, self.old_filted_object, self.old_spike_object)
+        logger.info(
+            f"Undo: {self.text()}, "
+            f"Spike: {self.old_spike_object.channel_ID} {self.old_spike_object.label}")
+        logger.debug(
+            f"Undo: {self.text()}, Data: {self.old_spike_object}")
+
         # self.raw_object.setSpike(
         #     self.old_spike_object, self.old_spike_object.label)
         # logger.info(
