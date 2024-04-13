@@ -20,6 +20,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     # signal_data_file_name_changed = QtCore.pyqtSignal(SpikeSorterData)
     # signal_spike_chan_changed = QtCore.pyqtSignal(object)
     signal_showing_spike_data_changed = QtCore.pyqtSignal(object)
+    # send spike object to Channel Detail widget
+    signal_updating_spike_data = QtCore.pyqtSignal(object)
     signal_showing_units_changed = QtCore.pyqtSignal(object)
     signal_manual_mode_state_changed = QtCore.pyqtSignal(bool)
     signal_features_changed = QtCore.pyqtSignal(list)
@@ -161,7 +163,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.current_spike_object = new_spike_object
 
         self.sendFeatures()
-        self.sendShowingSpikeData()
+        self.signal_showing_spike_data_changed.emit(self.current_spike_object)
 
         if self.current_spike_object is None:
             model = self.tableView.model()
@@ -297,7 +299,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         #     self.current_showing_units))
         # self.signal_showing_spikes_data_changed.emit(spikes)
 
-    def sendShowingSpikeData(self):
+    def updatingSpikeData(self):
+        self.signal_updating_spike_data.emit(self.current_spike_object)
         self.signal_showing_spike_data_changed.emit(self.current_spike_object)
 
     def sendWaveformAction(self, checked):
@@ -351,7 +354,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.reorderUnitID(new_unit_IDs)
 
-        self.sendShowingSpikeData()
+        self.updatingSpikeData()
 
         self.setDataModel()
 
@@ -383,7 +386,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.reorderUnitID(new_unit_IDs)
 
-        self.sendShowingSpikeData()
+        self.updatingSpikeData()
 
         self.setDataModel()
 
@@ -420,7 +423,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         map_new_ID_dict = self.reorderUnitID(new_unit_IDs)
 
-        self.sendShowingSpikeData()
+        self.updatingSpikeData()
 
         self.setDataModel()
         if len(self.selected_rows_list) < 1:
@@ -450,7 +453,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         map_new_ID_dict = self.reorderUnitID(new_unit_IDs)
 
-        self.sendShowingSpikeData()
+        self.updatingSpikeData()
 
         self.setDataModel()
         if len(self.selected_rows_list) < 1:
@@ -477,7 +480,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         map_new_ID_dict = self.reorderUnitID(new_unit_IDs)
 
-        self.sendShowingSpikeData()
+        self.updatingSpikeData()
 
         self.setDataModel()
         if len(self.selected_rows_list) < 1:
@@ -504,7 +507,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         map_new_ID_dict = self.reorderUnitID(new_unit_IDs)
 
-        self.sendShowingSpikeData()
+        self.updatingSpikeData()
 
         self.setDataModel()
         if len(self.selected_rows_list) < 1:

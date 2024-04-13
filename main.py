@@ -128,8 +128,8 @@ class PySortGUI(MainWindowDocks):
         self.children_dict['ChannelDetail'].signal_spike_data_changed.connect(
             self.children_dict["UnitOperateTools"].spike_data_changed)
 
-        self.children_dict['UnitOperateTools'].signal_showing_spike_data_changed.connect(
-            self.children_dict["ChannelDetail"].showing_spike_data_changed)
+        self.children_dict['UnitOperateTools'].signal_updating_spike_data.connect(
+            self.children_dict["ChannelDetail"].updating_spike_data)
 
         self.children_dict['UnitOperateTools'].signal_showing_spike_data_changed.connect(
             self.children_dict["TimelineView"].showing_spike_data_changed)
