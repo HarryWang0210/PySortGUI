@@ -52,7 +52,7 @@ class SpikeSorterData(object):
             raw_object = self.getRaw(ID)
             for label in raw_object.spikes:
                 spike_object = self.getSpike(ID, label)
-                if spike_object is None:
+                if spike_object == 'Removed':
                     continue
                 records.append(spike_object.header)
         if len(records) < 1:
@@ -184,12 +184,12 @@ class SpikeSorterData(object):
     def saveChannel(self, channel):
         raw_object = self.getRaw(channel)
         records = []
-        for label, spike_object in raw_object._spikes.items():
+        for label, spike_object in list(raw_object._spikes.items()):
             if label == 'default':
                 h5_location = f'/Spikes/spike{raw_object.channel_ID:03}'
             else:
                 h5_location = f'/Spikes/spike{raw_object.channel_ID:03}{label}'
-            if spike_object is None:
+            if spike_object == 'Removed':
                 # try delete spike
                 deleteSpikes(self.filename, h5_location)
                 del raw_object._spikes[label]
@@ -484,7 +484,7 @@ class ContinuousData(object):
         Args:
             label (str): The label of spike.
         """
-        self._spikes[label] = None
+        self._spikes[label] = 'Removed'
 
 
 class DiscreteData(object):
