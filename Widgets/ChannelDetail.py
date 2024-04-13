@@ -189,7 +189,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         return result
 
     # ========== Slot ==========
-    def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+    def updating_spike_data(self, new_spike_object: DiscreteData | None):
         # import pandas as pd
         # logger.debug('Spike header')
         # logger.debug('\n' +
@@ -202,8 +202,6 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         row_items = self.getSelectedRowItems()
         if row_items is None:
             return
-        self.updataSpikeInfo(row_items, new_spike_object)
-        self.setUnsavedChangeIndicator(row_items, new_spike_object)
 
         if new_spike_object is self.current_spike_object:
             return
@@ -352,6 +350,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         selection_model.select(
             label_item.index(), QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
         self.treeView.scrollTo(label_item.index())
+
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
+            return
+
+        self.updataSpikeInfo(row_items, new_spike_object)
+        self.setUnsavedChangeIndicator(row_items, new_spike_object)
 
     def deleteSpike(self):
         row_items = self.getSelectedRowItems()
@@ -571,6 +576,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             selection_model.select(
                 label_item.index(), QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
             self.treeView.scrollTo(label_item.index())
+
+            row_items = self.getSelectedRowItems()
+            if row_items is None:
+                return
+
+            self.updataSpikeInfo(row_items, new_spike_object)
+            self.setUnsavedChangeIndicator(row_items, new_spike_object)
             # if len(row_items_list) == 1:
             # select row
         # row_items = self.getSelectedRowItems()
@@ -624,6 +636,15 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                        new_raw_object: ContinuousData,
                        new_filted_object: ContinuousData,
                        new_spike_object: DiscreteData | None):
+
+        row_items = self.getSelectedRowItems()
+        if row_items is None:
+            return
+
+        logger.debug('undo/redo')
+        self.updataSpikeInfo(row_items, new_spike_object)
+        self.setUnsavedChangeIndicator(row_items, new_spike_object)
+
         if new_spike_object is self.current_spike_object and new_filted_object is self.current_filted_object:
             return
 
