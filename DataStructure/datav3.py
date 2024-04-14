@@ -751,7 +751,7 @@ class DiscreteData(object):
                             unsorted_unit_ID=0,
                             invalid_unit_ID=new_invalid_unit_ID)
 
-    def ISI(self, selected_unit_IDs: list = None, bin_size=.00001, t_max=.1,
+    def ISI(self, selected_unit_IDs: list = None, bin_size=.0001, t_max=.1,
             log_scale_y=False, normalized=True):
         """Compute the interspike interval distribution of given units.
 
