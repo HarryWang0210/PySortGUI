@@ -201,8 +201,8 @@ class PySortGUI(MainWindowDocks):
         #     self.children_dict["ClustersView"].showing_spikes_data_changed)
 
         # """send selected waveform (only from ClustersView to WaveformsView)"""
-        # self.children_dict["ClustersView"].signal_select_point.connect(
-        #     self.children_dict["WaveformsView"].select_point)
+        self.children_dict["ClustersView"].signal_select_point.connect(
+            self.children_dict["WaveformsView"].select_point)
 
         # """send ClustersView feature axis"""
         # self.children_dict["UnitOperateTools"].signal_features_changed.connect(
