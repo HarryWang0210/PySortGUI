@@ -751,19 +751,27 @@ class DiscreteData(object):
                             unsorted_unit_ID=0,
                             invalid_unit_ID=new_invalid_unit_ID)
 
-    def ISI(self, selected_unit_IDs: list = None):
+    def ISI(self, selected_unit_IDs: list = None, bin_size=.00001, t_max=.1,
+            log_scale_y=False, normalized=True):
         """Compute the interspike interval distribution of given units.
 
         Args:
-            selected_unit_IDs (list, optional): _description_. Defaults to None.
+            selected_unit_IDs (list, optional): The list of unit ids that want to perform ISI.
+                If the value is None, use all unit. Defaults to None.
+            bin_size (float, optional): histogram bins(sec). Defaults to .00001.
+            t_max (float, optional): Maximun of time(sec). Defaults to .1.
+            log_scale_y (bool, optional): Log scale isi distribution. Defaults to False.
+            normalized (bool, optional): Normalize the isi distribution to % of total spikes. Defaults to True.
 
         Returns:
-            _type_: _description_
+            tuple[np.ndarray, np.ndarray]: The first array is the bins from 0s to {t_max}s, 
+                the second array is the isi distribution.
         """
         timestamps_mask = np.isin(self.unit_IDs, selected_unit_IDs)
         ts = self.timestamps[timestamps_mask]
         # logger.debug(timestamps_mask)
-        result = ISI(ts, sampling_freq=self.fs)
+        result = ISI(ts, sampling_freq=self.fs, bin_size=bin_size, t_max=t_max,
+                     log_scale_y=log_scale_y, normalized=normalized)
         return result
 
     def firingRate(self, selected_unit_IDs: list = None) -> float:
