@@ -147,6 +147,11 @@ class PySortGUI(MainWindowDocks):
         self.children_dict['UnitOperateTools'].signal_feature_on_selection_state_changed.connect(
             self.children_dict["ClustersView"].feature_on_selection_state_changed)
 
+        self.children_dict['UnitOperateTools'].signal_showing_spike_data_changed.connect(
+            self.children_dict["ISIView"].showing_spike_data_changed)
+        self.children_dict['UnitOperateTools'].signal_showing_units_changed.connect(
+            self.children_dict["ISIView"].showing_units_changed)
+
         self.children_dict['ClustersView'].signal_manual_waveforms.connect(
             self.children_dict["UnitOperateTools"].manual_waveforms)
 
