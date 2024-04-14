@@ -164,17 +164,17 @@ def next_pow_of_two(n):
     return int(pow(2, np.ceil(np.log2(n))))
 
 
-def ISI(x: np.ndarray, sampling_freq: int | float, bin_size=.1, t_max=.1,
+def ISI(x: np.ndarray, sampling_freq: int | float, bin_size=.00001, t_max=.1,
         log_scale_y=False, normalized=True, add_ts=None) -> tuple[np.ndarray, np.ndarray]:
     """Compute the interspike interval distribution.
 
     Args:
         x (np.ndarray): timestamps
-        sampling_freq (int | float): _description_
-        bin_size (float, optional): _description_. Defaults to .1.
-        t_max (float, optional): _description_. Defaults to .1.
-        log_scale_y (bool, optional): _description_. Defaults to False.
-        normalized (bool, optional): Normalize the isi array to % of total spikes. Defaults to True.
+        sampling_freq (int | float): Sampling frequence(Hz).
+        bin_size (float, optional): histogram bins(sec). Defaults to .00001.
+        t_max (float, optional): Maximun of time(sec). Defaults to .1.
+        log_scale_y (bool, optional): Log scale isi distribution. Defaults to False.
+        normalized (bool, optional): Normalize the isi distribution to % of total spikes. Defaults to True.
         add_ts (_type_, optional): _description_. Defaults to None.
 
     Returns:
@@ -197,7 +197,7 @@ def ISI(x: np.ndarray, sampling_freq: int | float, bin_size=.1, t_max=.1,
 
     start = 0
     stop = t_max
-    num = int(t_max * 1000 / bin_size + 1)
+    num = int(t_max / bin_size + 1)
     # print(ISI)
     ISI, bins = np.histogram(ISI, np.linspace(start, stop, num))
     bins = bins[:-1]
