@@ -31,7 +31,7 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
         # array-like, cache the time axis of computed isi distribution result
         self.time_axis: np.ndarray = None
         # a dictionary cache all computed isi distribution result
-        self.isi_distrib_dict = dict()
+        self.isi_distrib_dict: dict[tuple[int, int], np.ndarray] = dict()
 
         # array-like, store the x loc of every barplot start
         self.x_start: np.ndarray = None
@@ -135,17 +135,25 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
                 ID_x = unit_ID_list[j]
                 x_offset = self.x_start[j]
 
-                if not ID_y in self.isi_distrib_dict.keys():
-                    self.isi_distrib_dict[ID_y] = dict()
-
-                if not ID_x in self.isi_distrib_dict[ID_y].keys():
+                if not (ID_y, ID_x) in self.isi_distrib_dict.keys():
                     x, y = self.computeISI(ID_y, ID_x)
-                    self.isi_distrib_dict[ID_y].update({ID_x: y})
+                    self.isi_distrib_dict[(ID_y, ID_x)] = y
                     if self.time_axis is None:
                         self.time_axis = x
+                else:
+                    x = self.time_axis
+                    y = self.isi_distrib_dict[(ID_y, ID_x)]
+                # if not ID_y in self.isi_distrib_dict.keys():
+                #     self.isi_distrib_dict[ID_y] = dict()
 
-                x_values = self.time_axis.copy()
-                y_values = self.isi_distrib_dict[ID_y][ID_x].copy()
+                # if not ID_x in self.isi_distrib_dict[ID_y].keys():
+                #     x, y = self.computeISI(ID_y, ID_x)
+                #     self.isi_distrib_dict[ID_y].update({ID_x: y})
+                #     if self.time_axis is None:
+                #         self.time_axis = x
+
+                x_values = x.copy()
+                y_values = y.copy()
 
                 x_values = x_values * self.box_size / self.max_time
 
