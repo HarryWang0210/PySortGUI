@@ -23,17 +23,23 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
         self.color_palette_list = sns.color_palette('bright', 64)
         self.visible = False  # overall visible
 
-        self.box_size = 1
-        self.border_width = 0.2
-        self.max_time = 0.1
-        self.bin_size = 0.001
+        self.box_size = 1  # size of a barplot
+        self.border_width = 0.2  # space between barplot
+        self.max_time = 0.1  # maximum time in sec of isi distribution
+        self.bin_size = 0.001  # time in sec of isi distribution bin
+
+        # array-like, cache the time axis of computed isi distribution result
+        self.time_axis: np.ndarray = None
+        # a dictionary cache all computed isi distribution result
+        self.isi_distrib_dict = dict()
+
+        # array-like, store the x loc of every barplot start
         self.x_start: np.ndarray = None
+        # array-like, store the y loc of every barplot start
         self.y_start: np.ndarray = None
 
-        self.current_wavs_mask = []
-        self.current_showing_units = []
-
-        self.current_spike_object = None
+        self.current_spike_object: DiscreteData = None  # spike object
+        self.current_showing_units = []  # array-like, store the ID of showing units
 
         self.initPlotItem()
 
@@ -50,31 +56,65 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
         background_color = QColor(*[int(c * 255) for c in background_color])
         self.setBackground(background_color)
 
+        x_axis = self.getAxis('bottom')
+        y_axis = self.getAxis('left')
+        font = QFont('Arial')
+        font.setPixelSize(30)
+        x_axis.setHeight(35)
+        x_axis.setStyle(tickFont=font)
+        x_axis.setTextPen(pg.mkPen(color='w'))
+        y_axis.setStyle(tickFont=font)
+        y_axis.setTextPen(pg.mkPen(color='w'))
+        self.initAxis()
+
+    def initAxis(self):
+        x_axis = self.getAxis('bottom')
+        y_axis = self.getAxis('left')
+        x_axis.setTicks([[(0, '')]])
+        y_axis.setTicks([[(0, '')]])
+
     def data_file_name_changed(self, data):
         self.data_object = data
         self.visible = False
+        self.initAxis()
         self.updatePlot()
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         self.current_spike_object = new_spike_object
 
         self.visible = True
+        # array-like, cache the time axis of computed isi distribution result
+        self.time_axis = None
+        # a dictionary cache all computed isi distribution result
+        self.isi_distrib_dict = dict()
         if self.current_spike_object is None:
             self.visible = False
+            self.initAxis()
             self.updatePlot()
             return
 
-    def showing_units_changed(self, showing_unit_IDs):
+    def showing_units_changed(self, showing_unit_IDs: list):
         self.current_showing_units = sorted(showing_unit_IDs)
-        self.clear()
+        self.barplot_item_list = []
         self.updatePlot()
+        self.plot_item.enableAutoRange()
+
+    def isi_threshold_changed(self, isi_thr: float):
+        under_thr_mask = self.time_axis < isi_thr
+        for barplot_item in self.barplot_item_list:
+            barplot_color = barplot_item.opts['brush']
+            new_color = [(224, 224, 224) if under else barplot_color
+                         for under in under_thr_mask]
+            barplot_item.setOpts(brushes=new_color)
 
     def updatePlot(self):
+        self.clear()
         if self.visible:
             self.drawISI(self.current_showing_units)
 
     def drawISI(self, unit_ID_list: list):
-        mask = None
+        unit_color_map = dict(zip(self.current_spike_object.unit_header['ID'], np.arange(
+            self.current_spike_object.unit_header.shape[0], dtype=int)))
 
         self.x_start = np.arange(len(unit_ID_list)) * \
             (self.box_size+self.border_width)
@@ -84,24 +124,42 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
         for i in range(len(unit_ID_list)):
             ID_y = unit_ID_list[i]
             y_offset = self.y_start[i]
+
+            color = self.color_palette_list[unit_color_map[int(ID_y)]]
+            color = (np.array(color) * 255).astype(int)
+
             for j in range(len(unit_ID_list)):
                 if i > j:
+                    # ignore upper triangular
                     continue
-
                 ID_x = unit_ID_list[j]
                 x_offset = self.x_start[j]
-                logger.debug(f'{ID_y}, {ID_x}')
-                x, y = self.computeISI(ID_y, ID_x)
-                if mask is None:
-                    mask = x < 0.005
-                logger.debug(len(y))
-                x = x * self.box_size / self.max_time
-                y = y * self.box_size / np.max(y)
-                bar1 = pg.BarGraphItem(x0=x + x_offset, width=self.box_size/(self.max_time/self.bin_size),
-                                       y0=y_offset, height=y,
-                                       pen=(0, 0, 0, 0),
-                                       brushes=[(0, 0, 0) if i else (224, 224, 224) for i in mask])
-                self.addItem(bar1)
+
+                if not ID_y in self.isi_distrib_dict.keys():
+                    self.isi_distrib_dict[ID_y] = dict()
+
+                if not ID_x in self.isi_distrib_dict[ID_y].keys():
+                    x, y = self.computeISI(ID_y, ID_x)
+                    self.isi_distrib_dict[ID_y].update({ID_x: y})
+                    if self.time_axis is None:
+                        self.time_axis = x
+
+                x_values = self.time_axis.copy()
+                y_values = self.isi_distrib_dict[ID_y][ID_x].copy()
+
+                x_values = x_values * self.box_size / self.max_time
+
+                if np.max(y_values) == 0:
+                    y_values = np.zeros(len(y_values))
+                else:
+                    y_values = y_values * self.box_size / np.max(y_values)
+
+                bar = pg.BarGraphItem(x0=x_values + x_offset, width=self.box_size/(self.max_time/self.bin_size),
+                                      y0=y_offset, height=y_values,
+                                      pen=(0, 0, 0, 0),
+                                      brush=color)
+                self.barplot_item_list.append(bar)
+                self.addItem(bar)
 
         x_mid = self.x_start + self.box_size / 2
         y_mid = self.y_start + self.box_size / 2
@@ -113,18 +171,10 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
         x_axis.setTicks([x_ticks])
         y_axis.setTicks([y_ticks])
 
-        font = QFont()
-        font.setPixelSize(40)
-        x_axis.setStyle(tickFont=font)
-        x_axis.setHeight(45)
-        y_axis.setStyle(tickFont=font)
-        self.plot_item.enableAutoRange()
-
     def computeISI(self, unit1: int, unit2: int):
         x, y = self.current_spike_object.ISI(list({unit1, unit2}),
                                              t_max=self.max_time,
                                              bin_size=self.bin_size)
-        # x = x * self.box_size / self.max_time
         return x, y
 
     def graphMouseWheelEvent(self, event):
