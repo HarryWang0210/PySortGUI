@@ -159,6 +159,9 @@ class PySortGUI(MainWindowDocks):
             self.children_dict["WaveformsView"].showing_spike_data_changed)
         self.children_dict['UnitOperateTools'].signal_showing_units_changed.connect(
             self.children_dict["WaveformsView"].showing_units_changed)
+
+        self.children_dict['UnitOperateTools'].signal_isi_threshold_changed.connect(
+            self.children_dict["ISIView"].isi_threshold_changed)
         # self.children_dict['UnitOperateTools'].signal_manual_mode_state_changed.connect(
         #     self.children_dict["ClustersView"].manual_mode_state_changed)
 
