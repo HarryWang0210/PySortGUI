@@ -27,6 +27,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
     signal_features_changed = QtCore.pyqtSignal(list)
     # signal_set_feature_on_selection = QtCore.pyqtSignal(bool)
     signal_feature_on_selection_state_changed = QtCore.pyqtSignal(bool)
+    signal_isi_threshold_changed = QtCore.pyqtSignal(float)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -328,13 +329,14 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
                     self.wav_actions_state[object_name][1] = False
 
     def computeUnderISIPercentage(self):
-        time_unit = 0.001  # ms
+        time_unit = 0.001  # sec = 1ms
         thr = self.isi_thr_doubleSpinBox.value() * time_unit
         under_thr_mask = self.isi_result[0] < thr
         result = self.isi_result[1][under_thr_mask].sum() * 100
         self.under_isi_thr_value_label.setText(str(round(result, 1)))
-
+        self.signal_isi_threshold_changed.emit(thr)
     # ==================== Unit Actions ====================
+
     def mergeUnits(self):
         logger.info('Merge Units')
         # TODO: contain unsorted unit, all unit merge warning
