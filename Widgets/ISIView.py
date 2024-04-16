@@ -86,7 +86,7 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
         # array-like, cache the time axis of computed isi distribution result
         self.time_axis = None
         # a dictionary cache all computed isi distribution result
-        self.isi_distrib_dict = dict()
+        self.isi_distrib_dict.clear()
         if self.current_spike_object is None:
             self.visible = False
             self.initAxis()
