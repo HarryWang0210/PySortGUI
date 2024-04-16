@@ -157,9 +157,7 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
 
                 x_values = x_values * self.box_size / self.max_time
 
-                if np.max(y_values) == 0:
-                    y_values = np.zeros(len(y_values))
-                else:
+                with np.errstate(divide='ignore', invalid='ignore'):
                     y_values = y_values * self.box_size / np.max(y_values)
 
                 bar = pg.BarGraphItem(x0=x_values + x_offset, width=self.box_size/(self.max_time/self.bin_size),
