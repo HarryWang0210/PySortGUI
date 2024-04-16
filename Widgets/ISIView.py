@@ -135,20 +135,25 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
                 ID_x = unit_ID_list[j]
                 x_offset = self.x_start[j]
 
-                if not (ID_y, ID_x) in self.isi_distrib_dict.keys():
+                # try use caches
+                y = self.isi_distrib_dict.get((ID_y, ID_x))
+                x = self.time_axis
+
+                if y is None:
+                    # no caches, compute isi
                     x, y = self.computeISI(ID_y, ID_x)
                     self.isi_distrib_dict[(ID_y, ID_x)] = y
                     if self.time_axis is None:
                         self.time_axis = x
-                else:
-                    x = self.time_axis
-                    y = self.isi_distrib_dict[(ID_y, ID_x)]
-                # if not ID_y in self.isi_distrib_dict.keys():
-                #     self.isi_distrib_dict[ID_y] = dict()
 
-                # if not ID_x in self.isi_distrib_dict[ID_y].keys():
+                # if (ID_y, ID_x) in self.isi_distrib_dict.keys():
+                #     # use caches
+                #     x = self.time_axis
+                #     y = self.isi_distrib_dict[(ID_y, ID_x)]
+                # else:
+                #     # no caches, compute isi
                 #     x, y = self.computeISI(ID_y, ID_x)
-                #     self.isi_distrib_dict[ID_y].update({ID_x: y})
+                #     self.isi_distrib_dict[(ID_y, ID_x)] = y
                 #     if self.time_axis is None:
                 #         self.time_axis = x
 
