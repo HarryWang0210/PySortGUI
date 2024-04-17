@@ -35,7 +35,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.raws_header = None
         self.spikes_header = None
         self.events_header = None
-        self.undo_stack_dict = dict()
+        self.undo_stack_dict: dict[tuple[int, str], QUndoStack] = dict()
         self.current_undo_stack: QUndoStack = None
         self.initDataModel()
         self.setupConnections()
@@ -256,26 +256,35 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 self.setLabelCombox(labels=new_raw_object.spikes,
                                     current=label)
 
-            if not self.current_undo_stack is None:
-                self.current_undo_stack.setActive(False)
+            # if not self.current_undo_stack is None:
+            #     self.current_undo_stack.setActive(False)
+            self.current_undo_stack = self.undo_stack_dict.get(
+                (chan_ID, label))
 
-            if not chan_ID in self.undo_stack_dict:
+            if self.current_undo_stack is None:
                 self.current_undo_stack = QUndoStack(
                     self.main_window.undo_group)
-                chan_ID_dict = {label: self.current_undo_stack}
-                self.undo_stack_dict[chan_ID] = chan_ID_dict
+                self.undo_stack_dict[(chan_ID,
+                                      label)] = self.current_undo_stack
 
-            elif not label in self.undo_stack_dict[chan_ID]:
-                self.current_undo_stack = QUndoStack(
-                    self.main_window.undo_group)
-                self.undo_stack_dict[chan_ID][label] = self.current_undo_stack
+            self.current_undo_stack.setActive(True)
+            # if not chan_ID in self.undo_stack_dict:
+            #     self.current_undo_stack = QUndoStack(
+            #         self.main_window.undo_group)
+            #     chan_ID_dict = {label: self.current_undo_stack}
+            #     self.undo_stack_dict[chan_ID] = chan_ID_dict
+
+            # elif not label in self.undo_stack_dict[chan_ID]:
+            #     self.current_undo_stack = QUndoStack(
+            #         self.main_window.undo_group)
+            #     self.undo_stack_dict[chan_ID][label] = self.current_undo_stack
 
             self.current_raw_object = new_raw_object
             self.current_filted_object = new_filted_object
             self.current_spike_object = new_spike_object
             # logger.debug(self.current_undo_stack)
-            self.current_undo_stack = self.undo_stack_dict[chan_ID][label]
-            self.current_undo_stack.setActive(True)
+
+            logger.debug(self.main_window.undo_group.activeStack())
             logger.debug(
                 f'Undostack {chan_ID} {label}: {self.current_undo_stack}')
 
@@ -306,7 +315,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_data_file_name_changed.emit(self.current_data_object)
 
         self.setDataModel()
-        self.undo_stack_dict = dict()
+        self.undo_stack_dict.clear()
 
         # Clear all undo stack
         for undo_stack in self.main_window.undo_group.stacks():
@@ -703,28 +712,31 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             return
         ID_item = row_items[0]
         selecting_label = self.dropSuffix(row_items[1].text())
-        new_selecting_item = None
+        new_selecting_item = None  # To locate the selecting row
         channel_row = ID_item.row()
         spike_group_item = ID_item.parent()
 
         channel_ID = int(self.dropSuffix(ID_item.text()))
+        raw_object = self.current_data_object.getRaw(channel_ID)
+        old_labels = raw_object.spikes
+
         self.current_data_object.saveChannel(channel_ID)
 
-        raw_object = self.current_data_object.getRaw(channel_ID)
-        labels = sorted(raw_object.spikes)
+        new_labels = sorted(raw_object.spikes)
 
         # Modify row items
         spike_group_item.removeRow(channel_row)
-        if len(labels) > 0:
-            spike_object = raw_object.getSpike(labels[0])
+        if len(new_labels) > 0:
+            # has spike, insert new row items
+            spike_object = raw_object.getSpike(new_labels[0])
             first_row_items = self.createRowItems(spike_object)
 
             new_ID_item = first_row_items[0]
-            for label in labels[1:]:
+            for label in new_labels[1:]:
                 spike_object = raw_object.getSpike(label)
                 new_row_items = self.createRowItems(spike_object)
                 new_row_items[0] = QStandardItem('')
-                if new_row_items[1].text() == selecting_label:
+                if label == selecting_label:
                     new_selecting_item = new_row_items[1]
                 new_ID_item.appendRow(new_row_items)
             spike_group_item.insertRow(channel_row, first_row_items)
@@ -733,14 +745,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 new_selecting_item = first_row_items[1]
 
         # Undo stack
-        channel_undo_stack_dict = self.undo_stack_dict[channel_ID]
-        labels_in_undo_stack = list(channel_undo_stack_dict.keys())
-        for label in labels_in_undo_stack:
-            if not label in labels:
-                undo_stack = channel_undo_stack_dict[label]
+        deleted_labels = list(set(old_labels).difference(new_labels))
+        for label in deleted_labels:
+            undo_stack = self.undo_stack_dict.pop((channel_ID, label), None)
+            if not undo_stack is None:
                 self.main_window.undo_group.removeStack(undo_stack)
-                del channel_undo_stack_dict[label]
 
+        # Recovery selection
         if new_selecting_item:
             selection_model = self.treeView.selectionModel()
             selection_model.select(
