@@ -1,7 +1,11 @@
 import logging
+import os
+import re
+from datetime import datetime
+from xml.etree import cElementTree as ET
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 # common Entries
 _FILE_EXTENSIONS = [
@@ -77,7 +81,7 @@ class OpenEphysHeader(BaseModel):
 
     description: str  # '(String describing the header)'
 
-    date_created: str  # 'dd-mm-yyyy hhmmss'
+    date_created: datetime  # 'dd-mm-yyyy hhmmss'
 
     channel: str  # '(String with channel name)'
 
@@ -90,8 +94,16 @@ class OpenEphysHeader(BaseModel):
     bufferSize: int  # 1024
 
     # (floating point value of microvolts/bit for headstage channels, or volts/bit for ADC channels)
-    bitVolts: float | int
+    bitVolts: int | float
 
+    # extend infomation from setting.xml
+    lowCut: int | float = 0
+    highCut: int | float = 0
+    ID: int = 0
+
+    @validator("date_created", pre=True)
+    def parse_date_created(cls, value):
+        return datetime.strptime(value, "%d-%b-%Y %H%M%S")
 
 # def load(filepath, dtype=float):
 
@@ -109,13 +121,16 @@ class OpenEphysHeader(BaseModel):
 #     return data
 
 
-def readHeader(f):
+def readOpenEphysHeader(f) -> OpenEphysHeader:
     header = {}
     h = f.read(1024).decode().replace('\n', '').replace('header.', '')
-    for i, item in enumerate(h.split(';')):
+    for item in h.split(';'):
         if '=' in item:
-            header[item.split(' = ')[0].lstrip().rstrip()] = item.split(
-                ' = ')[1].lstrip("'").rstrip("'")
+            splited_item = item.split(' = ')
+            key = splited_item[0].strip()
+            value = eval(splited_item[1])
+            header[key] = value
+    header = OpenEphysHeader.model_validate(header)
     return header
 
 
@@ -126,91 +141,153 @@ def loadContinuous(file_name, dtype=_CONTINUOUS_RECORD_DTYPE):
 
     print("Loading continuous data...")
 
-    ch = {}
+    data = {}
 
     with open(file_name, 'rb') as in_file:
-        header = OpenEphysHeader.model_validate(readHeader(in_file))
+        header = readOpenEphysHeader(in_file)
         in_file.seek(1024)
         continuous = np.fromfile(in_file, dtype=dtype)
 
-        ch['header'] = header
-        ch['timestamps'] = continuous['timestamp']
+        if re.findall(r'(^[0-9]+)_', os.path.basename(file_name)):
+            pid = int(re.findall(r'(^[0-9]+)_',
+                                 os.path.basename(file_name))[0])
+
+        # get extend infomation
+        xml_file = 'settings.xml'
+        file_path = os.path.split(file_name)[0]
+        xml_file = os.path.join(file_path, xml_file)
+
+        root = None
+        if os.path.isfile(xml_file):
+            root = ET.parse(xml_file).getroot()
+        #     else:
+        #         return header
+
+        if pid is not None:
+            search = ".//PROCESSOR[@NodeId='{}']/EDITOR".format(pid)
+            finfo = root.findall(search)[0].attrib
+            header.lowCut = float(finfo['LowCut'])
+            header.highCut = float(finfo['HighCut'])
+            search = ".//PROCESSOR[@NodeId='{}']/CHANNEL_INFO/CHANNEL[@name='{}']".format(
+                pid, header.channel)
+            chinfo = root.findall(search)[0].attrib
+            header.ID = int(chinfo['number'])
+
+        data.update({
+            'header': header,
+            'data': continuous['records'].flatten()
+        })
+        # ch['timestamps'] = continuous['timestamp']
         # OR use downsample(samples,1), to save space
-        ch['data'] = continuous['records'].flatten()
-        ch['recordingNumber'] = continuous['rnumber']
+        # ch['recordingNumber'] = continuous['rnumber']
 
         # continuous = continuous['records'].flatten()
-    return ch
-    # # read in the data
-    # f = open(filepath, 'rb')
+    return data
 
-    # fileLength = os.fstat(f.fileno()).st_size
 
-    # # calculate number of samples
-    # recordBytes = fileLength - NUM_HEADER_BYTES
-    # if recordBytes % RECORD_SIZE != 0:
-    #     raise Exception(
-    #         "File size is not consistent with a continuous file: may be corrupt")
-    # nrec = recordBytes // RECORD_SIZE
-    # nsamp = nrec * SAMPLES_PER_RECORD
-    # # pre-allocate samples
-    # samples = np.zeros(nsamp, dtype)
-    # timestamps = np.zeros(nrec)
-    # recordingNumbers = np.zeros(nrec)
-    # indices = np.arange(0, nsamp + 1, SAMPLES_PER_RECORD, np.dtype(np.int64))
+def loadEvents(file_name, dtype=_EVENT_RECORD_DTYPE):
+    data = {}
 
-    # header = readHeader(f)
+    print('loading events...')
+    time_first_point = _getTimeFirstPoint(file_name)
 
-    # recIndices = np.arange(0, nrec)
+    with open(file_name, 'rb') as in_file:
+        header = readOpenEphysHeader(in_file)
+        in_file.seek(1024)
+        events = np.fromfile(in_file, dtype=dtype)
 
-    # for recordNumber in recIndices:
+        banks = events['processorid']
 
-    #     timestamps[recordNumber] = np.fromfile(f, np.dtype(
-    #         '<i8'), 1)  # little-endian 64-bit signed integer
-    #     # little-endian 16-bit unsigned integer
-    #     N = np.fromfile(f, np.dtype('<u2'), 1)[0]
+        # generating different events data for banks
+        # for bank, header_bank in zip(np.unique(banks), header[1:]):
+        for bank in np.unique(banks):
+            units = []
+            units_name = []
+            # generating units for Event
+            ev_per_bank = events[banks == bank]
+            # getting  timestamps
+            ts = ev_per_bank['timestamp'] - time_first_point
+            # trying to compress data
+            if ts.max() < 2**32 - 1:
+                ts = ts.astype(np.int32)
+            channels = ev_per_bank['channel']
+            types = ev_per_bank['eventtype']
+            stati = ev_per_bank['eventid']
+            stati_word = ['Off', 'On']
+            # separating units by channel, type and id (0 or 1)
+            for channel in np.unique(channels):
+                for type_ in np.unique(types):
+                    for status in np.unique(stati):
+                        units_ind = (channel == channels) & \
+                            (type_ == types) & \
+                            (status == stati)
+                        units_ind = np.where(units_ind)[0]
+                        if units_ind.size > 0:
+                            units += [units_ind]
+                            units_name += ["Chan_{:02d}_{}_{}".format(
+                                channel, type_, stati_word[status])]
 
-    #     # print index
+        # continuous = continuous['records'].flatten()
+        data.update({
+            'header': header,
+            'timestamps': ts,
+            'index': units,
+            'units_name': units_name
+        })
+    return data
 
-    #     if N != SAMPLES_PER_RECORD:
-    #         raise Exception(
-    #             'Found corrupted record in block ' + str(recordNumber))
 
-    #     # big-endian 16-bit unsigned integer
-    #     recordingNumbers[recordNumber] = (np.fromfile(f, np.dtype('>u2'), 1))
+def _getTimeFirstPoint(file_name):
+    '''
+    Finds the time of first point for openephys data
+    :param file_name:
+    :type file_name:
+    '''
 
-    #     if dtype == float:  # Convert data to float array and convert bits to voltage.
-    #         # big-endian 16-bit signed integer, multiplied by bitVolts
-    #         data = np.fromfile(f, np.dtype('>i2'), N) * \
-    #             float(header['bitVolts'])
-    #     else:  # Keep data in signed 16 bit integer format.
-    #         # big-endian 16-bit signed integer
-    #         data = np.fromfile(f, np.dtype('>i2'), N)
-    #     samples[indices[recordNumber]:indices[recordNumber+1]] = data
+    # trying to find messages.events
+    location = os.path.split(file_name)[0]
+    _, ext = os.path.splitext(file_name)
 
-    #     marker = f.read(10)  # dump
+    msg_ev_file = os.path.join(location, 'messages.events')
+    if os.path.isfile(msg_ev_file):
+        with open(msg_ev_file, 'r') as text_file:
+            search = re.search(r'start time: (\d+)@', text_file.read())
+            if search is not None:
+                return int(search.group(1))
 
-    # # print recordNumber
-    # # print index
+    if os.stat(file_name).st_size <= 1024:
+        return
 
-    # ch['header'] = header
-    # ch['timestamps'] = timestamps
-    # ch['data'] = samples  # OR use downsample(samples,1), to save space
-    # ch['recordingNumber'] = recordingNumbers
-    # f.close()
-    return ch
+    if ext == '.continuous':
+        with open(file_name, 'r') as data_file:
+            data_map = np.memmap(
+                data_file, _CONTINUOUS_RECORD_DTYPE, 'r', 1024)
+            return data_map[0]['timestamp']
+
+    if ext == '.events':
+        with open(file_name, 'r') as data_file:
+            data_map = np.memmap(
+                data_file, _EVENT_RECORD_DTYPE, 'r', 1024)
+            # pdb.set_trace()
+            return data_map[0][0]
+
+    if ext == '.spikes':
+        with open(file_name, 'r') as data_file:
+            data_map = np.memmap(
+                data_file, _SPIKE_RECORD_DTYPE, 'r', 1024)
+            return data_map[0][1]
 
 
 if __name__ == '__main__':
-    data = loadContinuous(
-        r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref\100_CH1.continuous')
+    data = loadEvents(
+        r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\all_channels.events')
     # print(data)
+    # data = loadContinuous(
+    #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref\100_CH2.continuous')
 
-    for k, v in data.items():
-        print(k)
-        print(v)
-        print(type(v))
-        # print(len(v))
+    print(data)
+
+    # print(len(v))
     # a = {'format': "'Open Ephys Data Format'", ' version': '0.4', ' header_bytes': '1024',
     #      'description': "'each record contains one 64-bit timestamp, one 16-bit sample count (N), 1 uint16 recordingNumber, N 16-bit samples, and one 10-byte record marker (0 1 2 3 4 5 6 7 8 255)'", ' date_created': "'17-Jun-2020 170748'", 'channel': "'CH1'", 'channelType': "'Continuous'", 'sampleRate': '30000', 'blockLength': '1024', 'bufferSize': '1024', 'bitVolts': '0.195'}
     # b = {'format': "'Open Ephys Data Format'"}
