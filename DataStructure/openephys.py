@@ -5,7 +5,10 @@ from datetime import datetime
 from xml.etree import cElementTree as ET
 
 import numpy as np
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
+
+from header_class import (EventsHeader, FileHeader, RawsHeader,
+                          SpikesHeader)
 
 # common Entries
 _FILE_EXTENSIONS = [
@@ -101,7 +104,7 @@ class OpenEphysHeader(BaseModel):
     highCut: int | float = 0
     ID: int = 0
 
-    @validator("date_created", pre=True)
+    @field_validator("date_created", mode="before")
     def parse_date_created(cls, value):
         return datetime.strptime(value, "%d-%b-%Y %H%M%S")
 
@@ -134,14 +137,14 @@ def readOpenEphysHeader(f) -> OpenEphysHeader:
     return header
 
 
-def loadContinuous(file_name, dtype=_CONTINUOUS_RECORD_DTYPE):
+def loadContinuous(file_name, dtype=_CONTINUOUS_RECORD_DTYPE) -> tuple[OpenEphysHeader, np.ndarray]:
 
     # assert dtype in (float, np.int16), \
     #     'Invalid data type specified for loadContinous, valid types are float and np.int16'
 
     print("Loading continuous data...")
 
-    data = {}
+    # data = {}
 
     with open(file_name, 'rb') as in_file:
         header = readOpenEphysHeader(in_file)
@@ -173,16 +176,50 @@ def loadContinuous(file_name, dtype=_CONTINUOUS_RECORD_DTYPE):
             chinfo = root.findall(search)[0].attrib
             header.ID = int(chinfo['number'])
 
-        data.update({
-            'header': header,
-            'data': continuous['records'].flatten()
-        })
-        # ch['timestamps'] = continuous['timestamp']
-        # OR use downsample(samples,1), to save space
-        # ch['recordingNumber'] = continuous['rnumber']
+        data = continuous['records'].flatten()
 
-        # continuous = continuous['records'].flatten()
-    return data
+    # create FileHeader
+    file_header = FileHeader(FullFileName=file_name,
+                             DateTime=header.date_created,
+                             RecordingSystem='OpenEphys',
+                             HeaderLength=1024,
+                             FileMajorVersion=int(
+                                 str(header.version).split('.')[0]),
+                             FileMinorVersion=int(
+                                 str(header.version).split('.')[1]),
+                             NumChannels=1,
+                             )
+
+    if header.bitVolts == 0.195:
+        SigUnits = 'uV'
+        MaxAnalogValue = 5000
+        MinAnalogValue = -5000
+        MaxDigValue = 2**15 - 1
+        MinDigValue = -2**15
+    else:
+        SigUnits = 'V'
+        MaxAnalogValue = 5
+        MinAnalogValue = -5
+        MaxDigValue = 2**15 - 1
+        MinDigValue = -2**15
+
+    raws_header = RawsHeader(ADC=header.bitVolts,
+                             Bank=pid,
+                             ID=header.ID,
+                             Pin=header.ID,
+                             Name=header.channel,
+                             SigUnits=SigUnits,
+
+                             HighCutOff=header.highCut,
+                             LowCutOff=header.lowCut,
+                             MaxAnalogValue=MaxAnalogValue,
+                             MinAnalogValue=MinAnalogValue,
+                             MaxDigValue=MaxDigValue,
+                             MinDigValue=MinDigValue,
+                             NumRecords=len(data),
+                             SamplingFreq=header.sampleRate,
+                             )
+    return (file_header, raws_header, data)
 
 
 def loadEvents(file_name, dtype=_EVENT_RECORD_DTYPE):
@@ -201,7 +238,7 @@ def loadEvents(file_name, dtype=_EVENT_RECORD_DTYPE):
         # generating different events data for banks
         # for bank, header_bank in zip(np.unique(banks), header[1:]):
         for bank in np.unique(banks):
-            units = []
+            index = []
             units_name = []
             # generating units for Event
             ev_per_bank = events[banks == bank]
@@ -223,18 +260,36 @@ def loadEvents(file_name, dtype=_EVENT_RECORD_DTYPE):
                             (status == stati)
                         units_ind = np.where(units_ind)[0]
                         if units_ind.size > 0:
-                            units += [units_ind]
+                            index += [units_ind]
                             units_name += ["Chan_{:02d}_{}_{}".format(
                                 channel, type_, stati_word[status])]
 
-        # continuous = continuous['records'].flatten()
-        data.update({
-            'header': header,
-            'timestamps': ts,
-            'index': units,
-            'units_name': units_name
-        })
-    return data
+    file_header = FileHeader(FullFileName=file_name,
+                             DateTime=header.date_created,
+                             RecordingSystem='OpenEphys',
+                             HeaderLength=1024,
+                             FileMajorVersion=int(
+                                 str(header.version).split('.')[0]),
+                             FileMinorVersion=int(
+                                 str(header.version).split('.')[1]),
+                             NumChannels=1,
+                             )
+
+    for bank in np.unique(banks):
+        events_headers: list[EventsHeader] = []
+        events_header = EventsHeader(ADC=header.bitVolts,
+                                     Bank=bank,
+                                     ID=bank,
+                                     Name=header.channel,
+                                     SigUnits='ticks',
+
+                                     NumRecords=np.sum(banks == bank),
+                                     NumUnits=len(units_name),
+                                     SamplingFreq=header.sampleRate,
+                                     )
+        events_headers.append(events_header)
+
+    return (file_header, events_headers, ts, index, units_name)
 
 
 def _getTimeFirstPoint(file_name):
@@ -285,7 +340,8 @@ if __name__ == '__main__':
     # data = loadContinuous(
     #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref\100_CH2.continuous')
 
-    print(data)
+    file_header, events_headers, ts, index, units_name = data
+    print(events_headers[0])
 
     # print(len(v))
     # a = {'format': "'Open Ephys Data Format'", ' version': '0.4', ' header_bytes': '1024',
