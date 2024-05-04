@@ -102,15 +102,20 @@ class FileHeader(BaseModel):
 class BaseHeader(BaseModel):
     ADC: int | float
     Bank: int
+    ID: int
+    Name: str
+    SamplingFreq: int
+    SigUnits: str
+
+    Pin: int = 0
+    ElectrodeImpedance: float = .0
+    H5FileName: str = ''
+    H5Location: str = ''
+    H5Name: str = ''
     Comment: str = ''
-    ElectrodeImpedance: float
-    H5FileName: str
-    H5Location: str
-    H5Name: str
     HighCutOff: int | float = 0
     HighCutOffOrder: int = 0
     HighCutOffType: str = ''
-    ID: int
     LowCutOff: int | float = 0
     LowCutOffOrder: int = 0
     LowCutOffType: str = ''
@@ -118,14 +123,10 @@ class BaseHeader(BaseModel):
     MaxDigValue: int = 0
     MinAnalogValue: int = 0
     MinDigValue: int = 0
-    Name: str
     NotchFilterFrequ: float = .0
     NotchFilterOrder: int = 0
     NotchFilterType: str = ''
     NumRecords: int = 0
-    Pin: int
-    SamplingFreq: int
-    SigUnits: str
     Threshold: int | float = 0
     TimeFirstPoint: int = 0
     Type: str
@@ -137,8 +138,12 @@ class RawsHeader(BaseHeader):
 
 class EventsHeader(BaseHeader):
     Type: str = 'Events'
-    NumEvents: int = 0
     NumUnits: int = 0
+
+    @computed_field
+    @property
+    def NumEvents(self) -> int:
+        return self.NumUnits
 
 
 class SpikesHeader(BaseHeader):
