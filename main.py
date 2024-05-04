@@ -18,7 +18,6 @@ from PyQt5 import QtCore, QtWidgets
 
 # Load Widgets
 from MainWindowDocks import MainWindowDocks
-from DataStructure.data import SpikeSorterData
 
 logging.basicConfig(
     level=logging.DEBUG,
