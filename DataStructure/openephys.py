@@ -7,12 +7,12 @@ from xml.etree import cElementTree as ET
 import numpy as np
 from pydantic import BaseModel, field_validator
 
-from header_class import (EventsHeader, FileHeader, RawsHeader,
-                          SpikesHeader)
+from .header_class import (EventsHeader, FileHeader, RawsHeader,
+                           SpikesHeader)
 
 # common Entries
 _FILE_EXTENSIONS = [
-    # '.spikes',
+    '.spikes',
     '.continuous',
     '.events',
     '.xml',
@@ -124,65 +124,132 @@ class OpenEphysHeader(BaseModel):
 #     return data
 
 
-def readOpenEphysHeader(f) -> OpenEphysHeader:
+def getFilesInFolder(dir_path: str):
+    file_list = [os.path.join(dir_path, file_name)
+                 for file_name in os.listdir(dir_path)]
+    files = []
+    for file_path in file_list:
+        ext = os.path.splitext(file_path)[1]
+        if ext in _FILE_EXTENSIONS:
+            if not os.path.basename(file_path) in _NON_DATA_FILES:
+                files.append(file_path)
+
+    return files
+
+
+def loadOpenephysHeader(file_list: list[str]):
+    """Load header of given Openephys format files as Pyephys format
+
+    Args:
+        file_list (list[str]): file path list.
+
+    Returns:
+        dict: Pyephys format headers
+        {
+            'FileHeader': [FileHeader_dict, ...],
+            'RawsHeader': [(file path, RawsHeader_dict), ...],
+            'EventsHeader': [(file path, EventsHeader_dict), ...],
+        }
+    """
+    file_headers: list[dict] = []
+    raws_headers: list[tuple[str, dict]] = []
+    events_headers: list[tuple[str, dict]] = []
+    spikes_headers: list[tuple[str, dict]] = []
+    for file_path in file_list:
+        ext = os.path.splitext(file_path)[1]
+        if ext in _FILE_EXTENSIONS:
+            if os.path.basename(file_path) in _NON_DATA_FILES:
+                continue
+
+        if ext == '.continuous':
+            file_header, raws_header = loadContinuousHeader(file_path)
+            file_headers.append(file_header.model_dump())
+            raws_headers.append((file_path, raws_header.model_dump()))
+
+        if ext == '.events':
+            file_header, events_header = loadEventsHeader(file_path)
+            file_headers.append(file_header.model_dump())
+            events_headers += [(file_path, header.model_dump())
+                               for header in events_header]
+
+        if ext == '.spikes':
+            logger.warn('Not support load .spike files.')
+
+    data = {}
+    if file_headers:
+        data['FileHeader'] = file_headers
+    if raws_headers:
+        data['RawsHeader'] = raws_headers
+    if events_headers:
+        data['EventsHeader'] = events_headers
+    if spikes_headers:
+        data['SpikesHeader'] = spikes_headers
+
+    return data
+
+
+def readOpenEphysHeader(file_name: str) -> OpenEphysHeader:
+    """Read OpenEphysHeader
+
+    Args:
+        file_name (str): _description_
+
+    Returns:
+        OpenEphysHeader: _description_
+    """
     header = {}
-    h = f.read(1024).decode().replace('\n', '').replace('header.', '')
-    for item in h.split(';'):
-        if '=' in item:
-            splited_item = item.split(' = ')
-            key = splited_item[0].strip()
-            value = eval(splited_item[1])
-            header[key] = value
+    with open(file_name, 'rb') as f:
+        h = f.read(1024).decode().replace('\n', '').replace('header.', '')
+        for item in h.split(';'):
+            if '=' in item:
+                splited_item = item.split(' = ')
+                key = splited_item[0].strip()
+                value = eval(splited_item[1])
+                header[key] = value
     header = OpenEphysHeader.model_validate(header)
     return header
 
 
-def loadContinuous(file_name, dtype=_CONTINUOUS_RECORD_DTYPE) -> tuple[OpenEphysHeader, np.ndarray]:
+def loadContinuousHeader(file_name: str, dtype=_CONTINUOUS_RECORD_DTYPE) -> tuple[FileHeader, RawsHeader]:
+    """Load header of given Openephys continuous format file, and convert to Pyephys format.
 
-    # assert dtype in (float, np.int16), \
-    #     'Invalid data type specified for loadContinous, valid types are float and np.int16'
+    Args:
+        file_name (str): _description_
+        dtype (_type_, optional): _description_. Defaults to _CONTINUOUS_RECORD_DTYPE.
 
-    print("Loading continuous data...")
+    Returns:
+        tuple[FileHeader, RawsHeader]: _description_
+    """
+    header = readOpenEphysHeader(file_name)
 
-    # data = {}
-
-    with open(file_name, 'rb') as in_file:
-        header = readOpenEphysHeader(in_file)
-        in_file.seek(1024)
-        continuous = np.fromfile(in_file, dtype=dtype)
-
-        if re.findall(r'(^[0-9]+)_', os.path.basename(file_name)):
-            pid = int(re.findall(r'(^[0-9]+)_',
-                                 os.path.basename(file_name))[0])
+    if re.findall(r'(^[0-9]+)_', os.path.basename(file_name)):
+        pid = int(re.findall(r'(^[0-9]+)_',
+                             os.path.basename(file_name))[0])
 
         # get extend infomation
-        xml_file = 'settings.xml'
-        file_path = os.path.split(file_name)[0]
-        xml_file = os.path.join(file_path, xml_file)
+    xml_file = 'settings.xml'
+    file_path = os.path.split(file_name)[0]
+    xml_file = os.path.join(file_path, xml_file)
 
-        root = None
-        if os.path.isfile(xml_file):
-            root = ET.parse(xml_file).getroot()
-        #     else:
-        #         return header
+    root = None
+    if os.path.isfile(xml_file):
+        root = ET.parse(xml_file).getroot()
 
-        if pid is not None:
-            search = ".//PROCESSOR[@NodeId='{}']/EDITOR".format(pid)
-            finfo = root.findall(search)[0].attrib
-            header.lowCut = float(finfo['LowCut'])
-            header.highCut = float(finfo['HighCut'])
-            search = ".//PROCESSOR[@NodeId='{}']/CHANNEL_INFO/CHANNEL[@name='{}']".format(
-                pid, header.channel)
-            chinfo = root.findall(search)[0].attrib
-            header.ID = int(chinfo['number'])
-
-        data = continuous['records'].flatten()
+    if pid is not None:
+        search = ".//PROCESSOR[@NodeId='{}']/EDITOR".format(pid)
+        finfo = root.findall(search)[0].attrib
+        header.lowCut = float(finfo['LowCut'])
+        header.highCut = float(finfo['HighCut'])
+        search = ".//PROCESSOR[@NodeId='{}']/CHANNEL_INFO/CHANNEL[@name='{}']".format(
+            pid, header.channel)
+        chinfo = root.findall(search)[0].attrib
+        header.ID = int(chinfo['number'])
 
     # create FileHeader
     file_header = FileHeader(FullFileName=file_name,
                              DateTime=header.date_created,
                              RecordingSystem='OpenEphys',
-                             HeaderLength=1024,
+                             HeaderLength=NUM_HEADER_BYTES,
                              FileMajorVersion=int(
                                  str(header.version).split('.')[0]),
                              FileMinorVersion=int(
@@ -203,6 +270,17 @@ def loadContinuous(file_name, dtype=_CONTINUOUS_RECORD_DTYPE) -> tuple[OpenEphys
         MaxDigValue = 2**15 - 1
         MinDigValue = -2**15
 
+    # try:
+    #     sample_data = np.memmap(file_name, offset=NUM_HEADER_BYTES,
+    #                             dtype=dtype)
+    # except:
+    #     logger.warning(
+    #         'Size of available data is not a multiple of the data-type size')
+    #     n_records = int(os.stat(file_name).st_size /
+    #                     dtype.itemsize)
+    #     sample_data = np.memmap(file_name, offset=NUM_HEADER_BYTES,
+    #                             dtype=dtype, shape=(n_records, 1))
+
     raws_header = RawsHeader(ADC=header.bitVolts,
                              Bank=pid,
                              ID=header.ID,
@@ -216,27 +294,102 @@ def loadContinuous(file_name, dtype=_CONTINUOUS_RECORD_DTYPE) -> tuple[OpenEphys
                              MinAnalogValue=MinAnalogValue,
                              MaxDigValue=MaxDigValue,
                              MinDigValue=MinDigValue,
-                             NumRecords=len(data),
+                             #  NumRecords=len(data),
                              SamplingFreq=header.sampleRate,
                              )
-    return (file_header, raws_header, data)
+    return (file_header, raws_header)
 
 
-def loadEvents(file_name, dtype=_EVENT_RECORD_DTYPE):
+def loadEventsHeader(file_name: str, dtype=_EVENT_RECORD_DTYPE) -> tuple[FileHeader, list[EventsHeader]]:
+    """Load header of given Openephys events format file, and convert to Pyephys format.
+
+    Args:
+        file_name (str): _description_
+        dtype (_type_, optional): _description_. Defaults to _EVENT_RECORD_DTYPE.
+
+    Returns:
+        tuple[FileHeader, list[EventsHeader]]: _description_
+    """
+    header = readOpenEphysHeader(file_name)
+    events = np.memmap(file_name, dtype=dtype, offset=NUM_HEADER_BYTES)
+
+    # events = np.fromfile(in_file, dtype=dtype)
+
+    banks = events['processorid']
+    del events
+    file_header = FileHeader(FullFileName=file_name,
+                             DateTime=header.date_created,
+                             RecordingSystem='OpenEphys',
+                             HeaderLength=NUM_HEADER_BYTES,
+                             FileMajorVersion=int(
+                                 str(header.version).split('.')[0]),
+                             FileMinorVersion=int(
+                                 str(header.version).split('.')[1]),
+                             NumChannels=1,
+                             )
+    events_headers: list[EventsHeader] = []
+    # generating different events data for banks
+    for bank in np.unique(banks):
+        events_header = EventsHeader(ADC=header.bitVolts,
+                                     Bank=bank,
+                                     ID=bank,
+                                     Name=header.channel,
+                                     SigUnits='ticks',
+
+                                     NumRecords=np.sum(banks == bank),
+                                     #  NumUnits=len(units_name),
+                                     SamplingFreq=header.sampleRate,
+                                     )
+        events_headers.append(events_header)
+
+    return (file_header, events_headers)
+
+
+def loadContinuous(file_name: str, dtype=_CONTINUOUS_RECORD_DTYPE) -> np.ndarray:
+    """Load data of given Openephys continuous format file.
+
+    Args:
+        file_name (str): _description_
+        dtype (_type_, optional): _description_. Defaults to _CONTINUOUS_RECORD_DTYPE.
+
+    Returns:
+        np.ndarray: data
+    """
+
+    logger.info("Loading continuous data...")
+
+    with open(file_name, 'rb') as in_file:
+        in_file.seek(NUM_HEADER_BYTES)
+        continuous = np.fromfile(in_file, dtype=dtype)
+        data = continuous['records'].flatten()
+
+    return data
+
+
+def loadEvents(file_name: str, dtype=_EVENT_RECORD_DTYPE) -> dict[int, list[tuple[str, np.ndarray, np.ndarray]]]:
+    """Load data of given Openephys events format file.
+
+    Args:
+        file_name (str): _description_
+        dtype (_type_, optional): _description_. Defaults to _EVENT_RECORD_DTYPE.
+
+    Returns:
+        dict[int, list[tuple[str, np.ndarray, np.ndarray]]]: (unit name, timestamps, index) of each event unit by bank.
+        {
+            bank0: [(unit name, timestamps, index), ...], ...
+        }
+    """
+    logger.info('loading events...')
     data = {}
-
-    print('loading events...')
     time_first_point = _getTimeFirstPoint(file_name)
 
     with open(file_name, 'rb') as in_file:
-        header = readOpenEphysHeader(in_file)
-        in_file.seek(1024)
+        in_file.seek(NUM_HEADER_BYTES)
         events = np.fromfile(in_file, dtype=dtype)
 
         banks = events['processorid']
 
         # generating different events data for banks
-        # for bank, header_bank in zip(np.unique(banks), header[1:]):
         for bank in np.unique(banks):
             index = []
             units_name = []
@@ -264,35 +417,12 @@ def loadEvents(file_name, dtype=_EVENT_RECORD_DTYPE):
                             units_name += ["Chan_{:02d}_{}_{}".format(
                                 channel, type_, stati_word[status])]
 
-    file_header = FileHeader(FullFileName=file_name,
-                             DateTime=header.date_created,
-                             RecordingSystem='OpenEphys',
-                             HeaderLength=1024,
-                             FileMajorVersion=int(
-                                 str(header.version).split('.')[0]),
-                             FileMinorVersion=int(
-                                 str(header.version).split('.')[1]),
-                             NumChannels=1,
-                             )
+            data[bank] = list(zip(units_name, ts, index))
 
-    for bank in np.unique(banks):
-        events_headers: list[EventsHeader] = []
-        events_header = EventsHeader(ADC=header.bitVolts,
-                                     Bank=bank,
-                                     ID=bank,
-                                     Name=header.channel,
-                                     SigUnits='ticks',
-
-                                     NumRecords=np.sum(banks == bank),
-                                     NumUnits=len(units_name),
-                                     SamplingFreq=header.sampleRate,
-                                     )
-        events_headers.append(events_header)
-
-    return (file_header, events_headers, ts, index, units_name)
+    return data
 
 
-def _getTimeFirstPoint(file_name):
+def _getTimeFirstPoint(file_name: str) -> int | float:
     '''
     Finds the time of first point for openephys data
     :param file_name:
@@ -310,38 +440,40 @@ def _getTimeFirstPoint(file_name):
             if search is not None:
                 return int(search.group(1))
 
-    if os.stat(file_name).st_size <= 1024:
+    if os.stat(file_name).st_size <= NUM_HEADER_BYTES:
         return
 
     if ext == '.continuous':
         with open(file_name, 'r') as data_file:
             data_map = np.memmap(
-                data_file, _CONTINUOUS_RECORD_DTYPE, 'r', 1024)
+                data_file, _CONTINUOUS_RECORD_DTYPE, 'r', NUM_HEADER_BYTES)
             return data_map[0]['timestamp']
 
     if ext == '.events':
         with open(file_name, 'r') as data_file:
             data_map = np.memmap(
-                data_file, _EVENT_RECORD_DTYPE, 'r', 1024)
+                data_file, _EVENT_RECORD_DTYPE, 'r', NUM_HEADER_BYTES)
             # pdb.set_trace()
             return data_map[0][0]
 
     if ext == '.spikes':
         with open(file_name, 'r') as data_file:
             data_map = np.memmap(
-                data_file, _SPIKE_RECORD_DTYPE, 'r', 1024)
+                data_file, _SPIKE_RECORD_DTYPE, 'r', NUM_HEADER_BYTES)
             return data_map[0][1]
 
 
 if __name__ == '__main__':
-    data = loadEvents(
-        r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\all_channels.events')
+    pass
+    # data = loadEvents(
+    #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\all_channels.events')
     # print(data)
-    # data = loadContinuous(
+    # data = loadContinuousHeader(
     #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref\100_CH2.continuous')
-
-    file_header, events_headers, ts, index, units_name = data
-    print(events_headers[0])
+    # file_list = getFilesInFolder(
+    #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref')
+    # data = loadOpenephysHeader(file_list)
+    # file_header, events_headers, ts, index, units_name = data
 
     # print(len(v))
     # a = {'format': "'Open Ephys Data Format'", ' version': '0.4', ' header_bytes': '1024',
