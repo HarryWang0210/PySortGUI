@@ -29,11 +29,11 @@ class FileHeader(BaseModel):
     FileCtime: float = Field(default=.0, validate_default=True)
     FileMtime: float = Field(default=.0, validate_default=True)
 
-    @field_validator('FullFileName', mode='before')
-    def parseFullFileName(cls, v, header: FieldValidationInfo):
-        if os.path.isfile(v):
-            return os.path.abspath(v)
-        return v
+    # @field_validator('FullFileName', mode='before')
+    # def parseFullFileName(cls, v, header: FieldValidationInfo):
+    #     if os.path.isfile(v):
+    #         return os.path.abspath(v)
+    #     return v
 
     @computed_field
     @property
