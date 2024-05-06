@@ -283,33 +283,6 @@ class SpikeSorterData(object):
 
 
 class ContinuousData(object):
-    # def __new__(cls, input_array=None, filename: str = '', header: dict = dict(), data_type: str = 'Filted'):
-    #     """_summary_
-
-    #     Args:
-    #         input_array (array-like, optional): _description_. Defaults to [].
-    #         filename (str, optional): _description_. Defaults to ''.
-    #         header (dict, optional): _description_. Defaults to dict().
-    #         data_type (str, optional): 'Raw' | 'Filted'. Defaults to 'Filted'.
-
-    #     Returns:
-    #         ContinuousData: _description_
-    #     """
-    #     # Input array is an already formed ndarray instance
-    #     # We first cast to be our class type
-    #     obj = np.asarray(input_array).view(cls)
-    #     # add the new attribute to the created instance
-    #     obj._header = header.copy()
-    #     # obj._header = header.copy()
-    #     obj._data_type = data_type
-    #     obj._filename = filename
-    #     obj._data_loaded = False
-    #     if (not input_array is None) and (len(input_array) != 0):
-    #         obj._data_loaded = True
-
-    #     # Finally, we must return the newly created object:
-    #     return obj
-
     def __init__(self, input_array: np.ndarray = [], filename: str = '', header: dict = dict(), data_type: str = 'Filted'):
         super().__init__()
         self._data = np.asarray(input_array)
