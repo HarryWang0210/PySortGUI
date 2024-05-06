@@ -173,7 +173,7 @@ def loadOpenephysHeader(file_list: list[str]):
                                for header in events_header]
 
         if ext == '.spikes':
-            logger.warn('Not support load .spike files.')
+            logger.warning('Not support load .spike files.')
 
     data = {}
     if file_headers:

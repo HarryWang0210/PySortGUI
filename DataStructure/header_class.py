@@ -62,7 +62,7 @@ class FileHeader(BaseModel):
         file_name = header.data['FullFileName']
         if os.path.isfile(file_name):
             return os.path.getsize(file_name)
-        logger.warn('Not able to set FileSize for the file')
+        logger.warning('Not able to set FileSize for the file')
         return 0
 
     @field_validator('FileAtime')
@@ -73,7 +73,7 @@ class FileHeader(BaseModel):
         file_name = header.data['FullFileName']
         if os.path.isfile(file_name):
             return os.path.getatime(file_name)
-        logger.warn('Not able to set FileAtime for the file')
+        logger.warning('Not able to set FileAtime for the file')
         return .0
 
     @field_validator('FileCtime')
@@ -84,7 +84,7 @@ class FileHeader(BaseModel):
         file_name = header.data['FullFileName']
         if os.path.isfile(file_name):
             return os.path.getctime(file_name)
-        logger.warn('Not able to set FileCtime for the file')
+        logger.warning('Not able to set FileCtime for the file')
         return .0
 
     @field_validator('FileMtime')
@@ -95,7 +95,7 @@ class FileHeader(BaseModel):
         file_name = header.data['FullFileName']
         if os.path.isfile(file_name):
             return os.path.getmtime(file_name)
-        logger.warn('Not able to set FileMtime for the file')
+        logger.warning('Not able to set FileMtime for the file')
         return .0
 
 

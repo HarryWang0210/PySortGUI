@@ -96,7 +96,7 @@ class SpikeSorterData(object):
     def _createRawsData(self):
         raws_header = self._headers.get('RawsHeader')
         if raws_header is None:
-            logger.warn('Can not load raws data')
+            logger.warning('Can not load raws data')
             return
 
         for file_path, header in raws_header:
@@ -108,7 +108,7 @@ class SpikeSorterData(object):
     def _createSpikesData(self):
         spikes_header = self._headers.get('SpikesHeader')
         if spikes_header is None:
-            logger.warn('Can not load spikes data')
+            logger.warning('Can not load spikes data')
             return
 
         for file_path, header in spikes_header:
@@ -123,7 +123,7 @@ class SpikeSorterData(object):
     def _createEventsData(self):
         events_header = self._headers.get('EventsHeader')
         if events_header is None:
-            logger.warn('Can not load events data')
+            logger.warning('Can not load events data')
             return
 
         for file_path, header in events_header:
