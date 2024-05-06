@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ from .FunctionsLib.DiscreteSignalLib import ISI, firing_rate
 from .FunctionsLib.SignalProcessing import design_and_filter
 from .FunctionsLib.Sorting import auto_sort
 from .FunctionsLib.ThresholdOperations import extract_waveforms
+from .openephys import loadContinuous, loadEvents, loadOpenephysHeader, getFilesInFolder
 from .pyephysv3 import (deleteSpikes, loadPyephys, loadRaws, loadSpikes,
                         saveSpikes, saveSpikesHeader)
 
@@ -18,22 +20,43 @@ logger = logging.getLogger(__name__)
 
 
 class SpikeSorterData(object):
-    def __init__(self, filename, parent=None):
+    def __init__(self, file_or_folder, data_format, parent=None):
+        """_summary_
+
+        Args:
+            file_or_folder (_type_): _description_
+            data_format (_type_): 'pyephys', 'openephys'
+        """
         super().__init__()
-        self._filename = filename
+        self._path = file_or_folder
+        self._data_format = data_format
         self._raws_dict = dict()
         self._channel_name_to_ID = dict()
-        self._headers = loadPyephys(filename)
+        self._events_dict = dict()
+
+        if self._data_format == 'pyephys':
+            self._headers = loadPyephys(file_or_folder)
+
+        elif self._data_format == 'openephys':
+            if os.path.isdir(self._path):
+                file_path_list = getFilesInFolder(self._path)
+                self._headers = loadOpenephysHeader(file_path_list)
+
         self._createRawsData()
+        self._createEventsData()
         self._createSpikesData()
 
     @property
-    def filename(self):
-        return self._filename
+    def path(self):
+        return self._path
 
     @property
     def channel_IDs(self):
-        return list(self._channel_name_to_ID.values())
+        return list(sorted(self._raws_dict.keys()))
+
+    @property
+    def event_IDs(self):
+        return list(sorted(self._events_dict.keys()))
 
     @property
     def raws_header(self):
@@ -62,30 +85,53 @@ class SpikeSorterData(object):
     @property
     def events_header(self):
         records = []
+        for event_ID in self.event_IDs:
+            event_object = self.getEvent(event_ID)
+            logger.debug(event_ID)
+            records.append(event_object.header)
         if len(records) < 1:
             return None
-        return None
+        return pd.DataFrame.from_records(records)
 
     def _createRawsData(self):
-        raws_header = self._headers['RawsHeader'].to_dict('records')
-        for header in raws_header:
-            self._raws_dict[header['ID']] = ContinuousData(filename=self._filename,
+        raws_header = self._headers.get('RawsHeader')
+        if raws_header is None:
+            logger.warn('Can not load raws data')
+            return
+
+        for file_path, header in raws_header:
+            self._raws_dict[header['ID']] = ContinuousData(filename=file_path,
                                                            header=header,
                                                            data_type='Raw')
             self._channel_name_to_ID[header['Name']] = header['ID']
 
     def _createSpikesData(self):
-        if self._headers['SpikesHeader'] is None:
+        spikes_header = self._headers.get('SpikesHeader')
+        if spikes_header is None:
+            logger.warn('Can not load spikes data')
             return
-        spikes_header = self._headers['SpikesHeader'].to_dict('records')
-        for header in spikes_header:
-            spike_object = DiscreteData(filename=self._filename,
+
+        for file_path, header in spikes_header:
+            spike_object = DiscreteData(filename=file_path,
                                         header=header,
                                         data_type='Spikes',
                                         _from_file=True)
             raw_object = self.getRaw(header['ID'])
-            raw_object.setSpike(
-                spike_object, label=header['Label'])
+            raw_object.setSpike(spike_object,
+                                label=header['Label'])
+
+    def _createEventsData(self):
+        events_header = self._headers.get('EventsHeader')
+        if events_header is None:
+            logger.warn('Can not load events data')
+            return
+
+        for file_path, header in events_header:
+            event_object = DiscreteData(filename=file_path,
+                                        header=header,
+                                        data_type='Events',
+                                        _from_file=True)
+            self._events_dict[header['ID']] = event_object
 
     def getRaw(self, channel: int | str, load_data: bool = False) -> ContinuousData | None:
         """_summary_
@@ -148,10 +194,8 @@ class SpikeSorterData(object):
             return
         spike_object._loadData()
 
-    def getEvent(self):
-        # TODO
-        logger.critical('Unimplemented function.')
-        return
+    def getEvent(self, event_ID: int) -> DiscreteData | None:
+        return self._events_dict.get(event_ID)
 
     def subtractReference(self, channel: int | str, reference: int | list) -> ContinuousData:
         ch_object = self.getRaw(channel, load_data=True)
@@ -499,7 +543,7 @@ class DiscreteData(object):
         self._waveforms = waveforms
         self._from_file = _from_file
         if len(self._timestamps) < 1:
-            if _from_file and data_type == 'Spikes':
+            if _from_file and data_type in ['Spikes', 'Events']:
                 self._data_loaded = False
             else:
                 self._data_loaded = True
