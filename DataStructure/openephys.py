@@ -5,10 +5,10 @@ from datetime import datetime
 from xml.etree import cElementTree as ET
 
 import numpy as np
+import pandas as pd
 from pydantic import BaseModel, field_validator
 
-from .header_class import (EventsHeader, FileHeader, RawsHeader,
-                           SpikesHeader)
+from .header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
 
 # common Entries
 _FILE_EXTENSIONS = [
@@ -366,7 +366,7 @@ def loadContinuous(file_name: str, dtype=_CONTINUOUS_RECORD_DTYPE) -> np.ndarray
     return data
 
 
-def loadEvents(file_name: str, dtype=_EVENT_RECORD_DTYPE) -> dict[int, list[tuple[str, np.ndarray, np.ndarray]]]:
+def loadEvents(file_name: str, bank: int, dtype=_EVENT_RECORD_DTYPE):
     """Load data of given Openephys events format file.
 
     Args:
@@ -376,50 +376,64 @@ def loadEvents(file_name: str, dtype=_EVENT_RECORD_DTYPE) -> dict[int, list[tupl
     Returns:
         dict[int, list[tuple[str, np.ndarray, np.ndarray]]]: (unit name, timestamps, index) of each event unit by bank.
         {
-            bank0: [(unit name, timestamps, index), ...], ...
+            'unitHeader':  (pd.DataFrame) unit header,
+            "unitID": (np.ndarray) unitID of all timestamps,
+            "timestamps": (np.ndarray) timestamps
         }
     """
     logger.info('loading events...')
     data = {}
     time_first_point = _getTimeFirstPoint(file_name)
-
+    header = readOpenEphysHeader(file_name)
     with open(file_name, 'rb') as in_file:
         in_file.seek(NUM_HEADER_BYTES)
         events = np.fromfile(in_file, dtype=dtype)
 
         banks = events['processorid']
 
-        # generating different events data for banks
-        for bank in np.unique(banks):
-            index = []
-            units_name = []
-            # generating units for Event
-            ev_per_bank = events[banks == bank]
-            # getting  timestamps
-            ts = ev_per_bank['timestamp'] - time_first_point
-            # trying to compress data
-            if ts.max() < 2**32 - 1:
-                ts = ts.astype(np.int32)
-            channels = ev_per_bank['channel']
-            types = ev_per_bank['eventtype']
-            stati = ev_per_bank['eventid']
-            stati_word = ['Off', 'On']
-            # separating units by channel, type and id (0 or 1)
-            for channel in np.unique(channels):
-                for type_ in np.unique(types):
-                    for status in np.unique(stati):
-                        units_ind = (channel == channels) & \
-                            (type_ == types) & \
-                            (status == stati)
-                        units_ind = np.where(units_ind)[0]
-                        if units_ind.size > 0:
-                            index += [units_ind]
-                            units_name += ["Chan_{:02d}_{}_{}".format(
-                                channel, type_, stati_word[status])]
+        # generating units for Event
+        ev_per_bank = events[banks == bank]
+        if len(ev_per_bank) < 1:
+            return
 
-            data[bank] = list(zip(units_name, ts, index))
+    # getting  timestamps
+    timestamps = ev_per_bank['timestamp'] - time_first_point
+    # trying to compress data
+    if timestamps.max() < 2**32 - 1:
+        timestamps = timestamps.astype(np.int32)
+    channels = ev_per_bank['channel']
+    types = ev_per_bank['eventtype']
+    stati = ev_per_bank['eventid']
+    stati_word = ['Off', 'On']
 
-    return data
+    # separating units by channel, type and id (0 or 1)
+    records = []
+    event_unit_ID = 0
+    unitID = np.zeros(len(timestamps))
+    for channel in np.unique(channels):
+        for type_ in np.unique(types):
+            for status in np.unique(stati):
+                units_ind = (channel == channels) & \
+                    (type_ == types) & \
+                    (status == stati)
+                units_ind = np.where(units_ind)[0]
+                if units_ind.size > 0:
+                    records.append({
+                        'ID': event_unit_ID,
+                        'Name': "{}_Chan_{:02d}_{}_{}".format(header.channel,
+                                                              channel, type_,
+                                                              stati_word[status]),
+                        'NumRecords': len(units_ind),
+                        'ParentID': bank,
+                        'ParentType': 'Events',
+                        'Type': 'Events'
+                    })
+                    unitID[units_ind] = event_unit_ID
+                    event_unit_ID += 1
+
+    return {"unitHeader":  pd.DataFrame.from_records(records),
+            "unitID": unitID,
+            "timestamps": timestamps}
 
 
 def _getTimeFirstPoint(file_name: str) -> int | float:
@@ -466,7 +480,7 @@ def _getTimeFirstPoint(file_name: str) -> int | float:
 if __name__ == '__main__':
     pass
     # data = loadEvents(
-    #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\all_channels.events')
+    #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\all_channels.events', 100)
     # print(data)
     # data = loadContinuousHeader(
     #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref\100_CH2.continuous')
@@ -475,7 +489,7 @@ if __name__ == '__main__':
     # data = loadOpenephysHeader(file_list)
     # file_header, events_headers, ts, index, units_name = data
 
-    # print(len(v))
+    # print(data)
     # a = {'format': "'Open Ephys Data Format'", ' version': '0.4', ' header_bytes': '1024',
     #      'description': "'each record contains one 64-bit timestamp, one 16-bit sample count (N), 1 uint16 recordingNumber, N 16-bit samples, and one 10-byte record marker (0 1 2 3 4 5 6 7 8 255)'", ' date_created': "'17-Jun-2020 170748'", 'channel': "'CH1'", 'channelType': "'Continuous'", 'sampleRate': '30000', 'blockLength': '1024', 'bufferSize': '1024', 'bitVolts': '0.195'}
     # b = {'format': "'Open Ephys Data Format'"}
