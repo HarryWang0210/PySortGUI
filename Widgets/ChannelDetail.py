@@ -300,18 +300,18 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     # ========== Actions ==========
     def openFile(self):
         """Open file manager and load selected file. """
-        self.file_type_dict = {  # "openephy": "Open Ephys Format (*.continuous)",
-            "pyephys": "pyephys format (*.h5)"}  # File types to load
+        self.file_type_dict = {
+            # "openephy": "Open Ephys Format (*.continuous)",
+            "pyephys": "pyephys format (*.h5)"
+        }  # File types to load
         filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
                                                                    ";;".join(self.file_type_dict.values()))  # start path
         if filename == "":
             return
-
         if isinstance(self.current_data_object, SpikeSorterData):
-            if filename == self.current_data_object.filename:
+            if filename == self.current_data_object.path:
                 return
-
-        self.current_data_object = SpikeSorterData(filename)
+        self.current_data_object = SpikeSorterData(filename, 'pyephys')
         self.signal_data_file_name_changed.emit(self.current_data_object)
 
         self.setDataModel()
@@ -323,6 +323,32 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         self.sorting_label_comboBox.clear()
         self.file_name_lineEdit.setText(filename)
+
+    def openFolder(self):
+        """Open file manager and load selected folder. """
+        folder_path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Open folder", "./")
+        # filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
+        #                                                            ";;".join(self.file_type_dict.values()))  # start path
+        if folder_path == "":
+            return
+
+        if isinstance(self.current_data_object, SpikeSorterData):
+            if folder_path == self.current_data_object.path:
+                return
+
+        self.current_data_object = SpikeSorterData(folder_path, 'openephys')
+        self.signal_data_file_name_changed.emit(self.current_data_object)
+
+        self.setDataModel()
+        self.undo_stack_dict.clear()
+
+        # Clear all undo stack
+        for undo_stack in self.main_window.undo_group.stacks():
+            self.main_window.undo_group.removeStack(undo_stack)
+
+        # self.sorting_label_comboBox.clear()
+        self.file_name_lineEdit.setText(folder_path)
 
     def copySpike(self):
         row_items = self.getSelectedRowItems()
