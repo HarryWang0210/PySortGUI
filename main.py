@@ -85,8 +85,10 @@ class PySortGUI(MainWindowDocks):
     def connectMenuActions(self):
         """Connect slots to actions on menu bar."""
 
-        self.children_dict['FileMenu']["Open"].triggered.connect(
+        self.children_dict['FileMenu']["OpenFile"].triggered.connect(
             self.openFile, QtCore.Qt.UniqueConnection)
+        self.children_dict['FileMenu']["OpenFolder"].triggered.connect(
+            self.openFolder, QtCore.Qt.UniqueConnection)
         self.children_dict['FileMenu']["Save"].triggered.connect(
             self.saveChannel)
         self.children_dict['FileMenu']["SaveAll"].triggered.connect(
@@ -230,6 +232,10 @@ class PySortGUI(MainWindowDocks):
     def openFile(self):
         """Open file manager and load selected file."""
         self.children_dict["ChannelDetail"].openFile()
+
+    def openFolder(self):
+        """Open file manager and load selected folder."""
+        self.children_dict["ChannelDetail"].openFolder()
 
     def saveChannel(self):
         """Save single channel."""

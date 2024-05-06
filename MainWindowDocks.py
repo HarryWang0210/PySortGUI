@@ -68,12 +68,21 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         FileMenu = self.menu_bar.addMenu('&File')
         FileMenu_dict = dict()
 
-        OpenAction = QtWidgets.QAction('Open File...', self)
-        OpenAction.setShortcut('Ctrl+O')
-        OpenAction.setAutoRepeat(False)
-        OpenAction.setStatusTip('Load H5 File')
-        FileMenu.addAction(OpenAction)
-        FileMenu_dict["Open"] = OpenAction
+        OpenFileAction = QtWidgets.QAction('Open File...', self)
+        OpenFileAction.setShortcut('Ctrl+O')
+        OpenFileAction.setAutoRepeat(False)
+        OpenFileAction.setStatusTip('Load H5 File')
+        FileMenu.addAction(OpenFileAction)
+        FileMenu_dict["OpenFile"] = OpenFileAction
+
+        OpenFolderAction = QtWidgets.QAction('Open Folder...', self)
+        OpenFolderAction.setShortcut('Ctrl+F')
+        OpenFolderAction.setAutoRepeat(False)
+        OpenFolderAction.setStatusTip('Load Openephy Folder')
+        FileMenu.addAction(OpenFolderAction)
+        FileMenu_dict["OpenFolder"] = OpenFolderAction
+
+        FileMenu.addSeparator()
 
         SaveAction = QtWidgets.QAction('Save', self)
         SaveAction.setShortcut('Ctrl+S')
@@ -88,6 +97,8 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         SaveAllAction.setStatusTip('Save all channels')
         FileMenu.addAction(SaveAllAction)
         FileMenu_dict["SaveAll"] = SaveAllAction
+
+        FileMenu.addSeparator()
 
         ExitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), 'Exit', self)
         ExitAction.setShortcut('Ctrl+Q')
