@@ -67,15 +67,15 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.spikes_header = self.current_data_object.spikes_header
         self.raws_header = self.current_data_object.raws_header
         self.events_header = self.current_data_object.events_header
+
+        self.spike_group_item = QStandardItem('Spikes')  # Top level, Group
+        model.appendRow(self.spike_group_item)
         if not self.spikes_header is None:
             spikes_header = self.spikes_header.copy()
             for nan_column in [x for x in self.header_name if x not in spikes_header.columns]:
                 spikes_header[nan_column] = ''
             spikes_header['Reference'] = spikes_header['ReferenceID']
             spikes_header = spikes_header[self.header_name]
-
-            self.spike_group_item = QStandardItem('Spikes')  # Top level, Group
-            model.appendRow(self.spike_group_item)
 
             for chan_ID in spikes_header['ID'].unique():
                 chan_ID_item = QStandardItem(str(chan_ID))
@@ -92,14 +92,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                          for col_value in sub_row]
                     chan_ID_item.appendRow(values)
 
+        group_item = QStandardItem('Raws')  # Top level, Group
+        model.appendRow(group_item)
         if not self.raws_header is None:
             raws_header = self.raws_header.copy()
             for nan_column in [x for x in self.header_name if x not in raws_header.columns]:
                 raws_header[nan_column] = ''
             raws_header = raws_header[self.header_name]
-
-            group_item = QStandardItem('Raws')  # Top level, Group
-            model.appendRow(group_item)
 
             for chan_ID in raws_header['ID'].unique():
                 chan_ID_item = QStandardItem(str(chan_ID))
@@ -110,14 +109,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                      for col_value in sub_data.iloc[0, 1:]]
                 group_item.appendRow(first_items)
 
+        group_item = QStandardItem('Events')  # Top level, Group
+        model.appendRow(group_item)
         if not self.events_header is None:
             events_header = self.events_header.copy()
             for nan_column in [x for x in self.header_name if x not in events_header.columns]:
                 events_header[nan_column] = ''
             events_header = events_header[self.header_name]
-
-            group_item = QStandardItem('Events')  # Top level, Group
-            model.appendRow(group_item)
 
             for chan_ID in events_header['ID'].unique():
                 chan_ID_item = QStandardItem(str(chan_ID))
@@ -291,6 +289,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         elif meta_data['Type'] == 'Raws':
             self.current_data_object.loadRaw(channel=chan_ID)
             self.current_raw_object = self.current_data_object.getRaw(chan_ID)
+            self.updataTreeView(row_items, self.current_raw_object)
             self.setLabelCombox(labels=self.current_raw_object.spikes)
 
         self.signal_continuous_data_changed.emit(self.current_raw_object,
@@ -392,7 +391,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if row_items is None:
             return
 
-        self.updataSpikeInfo(row_items, new_spike_object)
+        self.updataTreeView(row_items, new_spike_object)
         self.setUnsavedChangeIndicator(row_items, new_spike_object)
 
     def deleteSpike(self):
@@ -490,7 +489,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(new_spike_object, True)
 
-    def preprocessing(self, ref: list = [],
+    def preprocessing(self, ref: int,
                       low: int | float = None,
                       high: int | float = None) -> ContinuousData:
         new_filted_object = self.current_raw_object.createCopy()
@@ -611,7 +610,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             if row_items is None:
                 return
 
-            self.updataSpikeInfo(row_items, new_spike_object)
+            self.updataTreeView(row_items, new_spike_object)
             self.setUnsavedChangeIndicator(row_items, new_spike_object)
             # if len(row_items_list) == 1:
             # select row
@@ -714,7 +713,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                     item.setForeground(QColor('black'))
 
             logger.debug('undo/redo')
-            self.updataSpikeInfo(row_items, new_spike_object)
+            self.updataTreeView(row_items, new_spike_object)
             self.setUnsavedChangeIndicator(row_items, new_spike_object)
 
             if (new_spike_object is self.current_spike_object) and \
@@ -865,11 +864,12 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # if item is not None:
         #     item.setData(new_value, QtCore.Qt.DisplayRole)
 
-    def updataSpikeInfo(self, row_items, spike_object: DiscreteData):
+    def updataTreeView(self, row_items, object_has_header: ContinuousData | DiscreteData):
         for index, key in enumerate(self.header_name):
             if key == 'Reference':
                 key = 'ReferenceID'
-            row_items[index].setText(str(spike_object.header.get(key, '')))
+            row_items[index].setText(
+                str(object_has_header.header.get(key, '')))
 
 
 class DeleteSpikeCommand(QUndoCommand):
@@ -957,7 +957,6 @@ class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
 
         if filted_object is None:
             self.setting = self.default_spike_setting
-            logger.debug(filted_object)
         else:
             self.setting = {
                 'Reference': filted_object.reference,
