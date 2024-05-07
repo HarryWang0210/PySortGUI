@@ -13,7 +13,7 @@ from .FunctionsLib.SignalProcessing import design_and_filter
 from .FunctionsLib.Sorting import auto_sort
 from .FunctionsLib.ThresholdOperations import extract_waveforms
 from .openephys import loadContinuous, loadEvents, loadOpenephysHeader, getFilesInFolder
-from .pyephysv3 import (deleteSpikes, loadPyephys, loadRaws, loadSpikes,
+from .pyephysv3 import (deleteSpikes, loadPyephysHeader, loadRaws, loadSpikes,
                         saveSpikes, saveSpikesHeader)
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class SpikeSorterData(object):
         self._events_dict = dict()
 
         if self._data_format == 'pyephys':
-            self._headers = loadPyephys(file_or_folder)
+            self._headers = loadPyephysHeader(file_or_folder)
 
         elif self._data_format == 'openephys':
             if os.path.isdir(self._path):
