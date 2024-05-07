@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class FileHeader(BaseModel):
-    FullFileName: str = Field(exclude=True)
+    FullFileName: str = Field(default='', exclude=True)
     DateTime: datetime
     FileMajorVersion: int
     FileMinorVersion: int
@@ -150,3 +150,4 @@ class SpikesHeader(BaseHeader):
     Type: str = 'Spikes'
     NumUnits: int = 0
     ReferenceID: int = -1
+    Label: str = 'default'
