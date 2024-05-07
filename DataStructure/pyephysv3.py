@@ -5,70 +5,107 @@ import numpy as np
 import pandas as pd
 import tables
 
+from .header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
+
 logger = logging.getLogger(__name__)
 
 
-def loadPyephys(filename):
+def loadPyephysHeader(filename):
     basename, extname = os.path.splitext(filename)
     if extname == "h5raw":
         filename = ".".join(basename, "h5")
 
+    file_header = np.array([])
+    raws_header = np.array([])
+    spikes_header = np.array([])
+    events_header = np.array([])
+
+    file_headers: list[dict] = []
+    raws_headers: list[tuple[str, dict]] = []
+    events_headers: list[tuple[str, dict]] = []
+    spikes_headers: list[tuple[str, dict]] = []
+
     with tables.open_file(filename, mode="r") as file:
-        # FileHeader = file.get_node("/FileHeader")
+        if "/FileHeader" in file.root:
+            file_header = file.get_node("/FileHeader").read()
+        else:
+            logger.info('Can not load FileHeader.')
+
         if "/RawsHeader" in file.root:
             raws_header = file.get_node("/RawsHeader").read()
-            df_raws_header = pd.DataFrame(raws_header)
-
-            # convert to string
-            df_raws_header = df_raws_header.applymap(lambda x: x.decode(
-                'utf-8') if isinstance(x, bytes) else x)
-
-            df_raws_header = df_raws_header.sort_values('ID')
         else:
             logger.critical('Can not load RawsHeader.')
 
         if "/SpikesHeader" in file.root:
             spikes_header = file.get_node("/SpikesHeader").read()
-            df_spikes_header = pd.DataFrame(spikes_header)
-
-            # convert to string
-            df_spikes_header = df_spikes_header.applymap(lambda x: x.decode(
-                'utf-8') if isinstance(x, bytes) else x)
-
-            # add Label field if not have
-            if "Label" not in df_spikes_header.columns:
-                df_spikes_header['Label'] = "default"
-
-            # ========== Test Label ==========
-            # new_row = df_spikes_header.iloc[0:2, :].copy()
-            # new_row['Label'] = 'test_label'
-            # df_spikes_header = pd.concat(
-            #     [df_spikes_header, new_row], axis=0, ignore_index=True)
-            # ================================
-            # logger.debug(df_spikes_header.dtypes)
-            df_spikes_header = df_spikes_header.sort_values('ID')
-
         else:
             df_spikes_header = None
             logger.info('Can not load SpikesHeader.')
 
         if "/EventsHeader" in file.root:
-            spikes_header = file.get_node("/EventsHeader").read()
-            df_events_header = pd.DataFrame(spikes_header)
-
-            # convert to string
-            df_events_header = df_events_header.applymap(lambda x: x.decode(
-                'utf-8') if isinstance(x, bytes) else x)
-
-            df_events_header = df_events_header.sort_values('ID')
-
+            events_header = file.get_node("/EventsHeader").read()
         else:
             df_events_header = None
             logger.info('Can not load EventsHeader.')
 
-    return {'RawsHeader': df_raws_header,
-            'SpikesHeader': df_spikes_header,
-            'EventsHeader': df_events_header}
+    file_header = recarrayToDictList(file_header)
+    file_headers = [FileHeader.model_validate(header).model_dump()
+                    for header in file_header]
+
+    raws_header = recarrayToDictList(raws_header)
+    raws_headers = [(filename, RawsHeader.model_validate(header).model_dump())
+                    for header in raws_header]
+    # print([RawsHeader.model_validate(dict(zip(raws_header.dtype.names, record)))
+    #       for record in raws_header])
+    # print(raws_headers)
+    # df_raws_header = pd.DataFrame(raws_header)
+
+    # # convert to string
+    # df_raws_header = df_raws_header.applymap(lambda x: x.decode(
+    #     'utf-8') if isinstance(x, bytes) else x)
+
+    # df_raws_header = df_raws_header.sort_values('ID')
+
+    # df_spikes_header = pd.DataFrame(spikes_header)
+    spikes_header = recarrayToDictList(spikes_header)
+    spikes_headers = [(filename, SpikesHeader.model_validate(header).model_dump())
+                      for header in spikes_header]
+    # convert to string
+    # df_spikes_header = df_spikes_header.applymap(lambda x: x.decode(
+    #     'utf-8') if isinstance(x, bytes) else x)
+
+    # # add Label field if not have
+    # if "Label" not in df_spikes_header.columns:
+    #     df_spikes_header['Label'] = "default"
+
+    # df_spikes_header = df_spikes_header.sort_values('ID')
+
+    events_header = recarrayToDictList(events_header)
+    events_headers = [(filename, EventsHeader.model_validate(header).model_dump())
+                      for header in events_header]
+
+    data = {}
+    if file_headers:
+        data['FileHeader'] = file_headers
+    if raws_headers:
+        data['RawsHeader'] = raws_headers
+    if events_headers:
+        data['EventsHeader'] = events_headers
+    if spikes_headers:
+        data['SpikesHeader'] = spikes_headers
+
+    # df_events_header = pd.DataFrame(spikes_header)
+
+    # # convert to string
+    # df_events_header = df_events_header.applymap(lambda x: x.decode(
+    #     'utf-8') if isinstance(x, bytes) else x)
+
+    # df_events_header = df_events_header.sort_values('ID')
+
+    # return {'RawsHeader': df_raws_header,
+    #         'SpikesHeader': df_spikes_header,
+    #         'EventsHeader': df_events_header}
+    return data
 
 
 def loadRaws(filename: str, path: str, name: str):
@@ -199,9 +236,20 @@ def deleteSpikes(filename, path):
             spike_chan._f_remove(force=True)
 
 
+def recarrayToDictList(recarray: np.ndarray):
+    if recarray.dtype.names is None:
+        return []
+        # print(recarray.tolist())
+    return [dict(zip(recarray.dtype.names, record)) for record in recarray]
+
+
 if __name__ == '__main__':
-    filename = "data/MX6-22_2020-06-17_17-07-48_no_ref.h5"
-    headers = loadPyephys(filename)
-    spike_header = pd.DataFrame(headers['SpikesHeader']).to_dict('records')[0]
-    spike = loadSpikes(filename, spike_header['H5Location'])
-    print(spike is dict)
+    data = loadPyephysHeader(
+        r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\RU01_2022-08-01_11-20-12.h5')
+    # print(data)
+
+    # filename = "data/MX6-22_2020-06-17_17-07-48_no_ref.h5"
+    # headers = loadPyephys(filename)
+    # spike_header = pd.DataFrame(headers['SpikesHeader']).to_dict('records')[0]
+    # spike = loadSpikes(filename, spike_header['H5Location'])
+    # print(spike is dict)
