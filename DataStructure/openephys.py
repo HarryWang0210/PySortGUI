@@ -1,14 +1,18 @@
 import logging
 import os
 import re
+from dataclasses import dataclass, field
 from datetime import datetime
 from xml.etree import cElementTree as ET
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, field_validator
 
+from .DataClasses import DataClass, convert_and_enforce_types
 from .header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
+
+# from pydantic import BaseModel, field_validator
+
 
 # common Entries
 _FILE_EXTENSIONS = [
@@ -75,7 +79,13 @@ _SPIKE_RECORD_DTYPE = np.dtype([
 ])
 
 
-class OpenEphysHeader(BaseModel):
+def _parse_date_created(value):
+    return datetime.strptime(value, "%d-%b-%Y %H%M%S")
+
+
+@convert_and_enforce_types(convert_types=[(datetime, _parse_date_created)])
+@dataclass
+class OpenEphysHeader(DataClass):
     format: str  # 'Open Ephys Data Format'
 
     version: float  # 0.4
@@ -104,9 +114,39 @@ class OpenEphysHeader(BaseModel):
     highCut: int | float = 0
     ID: int = 0
 
-    @field_validator("date_created", mode="before")
-    def parse_date_created(cls, value):
-        return datetime.strptime(value, "%d-%b-%Y %H%M%S")
+
+# class OpenEphysHeader(BaseModel):
+#     format: str  # 'Open Ephys Data Format'
+
+#     version: float  # 0.4
+
+#     header_bytes: int  # 1024
+
+#     description: str  # '(String describing the header)'
+
+#     date_created: datetime  # 'dd-mm-yyyy hhmmss'
+
+#     channel: str  # '(String with channel name)'
+
+#     channelType: str  # '(String describing the channel type)'
+
+#     sampleRate: int  # (integer sampling rate)
+
+#     blockLength: int  # 1024
+
+#     bufferSize: int  # 1024
+
+#     # (floating point value of microvolts/bit for headstage channels, or volts/bit for ADC channels)
+#     bitVolts: int | float
+
+#     # extend infomation from setting.xml
+#     lowCut: int | float = 0
+#     highCut: int | float = 0
+#     ID: int = 0
+
+#     @field_validator("date_created", mode="before")
+#     def parse_date_created(cls, value):
+#         return datetime.strptime(value, "%d-%b-%Y %H%M%S")
 
 # def load(filepath, dtype=float):
 
@@ -479,8 +519,8 @@ def _getTimeFirstPoint(file_name: str) -> int | float:
 
 if __name__ == '__main__':
     pass
-    # data = loadEvents(
-    #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\all_channels.events', 100)
+    data = loadEventsHeader(
+        r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\all_channels.events')
     # print(data)
     # data = loadContinuousHeader(
     #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref\100_CH2.continuous')
@@ -488,8 +528,9 @@ if __name__ == '__main__':
     #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref')
     # data = loadOpenephysHeader(file_list)
     # file_header, events_headers, ts, index, units_name = data
-
-    # print(data)
+    # data = readOpenEphysHeader(
+    #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref\100_CH2.continuous')
+    print(data)
     # a = {'format': "'Open Ephys Data Format'", ' version': '0.4', ' header_bytes': '1024',
     #      'description': "'each record contains one 64-bit timestamp, one 16-bit sample count (N), 1 uint16 recordingNumber, N 16-bit samples, and one 10-byte record marker (0 1 2 3 4 5 6 7 8 255)'", ' date_created': "'17-Jun-2020 170748'", 'channel': "'CH1'", 'channelType': "'Continuous'", 'sampleRate': '30000', 'blockLength': '1024', 'bufferSize': '1024', 'bitVolts': '0.195'}
     # b = {'format': "'Open Ephys Data Format'"}
