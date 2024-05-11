@@ -237,7 +237,7 @@ class SpikeSorterData(object):
                 h5_location = f'/Spikes/spike{raw_object.channel_ID:03}{label}'
             if spike_object == 'Removed':
                 # try delete spike
-                deleteSpikes(self.filename, h5_location)
+                deleteSpikes(self.path, h5_location)
                 del raw_object._spikes[label]
                 continue
             # spike = raw_object.getSpike(label)
@@ -251,7 +251,7 @@ class SpikeSorterData(object):
                 spike_object._unit_header['ParentType'] = 'Spikes'
                 spike_object._unit_header['Type'] = 'Unit'
 
-                saveSpikes(self.filename, spike_object.header, spike_object.unit_header,
+                saveSpikes(self.path, spike_object.header, spike_object.unit_header,
                            spike_object.unit_IDs, spike_object.timestamps, spike_object.waveforms)
             records.append(spike_object.header)
             spike_object._from_file = True
@@ -265,7 +265,7 @@ class SpikeSorterData(object):
         # logger.debug(new_spikes_header.dtypes)
         self._headers['SpikesHeader'] = new_spikes_header
         # logger.debug(new_spikes_header)
-        saveSpikesHeader(self.filename, self._headers['SpikesHeader'])
+        saveSpikesHeader(self.path, self._headers['SpikesHeader'])
         # logger.debug(self.spikes_header)
 
     def validateChannel(self, channel: int | str) -> int:
