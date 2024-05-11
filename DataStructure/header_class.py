@@ -11,7 +11,7 @@ from .DataClasses import DataClass, convert_and_enforce_types
 logger = logging.getLogger(__name__)
 
 
-@convert_and_enforce_types()
+@convert_and_enforce_types(convert_types=[(datetime, lambda value: datetime.strptime(value.decode(), "%Y-%m-%d %H:%M:%S"))])
 @dataclass
 class FileHeader(DataClass):
     DateTime: datetime
