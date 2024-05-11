@@ -6,6 +6,7 @@ from dataclasses import KW_ONLY, asdict, dataclass, field
 from functools import wraps
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def _find_type_origin(type_hint):
@@ -128,17 +129,19 @@ def convert_and_enforce_types(convert_int=True, convert_float=True, convert_str=
 class DataClass:
     _: KW_ONLY
     _extra_fields: list = field(init=False, default_factory=list)
+    _ignore_fields: list = field(init=False, default_factory=list, repr=False)
 
     @classmethod
-    def model_validate(cls, kwargs: dict, extra='forbid'):
+    def model_validate(cls, kwargs: dict, extra: str = 'forbid'):
         """Create from dictionary.
 
         Args:
-            kwargs (dict): _description_
-            extra (str, optional): ['forbid', 'ignore', 'allow']. Defaults to 'forbid'.
+            kwargs (dict): Dictionary with field names as keys.
+            extra (str, optional): The Method to handle extra fields.
+            ['forbid', 'ignore', 'allow']. Defaults to 'forbid'.
 
         Returns:
-            dataclass: _description_
+            dataclass
         """
         if not extra in ['forbid', 'ignore', 'allow']:
             raise ValueError(
@@ -172,14 +175,29 @@ class DataClass:
             ret._extra_fields = extra_fields
         return ret
 
-    def model_dump(self, extra='ignore'):
+    def _addIgnoreField(self, field_name: str):
+        """Add ignore field. 
+        If the field name was added, it will be ignored when calling model_dump().
+
+        Args:
+            field_name (str): name of field want to ignore
+        """
+        try:
+            getattr(self, field_name)
+            self._ignore_fields.append(field_name)
+
+        except AttributeError as err:
+            logger.warning(f'{self.__class__.__name__}: {err}')
+
+    def model_dump(self, extra: str = 'ignore') -> dict:
         """Make dictionary.
 
         Args:
-            extra (str, optional): ['ignore', 'append']. Defaults to 'ignore'.
+            extra (str, optional): The Method to handle extra fields. 
+            ['ignore', 'append']. Defaults to 'ignore'.
 
         Returns:
-            _type_: _description_
+            dict: The dictionary with field names as keys.
         """
         if not extra in ['ignore', 'append']:
             raise ValueError(
@@ -188,6 +206,8 @@ class DataClass:
             )
         result = asdict(self)
         extra_fields = result.pop('_extra_fields')
+        ignore_fields = result.pop('_ignore_fields')
+        [result.pop(ignore_field) for ignore_field in ignore_fields]
 
         if extra == 'append':
             for name in extra_fields:
