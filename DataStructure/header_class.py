@@ -40,6 +40,7 @@ class FileHeader(DataClass):
     FileMtime: float = .0
 
     def __post_init__(self):
+        self._addIgnoreField('FullFileName')
         self.FilePath, self.BaseName = os.path.split(self.FullFileName)
         self.FileName, self.FileExt = os.path.splitext(self.BaseName)
         self._setFileSize()
@@ -85,10 +86,10 @@ class FileHeader(DataClass):
             return
         logger.warning('Not able to set FileMtime for the file')
 
-    def model_dump(self, *args, **kwargs):
-        result = super().model_dump(*args, **kwargs)
-        result.pop('FullFileName')
-        return result
+    # def model_dump(self, *args, **kwargs):
+    #     result = super().model_dump(*args, **kwargs)
+    #     result.pop('FullFileName')
+    #     return result
 
 
 @dataclass
