@@ -98,6 +98,13 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         FileMenu.addAction(SaveAllAction)
         FileMenu_dict["SaveAll"] = SaveAllAction
 
+        ExportAction = QtWidgets.QAction('Export', self)
+        # ExportAction.setShortcut('Ctrl+Alt+S')
+        ExportAction.setAutoRepeat(False)
+        ExportAction.setStatusTip('Export to pyephys format')
+        FileMenu.addAction(ExportAction)
+        FileMenu_dict["Export"] = ExportAction
+
         FileMenu.addSeparator()
 
         ExitAction = QtWidgets.QAction(QtGui.QIcon('exit.png'), 'Exit', self)

@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 import logging
 import os
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 import tables
+
+if TYPE_CHECKING:
+    from .datav3 import ContinuousData, DiscreteData, SpikeSorterData
 
 from .header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
 
@@ -234,6 +240,17 @@ def saveSpikesHeader(filename, header: pd.DataFrame | None = None):
         file.flush()
 
 
+# def saveRawsData(filename: str, header: RawsHeader, data: np.ndarray, overwrite=False):
+#     filt = tables.Filters(complib='zlib', complevel=1)
+
+#     if overwrite:
+#         mode = 'w'
+#     else:
+#         mode = 'a'
+#     with tables.open_file(filename, mode=mode, title=os.path.split(filename)[1], filters=filt) as file:
+#         with tables.open_file(filename+'raw', mode='w', title=os.path.split(filename)[1], filters=filt) as file_raw:
+
+
 def deleteSpikes(filename, path):
     basename, extname = os.path.splitext(filename)
     # if extname == "h5raw":
@@ -242,6 +259,95 @@ def deleteSpikes(filename, path):
         if path in file.root:
             spike_chan = file.get_node(path)
             spike_chan._f_remove(force=True)
+
+
+def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
+    filt = tables.Filters(complib='zlib', complevel=1)
+    with tables.open_file(new_filename, mode='w', title=os.path.split(new_filename)[1], filters=filt) as file:
+        # Raws
+        # create h5raw
+        with tables.open_file(new_filename+'raw', mode='w', title=os.path.split(new_filename)[1], filters=filt) as file_raw:
+            file_raw.create_group('/', 'Raws', createparents=True)
+
+            for ID in data_object.channel_IDs:
+                raws_object = data_object.getRaw(ID, load_data=True)
+                raws_header = RawsHeader.model_validate(raws_object.header,
+                                                        extra='allow')
+
+                data_array = file_raw.create_carray(
+                    '/Raws', f"raw{raws_object.channel_ID:03}", obj=raws_object.data, title=raws_object.channel_name)
+                for key, value in raws_header.model_dump(extra='append').items():
+                    data_array.set_attr(f'header_{key}', value)
+                file_raw.flush()
+
+        file.create_external_link(
+            '/', 'Raws', '{}:/Raws'.format(new_filename+'raw'))
+        file.flush()
+
+        # RawsHeader
+        file.create_table('/', 'RawsHeader',
+                          dataframeToRecarry(data_object.raws_header))
+        file.flush()
+
+        # Spikes
+        file.create_group('/', 'Spikes', createparents=True)
+        for ID in data_object.channel_IDs:
+            raws_object = data_object.getRaw(ID)
+            for label in raws_object.spikes:
+                spikes_object = data_object.getSpike(ID, label, load_data=True)
+                if spikes_object == 'Removed':
+                    continue
+
+                spikes_header = SpikesHeader.model_validate(
+                    spikes_object.header, extra='allow')
+
+                if spikes_object.label == 'default':
+                    h5_location = f'spike{spikes_object.channel_ID:03}'
+                else:
+                    h5_location = f'spike{spikes_object.channel_ID:03}{spikes_object.label}'
+
+                file.create_group('/Spikes', h5_location)
+                file.create_array(
+                    f'/Spikes/{h5_location}', "TimeStamps", spikes_object.timestamps)
+                file.create_array(
+                    f'/Spikes/{h5_location}', "Waveforms", spikes_object.waveforms)
+                file.flush()
+
+                unit_header = spikes_object.unit_header
+
+                file.create_table(
+                    f'/Spikes/{h5_location}', "UnitsHeader", dataframeToRecarry(unit_header))
+                file.flush()
+
+                not_zero_unit = unit_header.loc[unit_header['NumRecords'] > 0, 'ID']
+                for unit_ID in not_zero_unit:
+                    ID_group = file.create_group(
+                        f'/Spikes/{h5_location}', f'Unit_{unit_ID:02}')
+                    file.create_array(ID_group, 'Indxs',
+                                      (spikes_object.unit_IDs == unit_ID).nonzero()[0])
+                    file.flush()
+
+                # def saveRaws(filename, header, data, overwrite=False):
+                #     raws_header = RawsHeader.model_validate(header, extra='allow')
+                #     basename, extname = os.path.splitext(filename)
+                #     filt = tables.Filters(complib='zlib', complevel=1)
+                #     with tables.open_file(filename, mode='a', title='test', filters=filt) as file:
+
+                #     pass
+
+        # SpikesHeader
+        file.create_table('/', 'SpikesHeader',
+                          dataframeToRecarry(data_object.spikes_header))
+        file.flush()
+
+
+def dataframeToRecarry(df: pd.DataFrame):
+    object_cols = df.dtypes[df.dtypes == 'object'].index
+    string_len = df[object_cols].applymap(len)
+    max_length = string_len.max()
+    max_length = max_length.apply(lambda x: f'S{x}' if x > 0 else 'S1')
+    return df.to_records(index=False,
+                         column_dtypes=max_length.to_dict())
 
 
 def recarrayToDictList(recarray: np.ndarray):

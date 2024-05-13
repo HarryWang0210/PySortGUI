@@ -93,6 +93,8 @@ class PySortGUI(MainWindowDocks):
             self.saveChannel)
         self.children_dict['FileMenu']["SaveAll"].triggered.connect(
             self.saveAll)
+        self.children_dict['FileMenu']["Export"].triggered.connect(
+            self.export)
         self.children_dict['FileMenu']["Exit"].triggered.connect(
             self.close)
 
@@ -246,6 +248,9 @@ class PySortGUI(MainWindowDocks):
         print("saveAll")
         self.saveChannel()
         pass
+
+    def export(self):
+        self.children_dict["ChannelDetail"].export()
 
     # def undo(self):
     #     """Undo the last change."""

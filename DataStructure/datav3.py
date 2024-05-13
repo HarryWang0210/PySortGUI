@@ -14,7 +14,7 @@ from .FunctionsLib.Sorting import auto_sort
 from .FunctionsLib.ThresholdOperations import extract_waveforms
 from .openephys import loadContinuous, loadEvents, loadOpenephysHeader, getFilesInFolder
 from .pyephysv3 import (deleteSpikes, loadPyephysHeader, loadRaws, loadSpikes,
-                        saveSpikes, saveSpikesHeader)
+                        saveSpikes, saveSpikesHeader, exportToPyephys)
 
 logger = logging.getLogger(__name__)
 
@@ -229,7 +229,7 @@ class SpikeSorterData(object):
 
     def saveChannel(self, channel):
         raw_object = self.getRaw(channel)
-        records = []
+        # records = []
         for label, spike_object in list(raw_object._spikes.items()):
             if label == 'default':
                 h5_location = f'/Spikes/spike{raw_object.channel_ID:03}'
@@ -253,7 +253,7 @@ class SpikeSorterData(object):
 
                 saveSpikes(self.path, spike_object.header, spike_object.unit_header,
                            spike_object.unit_IDs, spike_object.timestamps, spike_object.waveforms)
-            records.append(spike_object.header)
+            # records.append(spike_object.header)
             spike_object._from_file = True
 
         records = []
@@ -279,6 +279,19 @@ class SpikeSorterData(object):
         # logger.debug(new_spikes_header)
         saveSpikesHeader(self.path, new_spikes_header)
         # logger.debug(self.spikes_header)
+
+    def export(self, new_filename: str, data_format: str = 'pyephys'):
+        if data_format == 'pyephys':
+            if os.path.splitext(new_filename)[1] != '.h5':
+                new_filename = os.path.splitext(new_filename)[0] + '.h5'
+
+            exportToPyephys(new_filename, self)
+
+        else:
+            logger.info(
+                f'Can not export to {data_format} format! {new_filename}')
+
+        logger.info(f'Export to {data_format} format complete! {new_filename}')
 
     def validateChannel(self, channel: int | str) -> int:
         if isinstance(channel, str):

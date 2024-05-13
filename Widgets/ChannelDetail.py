@@ -297,14 +297,15 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
     # ========== Actions ==========
-    def openFile(self):
+    def openFile(self, filename: str = ''):
         """Open file manager and load selected file. """
         self.file_type_dict = {
             # "openephy": "Open Ephys Format (*.continuous)",
             "pyephys": "pyephys format (*.h5)"
         }  # File types to load
-        filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
-                                                                   ";;".join(self.file_type_dict.values()))  # start path
+        if filename == "":
+            filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
+                                                                       ";;".join(self.file_type_dict.values()))  # start path
         if filename == "":
             return
         if isinstance(self.current_data_object, SpikeSorterData):
@@ -810,6 +811,31 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # else:
         #     # deleting leaf
         #     ID_item.removeRow(label_item.row())
+
+    def export(self):
+        self.file_type_dict = {
+            # "openephy": "Open Ephys Format (*.continuous)",
+            "pyephys": "pyephys format (*.h5)"
+        }  # File types to load
+        new_filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Export file", "./test.h5",
+                                                                       ";;".join(self.file_type_dict.values()))  # start path
+        if new_filename == "":
+            return
+
+        self.current_data_object.export(new_filename, 'pyephys')
+
+        # self.current_data_object = SpikeSorterData(new_filename, 'pyephys')
+        # self.signal_data_file_name_changed.emit(self.current_data_object)
+
+        # self.setDataModel()
+        # self.undo_stack_dict.clear()
+
+        # # Clear all undo stack
+        # for undo_stack in self.main_window.undo_group.stacks():
+        #     self.main_window.undo_group.removeStack(undo_stack)
+
+        # self.sorting_label_comboBox.clear()
+        # self.file_name_lineEdit.setText(new_filename)
 
     def setUnsavedChangeIndicator(self, row_items: list, spike_object: DiscreteData):
         if spike_object is None:
