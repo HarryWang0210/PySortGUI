@@ -255,17 +255,29 @@ class SpikeSorterData(object):
                            spike_object.unit_IDs, spike_object.timestamps, spike_object.waveforms)
             records.append(spike_object.header)
             spike_object._from_file = True
-        spikes_header = self._headers['SpikesHeader']
-        new_spikes_header = pd.DataFrame(
-            spikes_header[spikes_header['ID'] != raw_object.channel_ID])
-        # logger.debug(pd.DataFrame.from_records(records).dtypes)
 
-        new_spikes_header = pd.concat([new_spikes_header, pd.DataFrame.from_records(records)],
-                                      axis=0, ignore_index=True)
-        # logger.debug(new_spikes_header.dtypes)
-        self._headers['SpikesHeader'] = new_spikes_header
+        records = []
+        for ID in self.channel_IDs:
+            raw_object = self.getRaw(ID)
+            for label in raw_object.spikes:
+                spike_object = self.getSpike(ID, label)
+                if spike_object == 'Removed':
+                    continue
+                if spike_object._from_file:
+                    records.append(spike_object.header)
+
+        new_spikes_header = pd.DataFrame.from_records(records)
+
+        # new_spikes_header = pd.DataFrame(
+        #     spikes_header[spikes_header['ID'] != raw_object.channel_ID])
+        # # logger.debug(pd.DataFrame.from_records(records).dtypes)
+
+        # new_spikes_header = pd.concat([new_spikes_header, pd.DataFrame.from_records(records)],
+        #                               axis=0, ignore_index=True)
+        # # logger.debug(new_spikes_header.dtypes)
+        # self._headers['SpikesHeader'] = new_spikes_header
         # logger.debug(new_spikes_header)
-        saveSpikesHeader(self.path, self._headers['SpikesHeader'])
+        saveSpikesHeader(self.path, new_spikes_header)
         # logger.debug(self.spikes_header)
 
     def validateChannel(self, channel: int | str) -> int:
