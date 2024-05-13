@@ -183,11 +183,14 @@ def saveSpikes(filename, header: dict, unit_header: pd.DataFrame | None = None,
     path_split = path.split('/')
     with tables.open_file(filename, mode="a") as file:
         if path in file.root:
-            spike_chan = file.get_node(path)
-            spike_chan._f_remove(force=True)
+            # spike_chan = file.get_node(path)
+            file.remove_node(path)
+            file.flush()
+            # spike_chan._f_remove(force=True)
         file.create_group('/'+path_split[-2], path_split[-1])
         file.create_array(path, "TimeStamps", timestamps)
         file.create_array(path, "Waveforms", waveforms)
+        file.flush()
 
         object_cols = unit_header.dtypes[unit_header.dtypes == 'object'].index
         string_len = unit_header[object_cols].applymap(len)
@@ -196,20 +199,24 @@ def saveSpikes(filename, header: dict, unit_header: pd.DataFrame | None = None,
         unit_table = unit_header.to_records(
             index=False, column_dtypes=max_length.to_dict())
         file.create_table(path, "UnitsHeader", unit_table)
+        file.flush()
 
         not_zero_unit = unit_header.loc[unit_header['NumRecords'] > 0, 'ID']
         for unit_ID in not_zero_unit:
             ID_group = file.create_group(path, f'Unit_{unit_ID:02}')
             file.create_array(ID_group, 'Indxs',
                               (unit_IDs == unit_ID).nonzero()[0])
+            file.flush()
 
 
 def saveSpikesHeader(filename, header: pd.DataFrame | None = None):
     path = '/SpikesHeader'
     with tables.open_file(filename, mode="a") as file:
         if path in file.root:
-            spike_chan = file.get_node(path)
-            spike_chan._f_remove()
+            # spike_chan = file.get_node(path)
+            # spike_chan._f_remove()
+            file.remove_node(path)
+            file.flush()
 
         object_cols = header.dtypes[header.dtypes == 'object'].index
         # # logger.debug(header.dtypes)
@@ -224,6 +231,7 @@ def saveSpikesHeader(filename, header: pd.DataFrame | None = None):
         # logger.debug(spike_table)
         # logger.debug(spike_table.dtype)
         file.create_table('/', 'SpikesHeader', spike_table)
+        file.flush()
 
 
 def deleteSpikes(filename, path):
