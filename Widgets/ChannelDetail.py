@@ -817,7 +817,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             # "openephy": "Open Ephys Format (*.continuous)",
             "pyephys": "pyephys format (*.h5)"
         }  # File types to load
-        new_filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Export file", "./test.h5",
+        new_filename, filetype = QtWidgets.QFileDialog.getSaveFileName(self, "Export file", "./test.h5",
                                                                        ";;".join(self.file_type_dict.values()))  # start path
         if new_filename == "":
             return
