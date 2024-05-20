@@ -544,6 +544,7 @@ def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
     title = os.path.splitext(os.path.basename(new_filename))[0]
     overwrite = True
     if overwrite:
+        # renew file, otherwise it might get bigger as long as delete and append data
         with tables.open_file(new_filename, mode='w', title=title, filters=filt) as file:
             pass
         with tables.open_file(new_filename+'raw', mode='w', title=title, filters=filt) as file:
