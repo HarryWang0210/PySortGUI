@@ -173,6 +173,51 @@ def loadSpikes(filename, path):
                 "waveforms": waveforms}
 
 
+def loadEvents(filename, path):
+    with tables.open_file(filename, mode="r") as file:
+        if path not in file.root:
+            return
+
+        event_node = file.get_node(path)
+
+        df_units_header = pd.DataFrame(
+            event_node._f_get_child("EventsHeader").read())
+
+        # convert to string
+        df_units_header = df_units_header.applymap(lambda x: x.decode(
+            'utf-8') if isinstance(x, bytes) else x)
+
+        # if 'UnitType' not in df_units_header.columns:
+        #     df_units_header['UnitType'] = 'Unit'
+
+        #     unsorted_pattern = r'(?i)unsorted'
+        #     matches = df_units_header['Name'].str.contains(
+        #         unsorted_pattern, regex=True)
+        #     df_units_header.loc[matches, 'UnitType'] = 'Unsorted'
+
+        #     invalid_pattern = r'(?i)invalid'
+        #     matches = df_units_header['Name'].str.contains(
+        #         invalid_pattern, regex=True)
+        #     df_units_header.loc[matches, 'UnitType'] = 'Invalid'
+
+        timestamps = event_node._f_get_child("TimeStamps").read()
+        # waveforms = event_node._f_get_child("Waveforms").read()
+
+        # get units id
+        unitID = np.zeros(len(timestamps))
+        not_zero_units = df_units_header[df_units_header["NumRecords"] > 0]
+        for unit in not_zero_units.index:
+            unit_h5_name = "/".join([not_zero_units.loc[unit, "H5Location"],
+                                    not_zero_units.loc[unit, "H5Name"]])
+            ind = file.get_node(unit_h5_name).read()
+            unitID[ind] = not_zero_units.loc[unit, "ID"]
+
+        return {"unitHeader": df_units_header,
+                "unitID": unitID,
+                "timestamps": timestamps,
+                }
+
+
 def _saveHeader(filename, path, ID,
                 header: FileHeader | RawsHeader | EventsHeader | SpikesHeader, label=''):
     filt = tables.Filters(complib='zlib', complevel=1)

@@ -16,8 +16,8 @@ from .header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
 from .openephys import (getFilesInFolder, loadContinuous, loadEvents,
                         loadOpenephysHeader)
 from .pyephysv3 import (deleteEvents, deleteRaws, deleteSpikes,
-                        exportToPyephys, loadPyephysHeader, loadRaws,
-                        loadSpikes, saveEvents, saveRaws, saveSpikes)
+                        exportToPyephys, loadEvents, loadPyephysHeader,
+                        loadRaws, loadSpikes, saveEvents, saveRaws, saveSpikes)
 
 logger = logging.getLogger(__name__)
 
@@ -582,7 +582,7 @@ class DiscreteData(object):
             self._data_loaded = True
             self._header['NumUnits'] = len(np.unique(self.unit_IDs))
 
-        if self._data_loaded == True:
+        if self._data_loaded == True and self._data_type == 'Spikes':
             if unit_header is None:
                 self._unit_header = self.createUnitHeader(unit_IDs=self._unit_IDs,
                                                           unsorted_unit_ID=0)
@@ -697,8 +697,8 @@ class DiscreteData(object):
                 data = loadSpikes(filename=self._filename,
                                   path=self._header['H5Location'])
             elif self.data_type == 'Events':
-                logger.critical('No implemented error')
-                return
+                data = loadEvents(filename=self._filename,
+                                  path=self._header['H5Location'])
 
         elif self._data_format == 'openephys':
             if self.data_type == 'Spikes':
