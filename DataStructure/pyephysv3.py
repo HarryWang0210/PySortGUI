@@ -241,6 +241,8 @@ def _deleteHeader(filename, path, ID, label=''):
                 return
 
             condiction = f'ID == {ID}'
+            if isinstance(ID, str):
+                condiction = f'ID == b"{ID}"'
 
             if label != '':
                 if not 'Label' in table.colnames:
@@ -473,8 +475,27 @@ def deleteEvents(filename: str, ID: int):
 
 
 def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
-    # filt = tables.Filters(complib='zlib', complevel=1)
+    filt = tables.Filters(complib='zlib', complevel=1)
+    title = os.path.splitext(os.path.basename(new_filename))[0]
     overwrite = True
+    if overwrite:
+        with tables.open_file(new_filename, mode='w', title=title, filters=filt) as file:
+            pass
+        with tables.open_file(new_filename+'raw', mode='w', title=title, filters=filt) as file:
+            pass
+
+    # total_size = 0
+    # with tables.open_file(new_filename, mode='r') as h5file:
+    #     for node in h5file.walk_nodes("/"):
+    #         total_size += node.size_in_memory
+    # logger.debug(total_size)
+
+    # logger.debug(os.path.getsize(new_filename))
+
+    # File
+    for file_header in data_object._file_headers:
+        _saveHeader(filename=new_filename, path='/FileHeader', ID=file_header['ID'],
+                    header=FileHeader.model_validate(file_header, extra='allow'))
 
     # Raws
     for ID in data_object.channel_IDs:

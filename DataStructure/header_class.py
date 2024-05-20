@@ -10,11 +10,13 @@ from .DataClasses import DataClass, convert_and_enforce_types
 
 logger = logging.getLogger(__name__)
 
+# convert_types=[(datetime, lambda value: datetime.strptime(value.decode(), "%Y-%m-%d %H:%M:%S"))]
 
-@convert_and_enforce_types(convert_types=[(datetime, lambda value: datetime.strptime(value.decode(), "%Y-%m-%d %H:%M:%S"))])
+
+@convert_and_enforce_types()
 @dataclass
 class FileHeader(DataClass):
-    DateTime: datetime
+    DateTime: datetime | str
     FileMajorVersion: int
     FileMinorVersion: int
     HeaderLength: int
@@ -41,12 +43,18 @@ class FileHeader(DataClass):
 
     def __post_init__(self):
         self._addIgnoreField('FullFileName')
-        self.FilePath, self.BaseName = os.path.split(self.FullFileName)
-        self.FileName, self.FileExt = os.path.splitext(self.BaseName)
+        if self.FullFileName != '':
+            self.FilePath, self.BaseName = os.path.split(self.FullFileName)
+            self.FileName, self.FileExt = os.path.splitext(self.BaseName)
+        self._convertDateTime()
         self._setFileSize()
         self._setFileAtime()
         self._setFileCtime()
         self._setFileMtime()
+
+    def _convertDateTime(self):
+        if isinstance(self.DateTime, datetime):
+            self.DateTime = self.DateTime.strftime("%Y-%m-%d %H:%M:%S")
 
     def _setFileSize(self):
         if self.FileSize > 0:

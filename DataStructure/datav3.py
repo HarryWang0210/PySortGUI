@@ -33,6 +33,7 @@ class SpikeSorterData(object):
         super().__init__()
         self._path = file_or_folder
         self._data_format = data_format
+        self._file_headers = []
         self._raws_dict = dict()
         self._channel_name_to_ID = dict()
         self._events_dict = dict()
@@ -44,6 +45,8 @@ class SpikeSorterData(object):
             if os.path.isdir(self._path):
                 file_path_list = getFilesInFolder(self._path)
                 self._headers = loadOpenephysHeader(file_path_list)
+
+        self._file_headers = self._headers.get('FileHeader')
 
         self._createRawsData()
         self._createEventsData()
@@ -60,6 +63,10 @@ class SpikeSorterData(object):
     @property
     def event_IDs(self):
         return list(sorted(self._events_dict.keys()))
+
+    @property
+    def file_header(self):
+        return pd.DataFrame.from_records(self._file_headers)
 
     @property
     def raws_header(self):
@@ -113,7 +120,6 @@ class SpikeSorterData(object):
         if spikes_header is None:
             logger.warning('Can not load spikes data')
             return
-        logger.debug(self._channel_name_to_ID)
 
         for file_path, header in spikes_header:
             spike_object = DiscreteData(filename=file_path,
