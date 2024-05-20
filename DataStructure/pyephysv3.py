@@ -219,7 +219,7 @@ def loadEvents(filename, path):
 
 
 def _saveHeader(filename, path, ID,
-                header: FileHeader | RawsHeader | EventsHeader | SpikesHeader, label=''):
+                header: RawsHeader | EventsHeader | SpikesHeader, label=''):
     filt = tables.Filters(complib='zlib', complevel=1)
     title = os.path.splitext(os.path.basename(filename))[0]
     where, name = os.path.split(path)
@@ -395,6 +395,26 @@ def _deleteData(filename, path):
             file.flush()
 
 
+def saveFileHeader(filename: str, headers: list[FileHeader]):
+    filt = tables.Filters(complib='zlib', complevel=1)
+    title = os.path.splitext(os.path.basename(filename))[0]
+    file_header_path = '/FileHeader'
+    df_file_header = pd.DataFrame.from_records(
+        [header.model_dump(extra='append') for header in headers])
+
+    H5Location, H5Name = os.path.split(file_header_path)
+
+    df_file_header['H5FileName'] = filename
+    df_file_header['H5Location'] = H5Location
+    df_file_header['H5Name'] = H5Name
+
+    with tables.open_file(filename, mode='a', title=title, filters=filt) as file:
+        unit_header_records = dataframeToRecarry(df_file_header)
+        file.create_table(where=H5Location, name=H5Name,
+                          obj=unit_header_records, createparents=True)
+        file.flush()
+
+
 def saveRaws(filename: str, ID: int, header: RawsHeader, data: np.ndarray, create_link=False):
     """Save raws header and data.
 
@@ -538,9 +558,11 @@ def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
     # logger.debug(os.path.getsize(new_filename))
 
     # File
-    for file_header in data_object._file_headers:
-        _saveHeader(filename=new_filename, path='/FileHeader', ID=file_header['ID'],
-                    header=FileHeader.model_validate(file_header, extra='allow'))
+    saveFileHeader(filename=new_filename, headers=[FileHeader.model_validate(
+        file_header, extra='allow') for file_header in data_object._file_headers])
+    # for file_header in data_object._file_headers:
+    #     _saveHeader(filename=new_filename, path='/FileHeader', ID=file_header['ID'],
+    #                 header=FileHeader.model_validate(file_header, extra='allow'))
 
     # Raws
     for ID in data_object.channel_IDs:
