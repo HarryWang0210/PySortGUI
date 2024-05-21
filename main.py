@@ -102,6 +102,11 @@ class PySortGUI(MainWindowDocks):
         #     self.undo)
         # self.children_dict['EditMenu']["Redo"].triggered.connect(
         #     self.redo)
+        self.children_dict['EditMenu']["CreateRef"].triggered.connect(
+            self.createRef)
+        self.children_dict['EditMenu']["DeleteRef"].triggered.connect(
+            self.deleteRef)
+
         self.children_dict['EditMenu']["CopySpike"].triggered.connect(
             self.copySpike)
         self.children_dict['EditMenu']["DeleteSpike"].triggered.connect(
@@ -261,6 +266,15 @@ class PySortGUI(MainWindowDocks):
     #     """Redo the change."""
     #     self.children_dict['ChannelDetail'].undo_stack.redo()
     #     print("redo")
+    def createRef(self):
+        """Create the reference channel."""
+        self.children_dict["ChannelDetail"].createReference()
+
+    def deleteRef(self):
+        """Delete the reference channel."""
+        logger.critical('deleteRef: NoImplementError')
+        # self.children_dict["ChannelDetail"].copySpike()
+
     def copySpike(self):
         """Copy the spike data."""
         self.children_dict["ChannelDetail"].copySpike()

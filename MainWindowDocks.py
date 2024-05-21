@@ -135,6 +135,17 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         EditMenu.addSeparator()
 
+        CreateRefAction = QtWidgets.QAction('Create Reference Channel', self)
+        EditMenu.addAction(CreateRefAction)
+        EditMenu_dict["CreateRef"] = CreateRefAction
+
+        DeleteRefAction = QtWidgets.QAction('Delete this Reference Channel',
+                                            self)
+        EditMenu.addAction(DeleteRefAction)
+        EditMenu_dict["DeleteRef"] = DeleteRefAction
+
+        EditMenu.addSeparator()
+
         CopySpikeAction = QtWidgets.QAction('Copy this Spike Data', self)
         EditMenu.addAction(CopySpikeAction)
         EditMenu_dict["CopySpike"] = CopySpikeAction
