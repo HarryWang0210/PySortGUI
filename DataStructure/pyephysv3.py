@@ -409,6 +409,9 @@ def saveFileHeader(filename: str, headers: list[FileHeader]):
     df_file_header['H5Name'] = H5Name
 
     with tables.open_file(filename, mode='a', title=title, filters=filt) as file:
+        if file_header_path in file.root:
+            file.remove_node(file_header_path, recursive=True)
+            file.flush()
         unit_header_records = dataframeToRecarry(df_file_header)
         file.create_table(where=H5Location, name=H5Name,
                           obj=unit_header_records, createparents=True)
