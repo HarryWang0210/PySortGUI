@@ -571,6 +571,10 @@ def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
     # Raws
     for ID in data_object.channel_IDs:
         raws_object = data_object.getRaw(ID, load_data=True)
+        if raws_object == 'Removed':
+            # try delete raw
+            deleteRaws(new_filename, ID=ID)
+            del data_object._raws_dict[ID]
         raws_header = RawsHeader.model_validate(raws_object.header,
                                                 extra='allow')
         saveRaws(filename=new_filename, ID=ID,
