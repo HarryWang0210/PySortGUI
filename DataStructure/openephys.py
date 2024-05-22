@@ -83,7 +83,7 @@ def _parse_date_created(value):
     return datetime.strptime(value, "%d-%b-%Y %H%M%S")
 
 
-@convert_and_enforce_types(convert_types=[(datetime, _parse_date_created)])
+@convert_and_enforce_types()
 @dataclass
 class OpenEphysHeader(DataClass):
     format: str  # 'Open Ephys Data Format'
@@ -94,20 +94,20 @@ class OpenEphysHeader(DataClass):
 
     description: str  # '(String describing the header)'
 
-    date_created: datetime  # 'dd-mm-yyyy hhmmss'
+    date_created: str  # 'dd-mm-yyyy hhmmss'
 
     channel: str  # '(String with channel name)'
 
     channelType: str  # '(String describing the channel type)'
 
-    sampleRate: int  # (integer sampling rate)
+    sampleRate: int = 0  # (integer sampling rate)
 
-    blockLength: int  # 1024
+    blockLength: int = 0  # 1024
 
-    bufferSize: int  # 1024
+    bufferSize: int = 0  # 1024
 
     # (floating point value of microvolts/bit for headstage channels, or volts/bit for ADC channels)
-    bitVolts: int | float
+    bitVolts: int | float = 0
 
     # extend infomation from setting.xml
     lowCut: int | float = 0
@@ -195,6 +195,8 @@ def loadOpenephysHeader(file_list: list[str]):
     raws_headers: list[tuple[str, dict]] = []
     events_headers: list[tuple[str, dict]] = []
     spikes_headers: list[tuple[str, dict]] = []
+    ch_index = 0
+    already_exist_index = []
     for file_path in file_list:
         ext = os.path.splitext(file_path)[1]
         if ext in _FILE_EXTENSIONS:
@@ -203,6 +205,16 @@ def loadOpenephysHeader(file_list: list[str]):
 
         if ext == '.continuous':
             file_header, raws_header = loadContinuousHeader(file_path)
+            if raws_header.ID == -1:
+                if raws_header.Name[:2] == 'CH':
+                    new_ID = int(raws_header.Name[2:])
+                else:
+                    new_ID = 100 + ch_index
+                    ch_index += 1
+                raws_header.ID = new_ID
+                raws_header.Pin = new_ID
+            already_exist_index.append(new_ID)
+
             file_headers.append(file_header.model_dump())
             raws_headers.append((file_path, raws_header.model_dump()))
 
@@ -246,6 +258,12 @@ def readOpenEphysHeader(file_name: str) -> OpenEphysHeader:
                 key = splited_item[0].strip()
                 value = eval(splited_item[1])
                 header[key] = value
+            else:
+                try:
+                    value = int(item)
+                    header['sampleRate'] = value
+                except:
+                    pass
     header = OpenEphysHeader.model_validate(header)
     return header
 
@@ -276,13 +294,27 @@ def loadContinuousHeader(file_name: str, dtype=_CONTINUOUS_RECORD_DTYPE) -> tupl
         root = ET.parse(xml_file).getroot()
 
     if pid is not None:
-        search = ".//PROCESSOR[@NodeId='{}']/EDITOR".format(pid)
-        finfo = root.findall(search)[0].attrib
+        try:
+            search = ".//PROCESSOR[@NodeId='{}']/EDITOR".format(pid)
+            finfo = root.findall(search)[0].attrib
+        except IndexError:
+            try:
+                search = ".//PROCESSOR[@nodeId='{}']/EDITOR".format(pid)
+                finfo = root.findall(search)[0].attrib
+            except IndexError:
+                finfo = {}
+                finfo['LowCut'] = 0
+                finfo['HighCut'] = 0
         header.lowCut = float(finfo['LowCut'])
         header.highCut = float(finfo['HighCut'])
-        search = ".//PROCESSOR[@NodeId='{}']/CHANNEL_INFO/CHANNEL[@name='{}']".format(
-            pid, header.channel)
-        chinfo = root.findall(search)[0].attrib
+
+        try:
+            search = ".//PROCESSOR[@NodeId='{}']/CHANNEL_INFO/CHANNEL[@name='{}']".format(
+                pid, header.channel)
+            chinfo = root.findall(search)[0].attrib
+        except IndexError:
+            chinfo = {}
+            chinfo['number'] = -1
         header.ID = int(chinfo['number'])
 
     # create FileHeader
