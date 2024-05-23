@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\UI\CreateReferenceDialog.ui'
+# Form implementation generated from reading ui file 'CreateReferenceDialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -15,8 +15,8 @@ class Ui_CreateReferenceDialog(object):
     def setupUi(self, CreateReferenceDialog):
         CreateReferenceDialog.setObjectName("CreateReferenceDialog")
         CreateReferenceDialog.resize(400, 300)
-        self.verticalLayout_4 = QtWidgets.QVBoxLayout(CreateReferenceDialog)
-        self.verticalLayout_4.setObjectName("verticalLayout_4")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(CreateReferenceDialog)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -27,6 +27,9 @@ class Ui_CreateReferenceDialog(object):
         self.label_2 = QtWidgets.QLabel(CreateReferenceDialog)
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
+        self.label_4 = QtWidgets.QLabel(CreateReferenceDialog)
+        self.label_4.setObjectName("label_4")
+        self.verticalLayout.addWidget(self.label_4)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
@@ -36,24 +39,34 @@ class Ui_CreateReferenceDialog(object):
         self.comment_lineEdit = QtWidgets.QLineEdit(CreateReferenceDialog)
         self.comment_lineEdit.setObjectName("comment_lineEdit")
         self.verticalLayout_2.addWidget(self.comment_lineEdit)
+        self.method_comboBox = QtWidgets.QComboBox(CreateReferenceDialog)
+        self.method_comboBox.setObjectName("method_comboBox")
+        self.method_comboBox.addItem("")
+        self.verticalLayout_2.addWidget(self.method_comboBox)
         self.horizontalLayout.addLayout(self.verticalLayout_2)
-        self.verticalLayout_4.addLayout(self.horizontalLayout)
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.verticalLayout_3.addLayout(self.horizontalLayout)
+        self.line = QtWidgets.QFrame(CreateReferenceDialog)
+        self.line.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line.setObjectName("line")
+        self.verticalLayout_3.addWidget(self.line)
         self.label_3 = QtWidgets.QLabel(CreateReferenceDialog)
         self.label_3.setObjectName("label_3")
         self.verticalLayout_3.addWidget(self.label_3)
+        self.select_all_checkBox = QtWidgets.QCheckBox(CreateReferenceDialog)
+        self.select_all_checkBox.setTristate(True)
+        self.select_all_checkBox.setObjectName("select_all_checkBox")
+        self.verticalLayout_3.addWidget(self.select_all_checkBox)
         self.tableView = QtWidgets.QTableView(CreateReferenceDialog)
         self.tableView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.tableView.setObjectName("tableView")
         self.verticalLayout_3.addWidget(self.tableView)
-        self.verticalLayout_4.addLayout(self.verticalLayout_3)
         self.buttonBox = QtWidgets.QDialogButtonBox(CreateReferenceDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setCenterButtons(True)
         self.buttonBox.setObjectName("buttonBox")
-        self.verticalLayout_4.addWidget(self.buttonBox)
+        self.verticalLayout_3.addWidget(self.buttonBox)
 
         self.retranslateUi(CreateReferenceDialog)
         self.buttonBox.accepted.connect(CreateReferenceDialog.accept) # type: ignore
@@ -65,4 +78,7 @@ class Ui_CreateReferenceDialog(object):
         CreateReferenceDialog.setWindowTitle(_translate("CreateReferenceDialog", "Dialog"))
         self.label.setText(_translate("CreateReferenceDialog", "Channel Name"))
         self.label_2.setText(_translate("CreateReferenceDialog", "Comment(Optional)"))
+        self.label_4.setText(_translate("CreateReferenceDialog", "Method: "))
+        self.method_comboBox.setItemText(0, _translate("CreateReferenceDialog", "Median"))
         self.label_3.setText(_translate("CreateReferenceDialog", "Select Channels:"))
+        self.select_all_checkBox.setText(_translate("CreateReferenceDialog", "select all"))
