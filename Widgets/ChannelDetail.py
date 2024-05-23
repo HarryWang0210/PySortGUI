@@ -70,6 +70,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.events_header = self.current_data_object.events_header
 
         self.spike_group_item = QStandardItem('Spikes')  # Top level, Group
+        self.raws_group_item = QStandardItem('Raws')  # Top level, Group
+        self.events_group_item = QStandardItem('Events')  # Top level, Group
+
         model.appendRow(self.spike_group_item)
         if not self.spikes_header is None:
             spikes_header = self.spikes_header.copy()
@@ -93,8 +96,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                          for col_value in sub_row]
                     chan_ID_item.appendRow(values)
 
-        group_item = QStandardItem('Raws')  # Top level, Group
-        model.appendRow(group_item)
+        model.appendRow(self.raws_group_item)
         if not self.raws_header is None:
             raws_header = self.raws_header.copy()
             for nan_column in [x for x in self.header_name if x not in raws_header.columns]:
@@ -108,10 +110,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 first_items = [chan_ID_item] + \
                     [QStandardItem(str(col_value))
                      for col_value in sub_data.iloc[0, 1:]]
-                group_item.appendRow(first_items)
+                self.raws_group_item.appendRow(first_items)
 
-        group_item = QStandardItem('Events')  # Top level, Group
-        model.appendRow(group_item)
+        model.appendRow(self.events_group_item)
         if not self.events_header is None:
             events_header = self.events_header.copy()
             for nan_column in [x for x in self.header_name if x not in events_header.columns]:
@@ -125,7 +126,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 first_items = [chan_ID_item] + \
                     [QStandardItem(str(col_value))
                      for col_value in sub_data.iloc[0, 1:]]
-                group_item.appendRow(first_items)
+                self.events_group_item.appendRow(first_items)
 
     def createRowItems(self, header: dict) -> list[QStandardItem]:
         row_items = []
@@ -285,7 +286,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         elif meta_data['Type'] in ['Raws', 'Ref']:
             self.current_data_object.loadRaw(channel=chan_ID)
             self.current_raw_object = self.current_data_object.getRaw(chan_ID)
-            self.updataTreeView(row_items, self.current_raw_object)
+            if self.current_raw_object._from_file:
+                self.updataTreeView(row_items, self.current_raw_object)
             # self.setLabelCombox(labels=self.current_raw_object.spikes)
 
         self.signal_continuous_data_changed.emit(self.current_raw_object,
@@ -733,21 +735,30 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if row_items is None:
             return
         ID_item = row_items[0]
-        selecting_label = self.dropSuffix(row_items[1].text())
-        new_selecting_item = None  # To locate the selecting row
-        channel_row = ID_item.row()
-        spike_group_item = ID_item.parent()
-
         channel_ID = int(self.dropSuffix(ID_item.text()))
         raw_object = self.current_data_object.getRaw(channel_ID)
+        channel_row = ID_item.row()
+
+        meta_data = self.rowItemsToMetadata(row_items)
+        if meta_data['Type'] == 'Ref':
+            self.current_data_object.saveReference(channel_ID)
+            if raw_object == 'Removed':
+                self.raws_group_item.removeRow(channel_row)
+            else:
+                # self.current_data_object.saveReference(channel_ID)
+                # self.updataTreeView(row_items, raw_object)
+                self.setUnsavedChangeIndicator(row_items, raw_object)
+            return
+
+        selecting_label = self.dropSuffix(row_items[1].text())
+        new_selecting_item = None  # To locate the selecting row
+
         old_labels = raw_object.spikes
-
         self.current_data_object.saveChannel(channel_ID)
-
         new_labels = sorted(raw_object.spikes)
 
         # Modify row items
-        spike_group_item.removeRow(channel_row)
+        self.spike_group_item.removeRow(channel_row)
         if len(new_labels) > 0:
             # has spike, insert new row items
             spike_object = raw_object.getSpike(new_labels[0])
@@ -761,7 +772,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 if label == selecting_label:
                     new_selecting_item = new_row_items[1]
                 new_ID_item.appendRow(new_row_items)
-            spike_group_item.insertRow(channel_row, first_row_items)
+            self.spike_group_item.insertRow(channel_row, first_row_items)
 
             if new_selecting_item is None:
                 new_selecting_item = first_row_items[1]
@@ -819,9 +830,12 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if result != QDialog.Accepted:
             return
 
-        self.current_data_object.createMedianReference(channel_ID_list=dialog.select_channel_IDs,
-                                                       new_channel_name=dialog.channel_name_lineEdit.text(),
-                                                       new_comment=dialog.comment_lineEdit.text())
+        new_raw_object = self.current_data_object.createMedianReference(channel_ID_list=dialog.select_channel_IDs,
+                                                                        new_channel_name=dialog.channel_name_lineEdit.text(),
+                                                                        new_comment=dialog.comment_lineEdit.text())
+        new_row_items = self.createRowItems(new_raw_object.header)
+        self.raws_group_item.appendRow(new_row_items)
+        self.setUnsavedChangeIndicator(new_row_items, new_raw_object)
 
     def export(self):
         self.file_type_dict = {
@@ -849,13 +863,31 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # self.sorting_label_comboBox.clear()
         # self.file_name_lineEdit.setText(new_filename)
 
-    def setUnsavedChangeIndicator(self, row_items: list, spike_object: DiscreteData):
-        if spike_object is None:
+    def setUnsavedChangeIndicator(self, row_items: list, obj: ContinuousData | DiscreteData):
+        if obj is None:
             return
         ID_item = row_items[0]
         label_item = row_items[1]
         meta_items = row_items[2:]
-        if spike_object._from_file:
+
+        if isinstance(obj, ContinuousData):
+            if obj._from_file:
+                if ID_item.text().endswith('*'):
+                    ID_item.setText(ID_item.text()[:-1])
+                for item in row_items:
+                    font = item.font()
+                    font.setBold(False)
+                    item.setFont(font)
+            else:
+                if not ID_item.text().endswith('*'):
+                    ID_item.setText(ID_item.text() + '*')
+                for item in row_items:
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+            return
+
+        if obj._from_file:
             if label_item.text().endswith('*'):
                 label_item.setText(label_item.text()[:-1])
 
@@ -877,7 +909,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 item.setFont(font)
 
         # Check ID
-        channel_ID = spike_object.channel_ID
+        channel_ID = obj.channel_ID
         raw_object = self.current_data_object.getRaw(channel_ID)
         if raw_object.allSaved():
             if ID_item.text().endswith('*'):
@@ -1086,7 +1118,7 @@ class CreateReferenceDialog(Ui_CreateReferenceDialog, QDialog):
 
         # 創建一個 CheckBox Widget
         checkbox = QCheckBox()
-        checkbox.setProperty("ID", channel_ID)
+        checkbox.setProperty("ID", int(channel_ID))
         checkbox.setChecked(False)
         checkbox.stateChanged.connect(self.checkboxStateChanged)
         self.channel_checkbox_list.append(checkbox)
