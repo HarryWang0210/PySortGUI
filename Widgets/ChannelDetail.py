@@ -242,7 +242,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                     channel=chan_ID, label=label)
                 # Use spike to generate filted
                 new_filted_object = self.current_data_object.subtractReference(
-                    channel=chan_ID, reference=new_spike_object.reference)
+                    channel_ID=chan_ID, reference_ID=new_spike_object.reference)
                 new_filted_object = new_filted_object.bandpassFilter(low=new_spike_object.low_cutoff,
                                                                      high=new_spike_object.high_cutoff)
                 new_filted_object = new_filted_object.createCopy(
@@ -493,8 +493,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                       high: int | float = None) -> ContinuousData:
         new_filted_object = self.current_raw_object.createCopy()
         # if len(ref) > 0:
-        new_filted_object = self.current_data_object.subtractReference(channel=self.current_raw_object.channel_ID,
-                                                                       reference=ref)
+        new_filted_object = self.current_data_object.subtractReference(channel_ID=self.current_raw_object.channel_ID,
+                                                                       reference_ID=ref)
         if not low is None and not high is None:
             new_filted_object = new_filted_object.bandpassFilter(
                 low, high)
@@ -529,7 +529,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             new_spike_object.setLabel(label)
 
             old_filted_object = self.current_data_object.subtractReference(
-                channel=self.current_spike_object.channel_ID, reference=self.current_spike_object.reference)
+                channel_ID=self.current_spike_object.channel_ID, reference_ID=self.current_spike_object.reference)
             old_filted_object = old_filted_object.bandpassFilter(low=self.current_spike_object.low_cutoff,
                                                                  high=self.current_spike_object.high_cutoff)
             old_filted_object = old_filted_object.createCopy(
@@ -836,6 +836,41 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         new_row_items = self.createRowItems(new_raw_object.header)
         self.raws_group_item.appendRow(new_row_items)
         self.setUnsavedChangeIndicator(new_row_items, new_raw_object)
+
+    def deleteReference(self):
+        row_items = self.getSelectedRowItems()
+        meta_data = self.rowItemsToMetadata(row_items)
+        row_type = meta_data['Type']
+
+        if row_type != 'Ref':
+            logger.warning('Can only delete reference channel!')
+            return
+
+        channel_ID = self.current_raw_object.channel_ID
+        self.current_data_object.removeReference(channel_ID)
+        logger.info(f'Delete reference channel {channel_ID}.')
+
+        ID_item = row_items[0]
+        if not ID_item.text().endswith('*'):
+            ID_item.setText(ID_item.text() + '*')
+            font = ID_item.font()
+            font.setBold(True)
+            ID_item.setFont(font)
+
+        for item in row_items[1:]:
+            font = ID_item.font()
+            font.setBold(False)
+            item.setFont(font)
+            item.setForeground(QColor('darkGray'))
+
+        self.current_raw_object = None
+        self.current_filted_object = None
+        self.current_spike_object = None
+        reset_selection = True
+        self.signal_continuous_data_changed.emit(self.current_raw_object,
+                                                 self.current_filted_object)
+        self.signal_spike_data_changed.emit(self.current_spike_object,
+                                            reset_selection)
 
     def export(self):
         self.file_type_dict = {
