@@ -2,14 +2,15 @@ import logging
 
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QItemSelectionModel
+from PyQt5.QtCore import QItemSelectionModel, Qt
 from PyQt5.QtGui import QColor, QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import (QAbstractItemView, QApplication, QDialog,
-                             QMainWindow, QUndoCommand, QUndoStack,
-                             QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (QAbstractItemView, QApplication, QCheckBox,
+                             QDialog, QMainWindow, QMessageBox, QUndoCommand,
+                             QUndoStack, QVBoxLayout, QWidget)
 
 from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
 from UI.ChannelDetailv2_ui import Ui_ChannelDetail
+from UI.CreateReferenceDialog_ui import Ui_CreateReferenceDialog
 from UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
 
 logger = logging.getLogger(__name__)
@@ -126,19 +127,14 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                      for col_value in sub_data.iloc[0, 1:]]
                 group_item.appendRow(first_items)
 
-    def createRowItems(self, spike_object: DiscreteData) -> list[QStandardItem]:
+    def createRowItems(self, header: dict) -> list[QStandardItem]:
         row_items = []
         for key in self.header_name:
             if key == 'Reference':
                 key = 'ReferenceID'
-            # if key == 'Label':
-            #     label_item = QStandardItem(
-            #         str(spike_object.header.get(key, '')))
-            #     row_items.append(label_item)
-            #     continue
 
             row_items.append(QStandardItem(
-                str(spike_object.header.get(key, ''))))
+                str(header.get(key, ''))))
         return row_items
 
     def rowItemsToMetadata(self, row_items: list[QStandardItem]) -> dict[str, str]:
@@ -251,8 +247,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 new_filted_object = new_filted_object.createCopy(
                     threshold=new_spike_object.threshold)
                 # self.setSpikeSetting()
-                self.setLabelCombox(labels=new_raw_object.spikes,
-                                    current=label)
+                # self.setLabelCombox(labels=new_raw_object.spikes,
+                #                     current=label)
 
             # if not self.current_undo_stack is None:
             #     self.current_undo_stack.setActive(False)
@@ -286,11 +282,11 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             logger.debug(
                 f'Undostack {chan_ID} {label}: {self.current_undo_stack}')
 
-        elif meta_data['Type'] == 'Raws':
+        elif meta_data['Type'] in ['Raws', 'Ref']:
             self.current_data_object.loadRaw(channel=chan_ID)
             self.current_raw_object = self.current_data_object.getRaw(chan_ID)
             self.updataTreeView(row_items, self.current_raw_object)
-            self.setLabelCombox(labels=self.current_raw_object.spikes)
+            # self.setLabelCombox(labels=self.current_raw_object.spikes)
 
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
@@ -377,7 +373,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         channel_item = row_items[0]
 
-        new_row_items = self.createRowItems(new_spike_object)
+        new_row_items = self.createRowItems(new_spike_object.header)
         new_row_items[0] = QStandardItem('')
         label_item = new_row_items[1]
 
@@ -574,7 +570,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 channel_IDs.sort()
                 new_row = channel_IDs.index(chan_ID)
 
-                new_row_items = self.createRowItems(new_spike_object)
+                new_row_items = self.createRowItems(new_spike_object.header)
                 label_item = new_row_items[1]
                 self.spike_group_item.insertRow(new_row, new_row_items)
 
@@ -596,7 +592,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 row_items_list = self.getRowItemsFromChannel(chan_ID)
                 channel_item = row_items_list[0][0]
 
-                new_row_items = self.createRowItems(new_spike_object)
+                new_row_items = self.createRowItems(new_spike_object.header)
                 new_row_items[0] = QStandardItem('')
                 label_item = new_row_items[1]
 
@@ -645,14 +641,14 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         #     return
         # self.setUnsavedChangeIndicator(row_items, self.current_spike_object)
 
-    def setLabelCombox(self, labels: list | None = None, current: str | None = None):
-        self.sorting_label_comboBox.clear()
-        if labels is None:
-            return
-        self.sorting_label_comboBox.addItems(labels)
-        if current is None:
-            return
-        self.sorting_label_comboBox.setCurrentText(current)
+    # def setLabelCombox(self, labels: list | None = None, current: str | None = None):
+    #     self.sorting_label_comboBox.clear()
+    #     if labels is None:
+    #         return
+    #     self.sorting_label_comboBox.addItems(labels)
+    #     if current is None:
+    #         return
+    #     self.sorting_label_comboBox.setCurrentText(current)
 
     # def setSpikeSetting(self):
     #     self.current_spike_setting['Reference'] = ('Single',
@@ -755,12 +751,12 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         if len(new_labels) > 0:
             # has spike, insert new row items
             spike_object = raw_object.getSpike(new_labels[0])
-            first_row_items = self.createRowItems(spike_object)
+            first_row_items = self.createRowItems(spike_object.header)
 
             new_ID_item = first_row_items[0]
             for label in new_labels[1:]:
                 spike_object = raw_object.getSpike(label)
-                new_row_items = self.createRowItems(spike_object)
+                new_row_items = self.createRowItems(spike_object.header)
                 new_row_items[0] = QStandardItem('')
                 if label == selecting_label:
                     new_selecting_item = new_row_items[1]
@@ -812,6 +808,21 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         #     # deleting leaf
         #     ID_item.removeRow(label_item.row())
 
+    def createReference(self):
+        if self.current_data_object is None:
+            logger.warning('Not load data yet.')
+
+            return
+        header = self.current_data_object.raws_header
+        dialog = CreateReferenceDialog(header, parent=self)
+        result = dialog.exec_()
+        if result != QDialog.Accepted:
+            return
+
+        self.current_data_object.createMedianReference(channel_ID_list=dialog.select_channel_IDs,
+                                                       new_channel_name=dialog.channel_name_lineEdit.text(),
+                                                       new_comment=dialog.comment_lineEdit.text())
+
     def export(self):
         self.file_type_dict = {
             # "openephy": "Open Ephys Format (*.continuous)",
@@ -823,6 +834,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             return
 
         self.current_data_object.export(new_filename, 'pyephys')
+        self.openFile(new_filename)
 
         # self.current_data_object = SpikeSorterData(new_filename, 'pyephys')
         # self.signal_data_file_name_changed.emit(self.current_data_object)
@@ -984,10 +996,14 @@ class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
         if filted_object is None:
             self.setting = self.default_spike_setting
         else:
+            try:
+                mad = filted_object.threshold / filted_object.estimated_sd
+            except ZeroDivisionError:
+                mad = 0
             self.setting = {
                 'Reference': filted_object.reference,
                 'Filter': (filted_object.low_cutoff, filted_object.high_cutoff),
-                'Threshold': ('MAD', filted_object.threshold / filted_object.estimated_sd)
+                'Threshold': ('MAD', mad)
             }
         self.channel_ref_comboBox.clear()
         self.channel_ref_comboBox.addItems(map(str, all_chan_ID))
@@ -1011,3 +1027,188 @@ class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
         elif self.setting['Threshold'][0] == 'Const':
             self.const_thr_radioButton.setChecked(True)
             self.const_thr_doubleSpinBox.setValue(self.setting['Threshold'][1])
+
+
+class CreateReferenceDialog(Ui_CreateReferenceDialog, QDialog):
+    def __init__(self, data, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+        self.setWindowTitle("Create Reference Channel Dialog")
+        self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.select_channel_IDs: list = []
+        self.channel_checkbox_list = []
+        self.colnames = ['ID', 'Name', 'Type']
+        self.methods = ['Median']
+
+        self.data = data
+
+        self.user_changed_channel_name = False
+        self.user_changed_comment = False
+        self.channel_name_lineEdit.textEdited.connect(
+            self.setCustomChannelName)
+        self.comment_lineEdit.textEdited.connect(self.setCustomComment)
+
+        self.method_comboBox.clear()
+        self.method_comboBox.addItems(self.methods)
+        self.method_comboBox.setCurrentText(self.methods[0])
+
+        self.select_all_checkBox.stateChanged.connect(
+            self.allCheckboxStateChanged)
+        self.initDataModel()
+        self.setDataModel()
+
+    def initDataModel(self):
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels([''] + self.colnames)
+        self.tableView.setModel(model)
+        self.tableView.horizontalHeader().setStretchLastSection(True)
+
+        self.tableView.verticalHeader().setVisible(False)  # hide index
+
+        selection_model = self.tableView.selectionModel()
+        selection_model.selectionChanged.connect(self.onSelectionChanged)
+
+    def setDataModel(self):
+        model = self.tableView.model()
+        model.clear()
+        model.setHorizontalHeaderLabels([''] + self.colnames)
+
+        # self.addAllChannelRow(row=0)
+        for row, record in enumerate(self.data.to_records()):
+            self.appendChannelRow(record, row=row)
+
+        self.tableView.resizeColumnToContents(0)
+
+    def appendChannelRow(self, header_records, row):
+        model = self.tableView.model()
+        channel_ID = header_records['ID']
+
+        # 創建一個 CheckBox Widget
+        checkbox = QCheckBox()
+        checkbox.setProperty("ID", channel_ID)
+        checkbox.setChecked(False)
+        checkbox.stateChanged.connect(self.checkboxStateChanged)
+        self.channel_checkbox_list.append(checkbox)
+
+        # 將 CheckBox Widget 放入自定義的 Widget 容器中
+        checkbox_widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.addWidget(checkbox)
+        checkbox_widget.setLayout(layout)
+
+        # 將自定義的 Widget 設定為表格的單元格
+        model.appendRow([QStandardItem()] + [
+                        QStandardItem(str(header_records[col])) for col in self.colnames])
+        self.tableView.setIndexWidget(
+            model.index(row, 0), checkbox_widget)
+
+    def allCheckboxStateChanged(self, state):
+        if state == Qt.Checked:
+            # logger.debug('Checked')
+            [channel_checkbox.setChecked(True)
+             for channel_checkbox in self.channel_checkbox_list]
+            # self.locked_rows_list.append(channel_ID)
+        elif state == Qt.Unchecked:
+            # logger.debug('Unchecked')
+            [channel_checkbox.setChecked(False)
+             for channel_checkbox in self.channel_checkbox_list]
+            # self.locked_rows_list.remove(channel_ID)
+        elif state == Qt.PartiallyChecked:
+            # logger.debug('PartiallyChecked')
+            self.select_all_checkBox.setCheckState(Qt.Checked)
+
+    def checkboxStateChanged(self, state):
+        checkbox = self.sender()
+        channel_ID = checkbox.property("ID")
+        if state == Qt.Checked:
+            self.select_channel_IDs.append(channel_ID)
+        elif state == Qt.Unchecked:
+            self.select_channel_IDs.remove(channel_ID)
+
+        all_checkbox_state = [channel_checkbox.isChecked()
+                              for channel_checkbox in self.channel_checkbox_list]
+
+        # set all checkbox state
+        self.select_all_checkBox.blockSignals(True)
+
+        if np.all(all_checkbox_state):
+            self.select_all_checkBox.setCheckState(Qt.Checked)
+        elif np.any(all_checkbox_state):
+            self.select_all_checkBox.setCheckState(Qt.PartiallyChecked)
+        else:
+            self.select_all_checkBox.setCheckState(Qt.Unchecked)
+
+        self.select_all_checkBox.blockSignals(False)
+        self.setChannelNameAndComment()
+
+    def onSelectionChanged(self, selected, deselected):
+        # model = self.tableView.model()
+        # selection_model = self.tableView.selectionModel()
+        # selected_indexes = selection_model.selectedIndexes()
+
+        checkbox = self.tableView.indexWidget(
+            selected.indexes()[0]).layout().itemAt(0).widget()
+
+        current_state = checkbox.checkState()
+        if current_state == Qt.Unchecked:
+            checkbox.setCheckState(Qt.Checked)
+        elif current_state == Qt.Checked:
+            checkbox.setCheckState(Qt.Unchecked)
+
+        # logger.debug(item.layout().itemAt(0).widget())
+        # logger.debug(item.child(0))
+
+        # selection_model = self.tableView.selectionModel()
+        # selected_indexes = selection_model.selectedRows()
+        # self.selected_rows_list = [index.row() for index in selected_indexes]
+        # logger.debug('onSelectionChanged')
+        # self.sendShowingUnits()
+
+    def setCustomChannelName(self, channel_name: str):
+        self.user_changed_channel_name = True
+        if self.channel_name_lineEdit.text() == '':
+            self.user_changed_channel_name = False
+
+    def setCustomComment(self, comment: str):
+        self.user_changed_comment = True
+
+    def setChannelNameAndComment(self):
+        if self.select_channel_IDs == []:
+            if not self.user_changed_channel_name:
+                self.channel_name_lineEdit.setText('')
+
+            if not self.user_changed_comment:
+                self.comment_lineEdit.setText('')
+
+            return
+
+        method: str = self.method_comboBox.currentText()
+        if self.select_all_checkBox.checkState() == Qt.Checked:
+            channels = 'all'
+        else:
+            index = self.data['ID'].isin(list(set(self.select_channel_IDs)))
+            channel_name_list: list = self.data['Name'][index].to_list()
+            channels = ",".join(channel_name_list)
+
+        if not self.user_changed_channel_name:
+            self.channel_name_lineEdit.setText(
+                f'{method}Ref({channels})')
+
+        if not self.user_changed_comment:
+            self.comment_lineEdit.setText(f'This channel is a {method.lower()} reference channel made from ' +
+                                          f'{channels}')
+
+    def accept(self):
+        if len(self.select_channel_IDs) < 2:
+            mbox = QMessageBox(self)
+            mbox.information(
+                self, 'Warning', 'Must select at least two channels.')
+            return
+        elif self.channel_name_lineEdit.text() == '':
+            mbox = QMessageBox(self)
+            mbox.information(self, 'Warning', 'Channel name can not be empty.')
+            return
+        super().accept()
