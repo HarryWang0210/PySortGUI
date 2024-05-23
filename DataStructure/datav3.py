@@ -642,14 +642,19 @@ class DiscreteData(object):
 
         if len(self._timestamps) < 1:
             self._data_loaded = False
-            if _from_file and self._data_type == 'Spikes':
-                pass
-            elif _from_file and self._data_type == 'Events':
-                self._loadData()
-            else:
+            if not _from_file:
                 self._data_loaded = True
                 logger.critical('No data input!!!')
                 raise
+
+            # if _from_file and self._data_type in 'Spikes':
+            #     pass
+            # elif _from_file and self._data_type == 'Events':
+            #     self._loadData()
+            # else:
+            #     self._data_loaded = True
+            #     logger.critical('No data input!!!')
+            #     raise
         else:
             self._data_loaded = True
             self._header['NumUnits'] = len(np.unique(self.unit_IDs))
@@ -777,7 +782,6 @@ class DiscreteData(object):
                 logger.critical('No support error')
                 return
             elif self.data_type == 'Events':
-                logger.debug('here')
                 data = loadEvents(self._filename, bank=self.header['ID'])
 
         if data is None:
