@@ -346,7 +346,7 @@ class SpikeSorterData(object):
         header['Comment'] = new_comment
 
         ref_object = ContinuousData(median_reference,
-                                    filename='',
+                                    filename=self._path,
                                     data_format=self._data_format,
                                     header=header,
                                     data_type=header['Type'])
@@ -375,6 +375,9 @@ class SpikeSorterData(object):
             else:
                 logger.warning(f'Unknowed channel ID {channel}.')
                 return
+        else:
+            logger.warning(f'Unknowed type channel ID {type(channel)}.')
+            return
 
 
 class ContinuousData(object):
