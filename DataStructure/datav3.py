@@ -112,7 +112,8 @@ class SpikeSorterData(object):
             self._raws_dict[header['ID']] = ContinuousData(filename=file_path,
                                                            data_format=self._data_format,
                                                            header=header,
-                                                           data_type='Raw')
+                                                           data_type=header['Type'],
+                                                           _from_file=True)
             self._channel_name_to_ID[header['Name']] = header['ID']
 
     def _createSpikesData(self):
@@ -145,7 +146,7 @@ class SpikeSorterData(object):
                                         _from_file=True)
             self._events_dict[header['ID']] = event_object
 
-    def getRaw(self, channel: int | str, load_data: bool = False) -> ContinuousData | None:
+    def getRaw(self, channel: int, load_data: bool = False) -> ContinuousData | None:
         """_summary_
 
         Args:
@@ -238,6 +239,11 @@ class SpikeSorterData(object):
         return
 
     def saveChannel(self, channel_ID):
+        if self._data_format != 'pyephys':
+            logger.critical(f'Spikes save method do not support for {self._data_format} format.\n' +
+                            'Please export to pyephys format.')
+            return
+
         raw_object = self.getRaw(channel_ID)
         # records = []
         for label, spike_object in list(raw_object._spikes.items()):
@@ -291,6 +297,26 @@ class SpikeSorterData(object):
         # saveSpikesHeader(self.path, new_spikes_header)
         # logger.debug(self.spikes_header)
 
+    def saveReference(self, channel_ID: int):
+        if self._data_format != 'pyephys':
+            logger.critical(f'Reference save method do not support for {self._data_format} format.\n' +
+                            'Please export to pyephys format.')
+            return
+
+        raw_object = self.getRaw(channel_ID)
+        if raw_object == 'Removed':
+            # try delete raw
+            deleteRaws(self.path,
+                       ID=channel_ID)
+            del self._raws_dict[channel_ID]
+
+        elif not raw_object._from_file:
+            saveRaws(self.path, ID=channel_ID,
+                     header=RawsHeader.model_validate(raw_object.header,
+                                                      extra='allow'),
+                     data=raw_object.data)
+            raw_object._from_file = True
+
     def export(self, new_filename: str, data_format: str = 'pyephys'):
         if data_format == 'pyephys':
             if os.path.splitext(new_filename)[1] != '.h5':
@@ -303,6 +329,37 @@ class SpikeSorterData(object):
                 f'Can not export to {data_format} format! {new_filename}')
 
         logger.info(f'Export to {data_format} format complete! {new_filename}')
+
+    def createMedianReference(self, channel_ID_list: list[int],
+                              new_channel_name: str, new_comment: str) -> ContinuousData:
+        data = [self.getRaw(channel_ID, load_data=True).data
+                for channel_ID in channel_ID_list]
+        data = np.stack(data)
+        median_reference = np.median(data, axis=0).astype(np.int16)
+        header = self.getRaw(channel_ID_list[0]).header
+        new_channel_ID = np.max(self.channel_IDs) + 1
+
+        header['ID'] = new_channel_ID
+        header['Pin'] = new_channel_ID
+        header['Type'] = 'Ref'
+        header['Name'] = new_channel_name
+        header['Comment'] = new_comment
+
+        ref_object = ContinuousData(median_reference,
+                                    filename='',
+                                    data_format=self._data_format,
+                                    header=header,
+                                    data_type=header['Type'])
+
+        self._raws_dict[new_channel_ID] = ref_object
+        self._channel_name_to_ID[header['Name']] = header['ID']
+        return ref_object
+
+        # saveRaws(self.path, ID=new_channel_ID,
+        #          header=RawsHeader.model_validate(header, extra='allow'),
+        #          data=median_reference)
+
+        # ContinuousData(median_reference, filename=)
 
     def validateChannel(self, channel: int | str) -> int:
         if isinstance(channel, str):
@@ -321,7 +378,8 @@ class SpikeSorterData(object):
 
 
 class ContinuousData(object):
-    def __init__(self, input_array: np.ndarray = [], filename: str = '', data_format='', header: dict = dict(), data_type: str = 'Filted'):
+    def __init__(self, input_array: np.ndarray = [], filename: str = '', data_format='',
+                 header: dict = dict(), data_type: str = 'Filted', _from_file=False):
         super().__init__()
         self._data = np.asarray(input_array)
         self._filename = filename
@@ -329,9 +387,14 @@ class ContinuousData(object):
         self._header = header.copy()
         self._reference = -1
         self._data_type = data_type
+        self._from_file = _from_file
+
         self._data_loaded = False
         if len(input_array) > 0:
             self._data_loaded = True
+        elif not self._from_file:
+            logger.critical('No data input!!!')
+            raise
 
         self._estimated_sd = None
         self._spikes: dict[str, DiscreteData] = dict()
@@ -404,7 +467,7 @@ class ContinuousData(object):
         return self._data_loaded
 
     def _loadData(self):
-        if self._data_type != 'Raw' or self.isLoaded():
+        if not self._from_file or self.isLoaded():
             logger.warning('No data to load.')
             return
 
@@ -417,8 +480,8 @@ class ContinuousData(object):
             data = loadContinuous(self.filename)
 
         self._header['NumRecords'] = len(data)
-
         self._data = np.asarray(data)
+        self._data_loaded = True
 
     def setSpike(self, spike_object, label: str = 'default'):
         self._spikes[label] = spike_object
@@ -509,7 +572,7 @@ class ContinuousData(object):
         data_ = self._data
         if not input_array is None:
             data_ = input_array.copy()
-        elif self._data_type == 'Raw' or deep_copy_data:
+        elif self._data_type != 'Filted' or deep_copy_data:
             data_ = self._data.copy()
 
         header_ = self._header.copy()
@@ -525,8 +588,6 @@ class ContinuousData(object):
             new_object._setReference(reference)
         else:
             new_object._setReference(self.reference)
-
-        logger.debug(new_object.reference)
 
         if not low_cutoff is None:
             new_object._setFilter(low=low_cutoff)
