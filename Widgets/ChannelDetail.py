@@ -224,7 +224,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         chan_ID = int(self.dropSuffix(meta_data["ID"]))
         label = self.dropSuffix(meta_data["Label"])
         logger.info(f'Selected type: {meta_data["Type"]}')
-
+        new_raw_object = None
+        new_filted_object = None
+        new_spike_object = None
         if meta_data['Type'] == 'Spikes':
             # raw
             self.current_data_object.loadRaw(channel=chan_ID)
@@ -247,12 +249,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                                                      high=new_spike_object.high_cutoff)
                 new_filted_object = new_filted_object.createCopy(
                     threshold=new_spike_object.threshold)
-                # self.setSpikeSetting()
-                # self.setLabelCombox(labels=new_raw_object.spikes,
-                #                     current=label)
 
-            # if not self.current_undo_stack is None:
-            #     self.current_undo_stack.setActive(False)
             self.current_undo_stack = self.undo_stack_dict.get(
                 (chan_ID, label))
 
@@ -263,32 +260,21 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                       label)] = self.current_undo_stack
 
             self.current_undo_stack.setActive(True)
-            # if not chan_ID in self.undo_stack_dict:
-            #     self.current_undo_stack = QUndoStack(
-            #         self.main_window.undo_group)
-            #     chan_ID_dict = {label: self.current_undo_stack}
-            #     self.undo_stack_dict[chan_ID] = chan_ID_dict
-
-            # elif not label in self.undo_stack_dict[chan_ID]:
-            #     self.current_undo_stack = QUndoStack(
-            #         self.main_window.undo_group)
-            #     self.undo_stack_dict[chan_ID][label] = self.current_undo_stack
-
-            self.current_raw_object = new_raw_object
-            self.current_filted_object = new_filted_object
-            self.current_spike_object = new_spike_object
-            # logger.debug(self.current_undo_stack)
-
-            logger.debug(self.main_window.undo_group.activeStack())
-            logger.debug(
-                f'Undostack {chan_ID} {label}: {self.current_undo_stack}')
 
         elif meta_data['Type'] in ['Raws', 'Ref']:
-            self.current_data_object.loadRaw(channel=chan_ID)
-            self.current_raw_object = self.current_data_object.getRaw(chan_ID)
-            if self.current_raw_object._from_file:
-                self.updataTreeView(row_items, self.current_raw_object)
-            # self.setLabelCombox(labels=self.current_raw_object.spikes)
+            new_raw_object = self.current_data_object.getRaw(chan_ID)
+            if new_raw_object == 'Removed':
+                # This spike is removed but unsaved
+                new_raw_object = None
+                new_filted_object = None
+                new_spike_object = None
+            elif new_raw_object._from_file:
+                self.current_data_object.loadRaw(channel=chan_ID)
+                self.updataTreeView(row_items, new_raw_object)
+
+        self.current_raw_object = new_raw_object
+        self.current_filted_object = new_filted_object
+        self.current_spike_object = new_spike_object
 
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
