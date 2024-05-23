@@ -35,7 +35,7 @@ class SpikeSorterData(object):
         self._data_format = data_format
         self._file_headers = []
         self._raws_dict = dict()
-        self._channel_name_to_ID = dict()
+        # self._channel_name_to_ID = dict()
         self._events_dict = dict()
 
         if self._data_format == 'pyephys':
@@ -114,7 +114,7 @@ class SpikeSorterData(object):
                                                            header=header,
                                                            data_type=header['Type'],
                                                            _from_file=True)
-            self._channel_name_to_ID[header['Name']] = header['ID']
+            # self._channel_name_to_ID[header['Name']] = header['ID']
 
     def _createSpikesData(self):
         spikes_header = self._headers.get('SpikesHeader')
@@ -146,7 +146,7 @@ class SpikeSorterData(object):
                                         _from_file=True)
             self._events_dict[header['ID']] = event_object
 
-    def getRaw(self, channel: int, load_data: bool = False) -> ContinuousData | None:
+    def getRaw(self, channel_ID: int, load_data: bool = False) -> ContinuousData | None:
         """_summary_
 
         Args:
@@ -156,10 +156,10 @@ class SpikeSorterData(object):
             ContinuousData: Raw object.
         """
         if load_data:
-            self.loadRaw(channel)
-        chanID = self.validateChannel(channel)
+            self.loadRaw(channel_ID)
+        # chanID = self.validateChannel(channel)
 
-        return self._raws_dict.get(chanID)
+        return self._raws_dict.get(channel_ID)
 
     def loadRaw(self, channel: int | str):
         """load Raw data, return nothing.
@@ -210,14 +210,14 @@ class SpikeSorterData(object):
     def getEvent(self, event_ID: int) -> DiscreteData | None:
         return self._events_dict.get(event_ID)
 
-    def subtractReference(self, channel: int | str, reference: int) -> ContinuousData:
-        ch_object = self.getRaw(channel, load_data=True)
+    def subtractReference(self, channel_ID: int, reference_ID: int) -> ContinuousData:
+        ch_object = self.getRaw(channel_ID, load_data=True)
 
         # if isinstance(reference, int):
-        referenceID = self.validateChannel(reference)
-        ref_object = self.getRaw(referenceID, load_data=True)
+        # reference_ID = self.validateChannel(reference)
+        ref_object = self.getRaw(reference_ID, load_data=True)
 
-        result = ch_object.subtractReference(ref_object.data, referenceID)
+        result = ch_object.subtractReference(ref_object.data, reference_ID)
 
         return result
 
@@ -309,6 +309,7 @@ class SpikeSorterData(object):
             deleteRaws(self.path,
                        ID=channel_ID)
             del self._raws_dict[channel_ID]
+            # del self._channel_name_to_ID[channel_name]
 
         elif not raw_object._from_file:
             saveRaws(self.path, ID=channel_ID,
@@ -352,7 +353,7 @@ class SpikeSorterData(object):
                                     data_type=header['Type'])
 
         self._raws_dict[new_channel_ID] = ref_object
-        self._channel_name_to_ID[header['Name']] = header['ID']
+        # self._channel_name_to_ID[header['Name']] = header['ID']
         return ref_object
 
         # saveRaws(self.path, ID=new_channel_ID,
@@ -361,23 +362,30 @@ class SpikeSorterData(object):
 
         # ContinuousData(median_reference, filename=)
 
-    def validateChannel(self, channel: int | str) -> int:
-        if isinstance(channel, str):
-            channel = self._channel_name_to_ID.get(channel)
-            if channel is None:
-                logger.warning(f'Unknowed channel name {channel}.')
-                return
-            return channel
-
-        elif isinstance(channel, int):
-            if channel in self._channel_name_to_ID.values():
-                return channel
-            else:
-                logger.warning(f'Unknowed channel ID {channel}.')
-                return
-        else:
-            logger.warning(f'Unknowed type channel ID {type(channel)}.')
+    def removeReference(self, channel_ID: int):
+        ref_object = self.getRaw(channel_ID)
+        if ref_object.data_type != 'Ref':
+            logger.warning('Can only delete reference channel!')
             return
+        self._raws_dict[channel_ID] = 'Removed'
+
+    # def validateChannel(self, channel: int | str) -> int:
+    #     if isinstance(channel, str):
+    #         # channel = self._channel_name_to_ID.get(channel)
+    #         if channel is None:
+    #             logger.warning(f'Unknowed channel name {channel}.')
+    #             return
+    #         return channel
+
+    #     elif isinstance(channel, int):
+    #         # if channel in self._channel_name_to_ID.values():
+    #             return channel
+    #         else:
+    #             logger.warning(f'Unknowed channel ID {channel}.')
+    #             return
+    #     else:
+    #         logger.warning(f'Unknowed type channel ID {type(channel)}.')
+    #         return
 
 
 class ContinuousData(object):
