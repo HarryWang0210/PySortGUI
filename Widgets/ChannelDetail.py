@@ -837,6 +837,11 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.raws_group_item.appendRow(new_row_items)
         self.setUnsavedChangeIndicator(new_row_items, new_raw_object)
 
+        selection_model = self.treeView.selectionModel()
+        selection_model.select(
+            new_row_items[0].index(), QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
+        self.treeView.scrollTo(new_row_items[0].index())
+
     def deleteReference(self):
         row_items = self.getSelectedRowItems()
         meta_data = self.rowItemsToMetadata(row_items)
@@ -1103,6 +1108,9 @@ class CreateReferenceDialog(Ui_CreateReferenceDialog, QDialog):
         self.setWindowTitle("Create Reference Channel Dialog")
         self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
         self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(500)
+
         self.select_channel_IDs: list = []
         self.channel_checkbox_list = []
         self.colnames = ['ID', 'Name', 'Type']
