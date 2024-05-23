@@ -45,6 +45,9 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def showing_units_changed(self, showing_unit_IDs):
         self.graphWidget.showing_units_changed(showing_unit_IDs)
 
+    def event_data_changed(self, new_event_object: DiscreteData | None):
+        self.graphWidget.event_data_changed(new_event_object)
+
     # def spike_chan_changed(self, current_chan_info):
     #     self.raw_pushButton.setChecked(current_chan_info['Type'] == 'Raws')
     #     self.graphWidget.spike_chan_changed(current_chan_info)
@@ -74,6 +77,7 @@ class TimelineViewGraph(pg.PlotWidget):
         self.current_raw_object: ContinuousData | None = None
         self.current_filted_object: ContinuousData | None = None
         self.current_spike_object: DiscreteData | None = None
+        self.current_event_object: DiscreteData | None = None
         # self.current_chan_info = None
         self.visible = False  # overall visible
         self.color_palette_list = sns.color_palette(
@@ -140,6 +144,7 @@ class TimelineViewGraph(pg.PlotWidget):
         self.addItem(self.thr_item)
 
         self.spikes_item_list = []
+        self.events_item_list = []
 
         self.plot_item.getViewBox().wheelEvent = self.graphMouseWheelEvent
         self.plot_item.scene().mousePressEvent = self.graphMousePressEvent
@@ -184,6 +189,10 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def showing_units_changed(self, showing_unit_IDs):
         self.current_showing_units = showing_unit_IDs
+        self.updatePlot()
+
+    def event_data_changed(self, new_event_object: DiscreteData | None):
+        self.current_event_object = new_event_object
         self.updatePlot()
 
     # def spike_chan_changed(self, current_chan_info):
@@ -361,6 +370,10 @@ class TimelineViewGraph(pg.PlotWidget):
                 # logger.debug('draw spike')
                 self.drawSpikes()
 
+            if self.show_events and not self.current_event_object is None:
+                logger.debug('draw event')
+                self.drawEvents()
+
         self.data_item.setVisible(self.visible)
         self.thr_item.setVisible(self.visible and
                                  self.show_thr and
@@ -390,11 +403,22 @@ class TimelineViewGraph(pg.PlotWidget):
         self.thr_item.setValue(self.current_filted_object.threshold)
 
     def drawEvents(self):
-        """TODO"""
-        pass
+        self.removeItems(self.events_item_list)
+        self.events_item_list = []
+
+        current_showing_units = np.unique(self.current_event_object.unit_IDs)
+
+        self.events_item_list = self.tsToLines(self.current_event_object.timestamps,
+                                               unit_IDs=self.current_event_object.unit_IDs,
+                                               showing_unit_IDs=current_showing_units,
+                                               data_type="events")
+
+        [self.addItem(item) for item in self.events_item_list]
 
     def drawSpikes(self):
-        self.removeSpikeItems()
+        self.removeItems(self.spikes_item_list)
+        self.spikes_item_list = []
+
         if self.current_showing_units == []:
             return
 
@@ -405,8 +429,8 @@ class TimelineViewGraph(pg.PlotWidget):
 
         [self.addItem(item) for item in self.spikes_item_list]
 
-    def removeSpikeItems(self):
-        for item in self.spikes_item_list:
+    def removeItems(self, item_list):
+        for item in item_list:
             self.removeItem(item)
         self.spikes_item_list = []
 
@@ -420,6 +444,8 @@ class TimelineViewGraph(pg.PlotWidget):
 
         elif data_type == "events":
             y_element = np.array([self.data_scale, self.thr])
+            unit_color_map = dict(zip(self.current_event_object.unit_header['ID'], np.arange(
+                self.current_event_object.unit_header.shape[0], dtype=int)))
         else:
             print('Unknown type of timestamps.')
             return

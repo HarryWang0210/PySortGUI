@@ -131,6 +131,8 @@ class PySortGUI(MainWindowDocks):
         self.children_dict['ChannelDetail'].signal_data_file_name_changed.connect(
             self.children_dict["UnitOperateTools"].data_file_name_changed)
 
+        self.children_dict['ChannelDetail'].signal_event_data_changed.connect(
+            self.children_dict["TimelineView"].event_data_changed)
         self.children_dict['ChannelDetail'].signal_continuous_data_changed.connect(
             self.children_dict["TimelineView"].continuous_data_changed)
         self.children_dict['ChannelDetail'].signal_spike_data_changed.connect(

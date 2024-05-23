@@ -20,6 +20,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     signal_data_file_name_changed = QtCore.pyqtSignal(object)
     signal_continuous_data_changed = QtCore.pyqtSignal((object, object))
     signal_spike_data_changed = QtCore.pyqtSignal((object, bool))
+    signal_event_data_changed = QtCore.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -279,6 +280,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.signal_continuous_data_changed.emit(self.current_raw_object,
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
+
+        # Events
+        event_IDs = self.current_data_object.event_IDs
+        event_object = self.current_data_object.getEvent(event_IDs[0])
+        if not event_object is None:
+            event_object._loadData()
+        self.signal_event_data_changed.emit(event_object)
 
     # ========== Actions ==========
     def openFile(self, filename: str = ''):
