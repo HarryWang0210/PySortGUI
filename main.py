@@ -272,8 +272,8 @@ class PySortGUI(MainWindowDocks):
 
     def deleteRef(self):
         """Delete the reference channel."""
-        logger.critical('deleteRef: NoImplementError')
-        # self.children_dict["ChannelDetail"].copySpike()
+        # logger.critical('deleteRef: NoImplementError')
+        self.children_dict["ChannelDetail"].deleteReference()
 
     def copySpike(self):
         """Copy the spike data."""
