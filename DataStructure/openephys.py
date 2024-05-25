@@ -562,9 +562,14 @@ def _getTimeFirstPoint(file_name: str) -> int | float:
     msg_ev_file = os.path.join(location, 'messages.events')
     if os.path.isfile(msg_ev_file):
         with open(msg_ev_file, 'r') as text_file:
-            search = re.search(r'start time: (\d+)@', text_file.read())
+            text = text_file.read()
+            search = re.search(r'start time: (\d+)@', text)
             if search is not None:
                 return int(search.group(1))
+            else:
+                search = re.search(r'\n(\d+), Start Time ', text)
+                if search is not None:
+                    return int(search.group(1))
 
     if os.stat(file_name).st_size <= NUM_HEADER_BYTES:
         return
