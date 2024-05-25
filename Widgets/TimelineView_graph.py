@@ -71,7 +71,8 @@ class TimelineViewGraph(pg.PlotWidget):
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
         self.MIN_DATA_SHOW = 100
-        self.MAX_DATA_SHOW = 30000
+        self.MAX_DATA_SHOW = 300000
+        self.DEFAULT_DATA_SHOW = 30000
 
         self.data_object = None
         self.current_raw_object: ContinuousData | None = None
@@ -111,7 +112,8 @@ class TimelineViewGraph(pg.PlotWidget):
 
         self.data_len = 0
         self.data_scale = 1000  # maximun height of data
-        self.num_data_show = 1000  # initial number of data points show in window
+        # initial number of data points show in window
+        self.num_data_show = self.DEFAULT_DATA_SHOW
 
         # self.current_wav_colors = []  # (units, 3)
         # self.current_wav_units = []
@@ -178,7 +180,8 @@ class TimelineViewGraph(pg.PlotWidget):
 
         self.data_len = len(data)
         self.data_scale = np.max(np.abs(data)) / 2
-        self.num_data_show = 1000  # initial number of data points show in window
+        # initial number of data points show in window
+        self.num_data_show = self.DEFAULT_DATA_SHOW
         self.updatePlot()
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
