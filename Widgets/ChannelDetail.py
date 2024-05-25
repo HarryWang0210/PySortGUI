@@ -283,10 +283,12 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
 
         # Events
         event_IDs = self.current_data_object.event_IDs
-        event_object = self.current_data_object.getEvent(event_IDs[0])
-        if not event_object is None:
-            event_object._loadData()
-        self.signal_event_data_changed.emit(event_object)
+        new_event_object = None
+        if event_IDs != []:
+            new_event_object = self.current_data_object.getEvent(event_IDs[0])
+        if not new_event_object is None:
+            new_event_object._loadData()
+        self.signal_event_data_changed.emit(new_event_object)
 
     # ========== Actions ==========
     def openFile(self, filename: str = ''):
