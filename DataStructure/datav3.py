@@ -35,6 +35,7 @@ class SpikeSorterData(object):
         self._data_format = data_format
         self._file_headers = []
         self._raws_dict = dict()
+        self._records_timestamps: np.ndarray = None
         # self._channel_name_to_ID = dict()
         self._events_dict = dict()
 
@@ -102,14 +103,32 @@ class SpikeSorterData(object):
             return None
         return pd.DataFrame.from_records(records)
 
+    @property
+    def records_timestamps(self):
+        return self._records_timestamps.copy()
+
+    def _getTimestamps(self, filename):
+        self._records_timestamps = None
+        try:
+            if self._data_format == 'pyephys':
+                self._records_timestamps = pyephys.loadTimestamps(filename)
+            elif self._data_format == 'openephys':
+                self._records_timestamps = openephys.loadTimestamps(filename)
+        except:
+            self._records_timestamps = None
+
     def _createRawsData(self):
         raws_header = self._headers.get('RawsHeader')
         if raws_header is None:
             logger.warning('Can not load raws data')
             return
 
+        # try get timestamps
+        self._getTimestamps(raws_header[0][0])
+
         for file_path, header in raws_header:
-            self._raws_dict[header['ID']] = ContinuousData(filename=file_path,
+            self._raws_dict[header['ID']] = ContinuousData(timestamps=self._records_timestamps,
+                                                           filename=file_path,
                                                            data_format=self._data_format,
                                                            header=header,
                                                            data_type=header['Type'],
@@ -123,6 +142,9 @@ class SpikeSorterData(object):
             return
 
         for file_path, header in spikes_header:
+            if not self._records_timestamps is None:
+                header['TimeDriftCorrected'] = True
+
             spike_object = DiscreteData(filename=file_path,
                                         data_format=self._data_format,
                                         header=header,
@@ -389,10 +411,11 @@ class SpikeSorterData(object):
 
 
 class ContinuousData(object):
-    def __init__(self, input_array: np.ndarray = [], filename: str = '', data_format='',
+    def __init__(self, timestamps: np.ndarray, input_array: np.ndarray = [], filename: str = '', data_format='',
                  header: dict = dict(), data_type: str = 'Filted', _from_file=False):
         super().__init__()
         self._data = np.asarray(input_array)
+        self._timestamps = timestamps
         self._filename = filename
         self._data_format = data_format
         self._header = header.copy()
@@ -427,6 +450,12 @@ class ContinuousData(object):
     @property
     def header(self):
         return self._header.copy()
+
+    @property
+    def timestamps(self):
+        if self._timestamps is None:
+            return None
+        return self._timestamps.copy()
 
     @property
     def data(self):
@@ -557,6 +586,11 @@ class ContinuousData(object):
         header['Type'] = 'Spikes'
         header['ReferenceID'] = self.reference
 
+        # timestamps corrected
+        if not self._timestamps is None:
+            timestamps = self._timestamps[timestamps]
+            header['TimeDriftCorrected'] = True
+
         spike = DiscreteData(filename=self.filename,
                              header=header,
                              unit_IDs=unit_IDs,
@@ -590,7 +624,8 @@ class ContinuousData(object):
         if not header is None:
             header_ = header.copy()
 
-        new_object = self.__class__(input_array=data_,
+        new_object = self.__class__(timestamps=self._timestamps,
+                                    input_array=data_,
                                     filename=self._filename,
                                     header=header_,
                                     data_type='Filted')
