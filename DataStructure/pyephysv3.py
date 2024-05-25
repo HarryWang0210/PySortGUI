@@ -123,6 +123,27 @@ def loadRaws(filename: str, path: str, name: str):
             raise
 
 
+def loadTimestamps(filename: str):
+    path = '/Raws'
+    name = 'TimeStamps'
+    basename, extname = os.path.splitext(filename)
+    if extname == "h5raw":
+        filename = ".".join(basename, "h5")
+
+    with tables.open_file(filename, mode="r") as file:
+        if "/Raws" in file.root:
+            raws = file.get_node(path)
+            with tables.open_file(raws(mode='r')._v_file.filename, mode="r") as rawsfile:
+                if '/'.join([path, name]) in rawsfile.root:
+                    data = rawsfile.get_node('/'.join([path, name]))
+                    return data[:]
+                else:
+                    logger.warning('Can not get global timestamps.')
+                    return
+        else:
+            raise
+
+
 def loadSpikes(filename, path):
     # chan_ID = int(chan_ID)
     basename, extname = os.path.splitext(filename)
@@ -418,6 +439,20 @@ def saveFileHeader(filename: str, headers: list[FileHeader]):
         file.flush()
 
 
+def saveTimestamps(filename: str, data: np.ndarray):
+    timestamps_path = '/Raws/TimeStamps'
+
+    filt = tables.Filters(complib='zlib', complevel=1)
+    title = os.path.splitext(os.path.basename(filename))[0]
+    where, name = os.path.split(timestamps_path)
+
+    with tables.open_file(filename+'raw', mode='a', title=title, filters=filt) as file:
+        if not timestamps_path in file.root:
+            file.create_carray(where, name,
+                               obj=data, title=name,
+                               createparents=True)
+
+
 def saveRaws(filename: str, ID: int, header: RawsHeader, data: np.ndarray, create_link=False):
     """Save raws header and data.
 
@@ -567,6 +602,7 @@ def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
     # for file_header in data_object._file_headers:
     #     _saveHeader(filename=new_filename, path='/FileHeader', ID=file_header['ID'],
     #                 header=FileHeader.model_validate(file_header, extra='allow'))
+    saveTimestamps(filename=new_filename, data=data_object.records_timestamps)
 
     # Raws
     for ID in data_object.channel_IDs:
