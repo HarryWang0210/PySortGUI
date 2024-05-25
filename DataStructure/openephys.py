@@ -205,15 +205,26 @@ def loadOpenephysHeader(file_list: list[str]):
 
         if ext == '.continuous':
             file_header, raws_header = loadContinuousHeader(file_path)
+
+            # assign ID if it doesn't have
+            new_ID = None
             if raws_header.ID == -1:
                 if raws_header.Name[:2] == 'CH':
                     new_ID = int(raws_header.Name[2:])
                 else:
                     new_ID = 100 + ch_index
                     ch_index += 1
+
+                while new_ID in already_exist_index:
+                    new_ID = 100 + ch_index
+                    ch_index += 1
+
                 raws_header.ID = new_ID
                 raws_header.Pin = new_ID
-            already_exist_index.append(new_ID)
+            if new_ID is None:
+                already_exist_index.append(raws_header.ID)
+            else:
+                already_exist_index.append(new_ID)
 
             file_headers.append(file_header.model_dump())
             raws_headers.append((file_path, raws_header.model_dump()))
