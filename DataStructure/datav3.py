@@ -8,16 +8,20 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MaxAbsScaler
 
-from .FunctionsLib.DiscreteSignalLib import ISI, firing_rate
-from .FunctionsLib.SignalProcessing import design_and_filter
-from .FunctionsLib.Sorting import auto_sort
-from .FunctionsLib.ThresholdOperations import extract_waveforms
-from .header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
-from .openephys import (getFilesInFolder, loadContinuous, loadEvents,
-                        loadOpenephysHeader)
-from .pyephysv3 import (deleteEvents, deleteRaws, deleteSpikes,
-                        exportToPyephys, loadEvents, loadPyephysHeader,
-                        loadRaws, loadSpikes, saveEvents, saveRaws, saveSpikes)
+from DataStructure import openephys
+from DataStructure import pyephysv3 as pyephys
+from DataStructure.FunctionsLib.DiscreteSignalLib import ISI, firing_rate
+from DataStructure.FunctionsLib.SignalProcessing import design_and_filter
+from DataStructure.FunctionsLib.Sorting import auto_sort
+from DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
+from DataStructure.header_class import (EventsHeader, FileHeader, RawsHeader,
+                                        SpikesHeader)
+
+# from .openephys import (getFilesInFolder, loadContinuous, loadEvents, loadTimestamps,
+#                         loadOpenephysHeader)
+# from .pyephysv3 import (deleteEvents, deleteRaws, deleteSpikes,
+#                         exportToPyephys, loadEvents, loadPyephysHeader,
+#                         loadRaws, loadSpikes, saveEvents, saveRaws, saveSpikes)
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +44,12 @@ class SpikeSorterData(object):
         self._events_dict = dict()
 
         if self._data_format == 'pyephys':
-            self._headers = loadPyephysHeader(file_or_folder)
+            self._headers = pyephys.loadPyephysHeader(file_or_folder)
 
         elif self._data_format == 'openephys':
             if os.path.isdir(self._path):
-                file_path_list = getFilesInFolder(self._path)
-                self._headers = loadOpenephysHeader(file_path_list)
+                file_path_list = openephys.getFilesInFolder(self._path)
+                self._headers = openephys.loadOpenephysHeader(file_path_list)
 
         self._file_headers = self._headers.get('FileHeader')
 
@@ -271,7 +275,7 @@ class SpikeSorterData(object):
         for label, spike_object in list(raw_object._spikes.items()):
             if spike_object == 'Removed':
                 # try delete spike
-                deleteSpikes(
+                pyephys.deleteSpikes(
                     self.path, ID=channel_ID, label=label)
                 del raw_object._spikes[label]
                 continue
@@ -286,13 +290,13 @@ class SpikeSorterData(object):
                 spike_object._unit_header['ParentType'] = 'Spikes'
                 spike_object._unit_header['Type'] = 'Unit'
 
-                saveSpikes(self.path, ID=channel_ID, label=label,
-                           header=SpikesHeader.model_validate(spike_object.header,
-                                                              extra='allow'),
-                           unit_header=spike_object.unit_header,
-                           unit_IDs=spike_object.unit_IDs,
-                           timestamps=spike_object.timestamps,
-                           waveforms=spike_object.waveforms)
+                pyephys.saveSpikes(self.path, ID=channel_ID, label=label,
+                                   header=SpikesHeader.model_validate(spike_object.header,
+                                                                      extra='allow'),
+                                   unit_header=spike_object.unit_header,
+                                   unit_IDs=spike_object.unit_IDs,
+                                   timestamps=spike_object.timestamps,
+                                   waveforms=spike_object.waveforms)
                 spike_object._from_file = True
 
         # records = []
@@ -328,16 +332,16 @@ class SpikeSorterData(object):
         raw_object = self.getRaw(channel_ID)
         if raw_object == 'Removed':
             # try delete raw
-            deleteRaws(self.path,
-                       ID=channel_ID)
+            pyephys.deleteRaws(self.path,
+                               ID=channel_ID)
             del self._raws_dict[channel_ID]
             # del self._channel_name_to_ID[channel_name]
 
         elif not raw_object._from_file:
-            saveRaws(self.path, ID=channel_ID,
-                     header=RawsHeader.model_validate(raw_object.header,
-                                                      extra='allow'),
-                     data=raw_object.data)
+            pyephys.saveRaws(self.path, ID=channel_ID,
+                             header=RawsHeader.model_validate(raw_object.header,
+                                                              extra='allow'),
+                             data=raw_object.data)
             raw_object._from_file = True
 
     def export(self, new_filename: str, data_format: str = 'pyephys'):
@@ -345,7 +349,7 @@ class SpikeSorterData(object):
             if os.path.splitext(new_filename)[1] != '.h5':
                 new_filename = os.path.splitext(new_filename)[0] + '.h5'
 
-            exportToPyephys(new_filename, self)
+            pyephys.exportToPyephys(new_filename, self)
 
         else:
             logger.info(
@@ -513,11 +517,11 @@ class ContinuousData(object):
 
         logger.info(f'Loading {self.channel_ID} raws data...')
         if self._data_format == 'pyephys':
-            data = loadRaws(
+            data = pyephys.loadRaws(
                 self._filename, self._header['H5Location'], self._header['H5Name'])
 
         elif self._data_format == 'openephys':
-            data = loadContinuous(self.filename)
+            data = openephys.loadContinuous(self.filename)
 
         self._header['NumRecords'] = len(data)
         self._data = np.asarray(data)
@@ -806,18 +810,19 @@ class DiscreteData(object):
         data: dict = None
         if self._data_format == 'pyephys':
             if self.data_type == 'Spikes':
-                data = loadSpikes(filename=self._filename,
-                                  path=self._header['H5Location'])
+                data = pyephys.loadSpikes(filename=self._filename,
+                                          path=self._header['H5Location'])
             elif self.data_type == 'Events':
-                data = loadEvents(filename=self._filename,
-                                  path=self._header['H5Location'])
+                data = pyephys.loadEvents(filename=self._filename,
+                                          path=self._header['H5Location'])
 
         elif self._data_format == 'openephys':
             if self.data_type == 'Spikes':
                 logger.critical('No support error')
                 return
             elif self.data_type == 'Events':
-                data = loadEvents(self._filename, bank=self.header['ID'])
+                data = openephys.loadEvents(
+                    self._filename, bank=self.header['ID'])
 
         if data is None:
             logger.warning('No data to load.')
