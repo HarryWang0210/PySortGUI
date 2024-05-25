@@ -159,7 +159,7 @@ class SpikesHeader(BaseHeader):
     NumUnits: int = 0
     ReferenceID: int = -1
     Label: str = 'default'
-    DriftCorrected = False
+    TimeDriftCorrected = False
 
 
 # class FileHeader(BaseModel):
