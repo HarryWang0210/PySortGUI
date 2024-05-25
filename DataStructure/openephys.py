@@ -449,6 +449,35 @@ def loadContinuous(file_name: str, dtype=_CONTINUOUS_RECORD_DTYPE) -> np.ndarray
     return data
 
 
+def loadTimestamps(file_name: str, dtype=_CONTINUOUS_RECORD_DTYPE) -> np.ndarray:
+    """Load data of given Openephys continuous format file.
+
+    Args:
+        file_name (str): _description_
+        dtype (_type_, optional): _description_. Defaults to _CONTINUOUS_RECORD_DTYPE.
+
+    Returns:
+        np.ndarray: data
+    """
+
+    logger.info("Loading continuous data...")
+
+    time_first_point = _getTimeFirstPoint(file_name)
+    with open(file_name, 'rb') as in_file:
+        in_file.seek(NUM_HEADER_BYTES)
+        continuous = np.fromfile(in_file, dtype=dtype)
+
+        timestamps = continuous['timestamp'].flatten() - time_first_point
+        expanded_timestamps = timestamps[:, np.newaxis] + \
+            np.arange(SAMPLES_PER_RECORD)
+        expanded_timestamps = expanded_timestamps.flatten()
+
+        if expanded_timestamps.max() < 2**32 - 1:
+            expanded_timestamps = expanded_timestamps.astype(np.int32)
+
+    return expanded_timestamps
+
+
 def loadEvents(file_name: str, bank: int, dtype=_EVENT_RECORD_DTYPE):
     """Load data of given Openephys events format file.
 
@@ -562,8 +591,8 @@ def _getTimeFirstPoint(file_name: str) -> int | float:
 
 if __name__ == '__main__':
     pass
-    data = loadEventsHeader(
-        r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\RU01_2022-08-01_11-20-12\all_channels.events')
+    data = loadTimestamps(
+        r'C:\Users\harry\Downloads\Record\Record\100_CH1.continuous')
     # print(data)
     # data = loadContinuousHeader(
     #     r'C:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\data\MX6-22_2020-06-17_17-07-48_no_ref\100_CH2.continuous')
