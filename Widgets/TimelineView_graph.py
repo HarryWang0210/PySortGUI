@@ -110,10 +110,14 @@ class TimelineViewGraph(pg.PlotWidget):
 
         self.show_raw = True
 
-        self.data_len = 0
-        self.data_scale = 1000  # maximun height of data
+        # self.data_len = 0
+        # self.data_scale = 1000  # maximun height of data
         # initial number of data points show in window
         self.num_data_show = self.DEFAULT_DATA_SHOW
+        self._x_boundary: tuple[int, int] = (0, 0)
+        self._x_range: tuple[int, int] = (0, self.num_data_show)
+        # self._y_boundary: tuple[int, int] = (0, 0)
+        self._y_range: tuple[int, int] = (-1000, 1000)
 
         # self.current_wav_colors = []  # (units, 3)
         # self.current_wav_units = []
@@ -123,7 +127,7 @@ class TimelineViewGraph(pg.PlotWidget):
     def initPlotItem(self):
         self.plot_item = self.getPlotItem()
         self.plot_item.setMenuEnabled(False)
-        self.plot_item.setClipToView(True)
+        # self.plot_item.setClipToView(True)  # FIXME
 
         # setup background
         background_color = (0.35, 0.35, 0.35)
@@ -159,8 +163,6 @@ class TimelineViewGraph(pg.PlotWidget):
         self.updatePlot()
 
     def continuous_data_changed(self, new_raw_object, new_filted_object):
-        # new_raw_object, new_filted_object = new_continuous_objects
-
         self.current_raw_object: ContinuousData | None = new_raw_object
         self.current_filted_object: ContinuousData | None = new_filted_object
 
@@ -169,19 +171,30 @@ class TimelineViewGraph(pg.PlotWidget):
             self.visible = False
             self.updatePlot()
             return
+        data = self.current_raw_object.data
+        if self.current_raw_object.timestamps is None:
+            self._x_boundary = (0, len(data))
+
+            # self.data_len = len(data)
+        else:
+            self._x_boundary = (self.current_raw_object.timestamps[0],
+                                int(self.current_raw_object.timestamps[-1]) + 1)
+            # self.data_len = int(self.current_raw_object.timestamps[-1]) + 1
 
         if self.current_filted_object is None:
-            data = self.current_raw_object.data
-            # self.has_thr = False
+            data_scale = np.max(np.abs(data)) / 2
         else:
             data = self.current_filted_object.data
+            data_scale = np.max(np.abs(data)) / 2
             self.thr = self.current_filted_object.threshold
-            # self.has_thr = True
 
-        self.data_len = len(data)
-        self.data_scale = np.max(np.abs(data)) / 2
+        # self.data_len = len(data)
+        # self.data_scale = np.max(np.abs(data)) / 2
         # initial number of data points show in window
         self.num_data_show = self.DEFAULT_DATA_SHOW
+        self._x_range = (0, self.num_data_show)
+        self._y_range = (-data_scale, data_scale)
+
         self.updatePlot()
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
@@ -374,7 +387,7 @@ class TimelineViewGraph(pg.PlotWidget):
                 self.drawSpikes()
 
             if self.show_events and not self.current_event_object is None:
-                logger.debug('draw event')
+                # logger.debug('draw event')
                 self.drawEvents()
 
         self.data_item.setVisible(self.visible)
@@ -393,11 +406,27 @@ class TimelineViewGraph(pg.PlotWidget):
         elif data_type == 'filted':
             data = self.current_filted_object.data
 
-        self.data_len = len(data)
+        if self.current_raw_object.timestamps is None:
+            # generate x
+            x = np.arange(start=self._x_range[0], stop=self._x_range[1]+1)
+            data = data[self._x_range[0]: self._x_range[1] + 1]
+            connect = 'auto'
+        else:
+            timestamps = self.current_raw_object.timestamps
+            mask = (timestamps >= self._x_range[0]) & \
+                (timestamps <= self._x_range[1])
 
-        self.data_item.setData(data)
-        self.plot_item.getViewBox().setXRange(0, self.num_data_show, padding=0)
-        self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
+            x = timestamps[mask]
+            data = data[mask]
+            connect = np.append(np.diff(x) <= 1, 0)
+
+        # logger.debug(np.any(np.diff(x) < 0))
+        # logger.debug(x)
+        # logger.debug(connect)
+
+        self.data_item.setData(x=x, y=data, connect=connect)
+        self.plot_item.getViewBox().setXRange(*self._x_range, padding=0)
+        self.plot_item.getViewBox().setYRange(*self._y_range, padding=0)
 
     def drawThreshold(self):
         if self.current_filted_object is None:
@@ -438,15 +467,25 @@ class TimelineViewGraph(pg.PlotWidget):
         self.spikes_item_list = []
 
     def tsToLines(self, ts, showing_unit_IDs, unit_IDs, data_type):
-        # FIXME: y軸縮小時上下界不會跟著改變
+        """_summary_
+
+        Args:
+            ts (_type_): _description_
+            showing_unit_IDs (_type_): unit to show. e.g. [0,1,2,3]
+            unit_IDs (_type_): all unit id array. e.g. [0,0,1,1,2]
+            data_type (_type_): 'events' or 'spikes'
+
+        Returns:
+            _type_: _description_
+        """
         item_list = []
         if data_type == "spikes":
-            y_element = np.array([-self.data_scale, self.thr])
+            y_element = np.array([self._y_range[0], self.thr])
             unit_color_map = dict(zip(self.current_spike_object.unit_header['ID'], np.arange(
                 self.current_spike_object.unit_header.shape[0], dtype=int)))
 
         elif data_type == "events":
-            y_element = np.array([self.data_scale, self.thr])
+            y_element = np.array([self._y_range[1], self.thr])
             unit_color_map = dict(zip(self.current_event_object.unit_header['ID'], np.arange(
                 self.current_event_object.unit_header.shape[0], dtype=int)))
         else:
@@ -474,45 +513,52 @@ class TimelineViewGraph(pg.PlotWidget):
         if modifiers == QtCore.Qt.ShiftModifier:
             """scale x axis."""
             delta = int(event.delta() / 120)
-            current_range = self.plot_item.getViewBox().state['viewRange']
+            # current_range = self.plot_item.getViewBox().state['viewRange']
             new_num_data_show = int(self.num_data_show / (1 + delta / 10))
-            self.num_data_show = np.min(
-                (np.max((new_num_data_show, self.MIN_DATA_SHOW)),
-                 self.MAX_DATA_SHOW))
-            new_range = [current_range[0][0],
-                         current_range[0][0] + self.num_data_show]
-            # check boundary
-            if new_range[0] < 0:
-                new_range = [0, self.num_data_show]
-            if new_range[1] > self.data_len:
-                new_range = [self.data_len -
-                             self.num_data_show, self.data_len]
+            self.num_data_show = min((max((new_num_data_show, self.MIN_DATA_SHOW)),
+                                      self.MAX_DATA_SHOW))
 
-            self.plot_item.getViewBox().setXRange(*new_range, padding=0)
+            new_range = (self._x_range[0],
+                         self._x_range[0] + self.num_data_show)
+            # check boundary
+            if new_range[0] < self._x_boundary[0]:
+                new_range = (0, self.num_data_show)
+            if new_range[1] > self._x_boundary[1]:
+                new_range = (self._x_boundary[1] - self.num_data_show,
+                             self._x_boundary[1])
+            self._x_range = new_range
+
+            self.updatePlot()
+
+            # self.plot_item.getViewBox().setXRange(*new_range, padding=0)
 
         elif (modifiers == (QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier)):
             """scale y axis."""
             delta = int(event.delta() / 120)
-            current_range = self.plot_item.getViewBox().state['viewRange']
-            self.data_scale = int(self.data_scale / (1 + delta / 10))
-            new_range = [-self.data_scale, self.data_scale]
+            # current_range = self.plot_item.getViewBox().state['viewRange']
+            data_scale = int(self._y_range[1] / (1 + delta / 10))
+            self._y_range = (-data_scale, data_scale)
+            self.updatePlot()
+            # new_range = [-self.data_scale, self.data_scale]
 
-            self.plot_item.getViewBox().setYRange(*new_range, padding=0)
+            # self.plot_item.getViewBox().setYRange(*new_range, padding=0)
 
         else:
             """scroll the range."""
             delta = int(event.delta() / 120)
-            current_range = self.plot_item.getViewBox().state['viewRange']
-            new_range = [current_range[0][0] - int(delta * self.num_data_show / 10),
-                         current_range[0][1] - int(delta * self.num_data_show / 10)]
+            # current_range = self.plot_item.getViewBox().state['viewRange']
+            new_range = (self._x_range[0] - int(delta * self.num_data_show / 10),
+                         self._x_range[1] - int(delta * self.num_data_show / 10))
             # check boundary
-            if new_range[0] < 0:
-                new_range = [0, self.num_data_show]
-            if new_range[1] > self.data_len:
-                new_range = [self.data_len -
-                             self.num_data_show, self.data_len]
+            if new_range[0] < self._x_boundary[0]:
+                new_range = (0, self.num_data_show)
+            if new_range[1] > self._x_boundary[1]:
+                new_range = (self._x_boundary[1] - self.num_data_show,
+                             self._x_boundary[1])
+            self._x_range = new_range
+            self.updatePlot()
 
-            self.plot_item.getViewBox().setXRange(*new_range, padding=0)
+            # self.plot_item.getViewBox().setXRange(*new_range, padding=0)
 
     def graphMousePressEvent(self, event):
         """Overwrite PlotItem.scene().mousePressEvent."""
