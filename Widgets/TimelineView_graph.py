@@ -409,6 +409,10 @@ class TimelineViewGraph(pg.PlotWidget):
             item.setVisible(self.visible and
                             self.show_spikes and
                             not self.current_spike_object is None)
+        for item in self.events_item_list:
+            item.setVisible(self.visible and
+                            self.show_events and
+                            not self.current_event_object is None)
 
     def drawData(self, data_type):
         if data_type == 'raw':
