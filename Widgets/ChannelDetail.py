@@ -12,6 +12,7 @@ from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
 from UI.ChannelDetailv2_ui import Ui_ChannelDetail
 from UI.CreateReferenceDialog_ui import Ui_CreateReferenceDialog
 from UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
+from UI.SelectEventsDialog_ui import Ui_SelectEventsDialog
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
     signal_continuous_data_changed = QtCore.pyqtSignal((object, object))
     signal_spike_data_changed = QtCore.pyqtSignal((object, bool))
     signal_event_data_changed = QtCore.pyqtSignal(object)
+    signal_showing_events_changed = QtCore.pyqtSignal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,6 +34,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.current_raw_object: ContinuousData | None = None
         self.current_filted_object: ContinuousData | None = None
         self.current_spike_object: DiscreteData | None = None
+        self.current_event_object: DiscreteData | None = None
 
         self.header_name = ['ID', 'Label', 'Name', 'NumUnits',
                             'NumRecords', 'LowCutOff', 'HighCutOff', 'Reference', 'Threshold', 'Type']
@@ -40,6 +43,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.events_header = None
         self.undo_stack_dict: dict[tuple[int, str], QUndoStack] = dict()
         self.current_undo_stack: QUndoStack = None
+        self.current_showing_events: list = []
         self.initDataModel()
         self.setupConnections()
 
@@ -282,14 +286,23 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(self.current_spike_object, True)
 
-        # Events
-        event_IDs = self.current_data_object.event_IDs
-        new_event_object = None
-        if event_IDs != []:
-            new_event_object = self.current_data_object.getEvent(event_IDs[0])
-        if not new_event_object is None:
+        if self.current_event_object is None:
+            # Events
+            event_IDs = self.current_data_object.event_IDs
+            new_event_object = None
+            if event_IDs != []:
+                new_event_object = self.current_data_object.getEvent(
+                    event_IDs[0])
+            if new_event_object is None:
+                logger.warning('No events data.')
+                return
             new_event_object._loadData()
-        self.signal_event_data_changed.emit(new_event_object)
+            self.current_event_object = new_event_object
+            self.current_showing_events = np.unique(
+                self.current_event_object.unit_IDs).tolist()
+
+        self.signal_event_data_changed.emit(self.current_event_object)
+        self.signal_showing_events_changed.emit(self.current_showing_events)
 
     # ========== Actions ==========
     def openFile(self, filename: str = ''):
@@ -906,6 +919,36 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         # self.sorting_label_comboBox.clear()
         # self.file_name_lineEdit.setText(new_filename)
 
+    def selectEvents(self):
+        if self.current_data_object is None:
+            logger.warning('Not load data yet.')
+            return
+
+        if self.current_event_object is None:
+            # Events
+            event_IDs = self.current_data_object.event_IDs
+            new_event_object = None
+            if event_IDs != []:
+                new_event_object = self.current_data_object.getEvent(
+                    event_IDs[0])
+            if new_event_object is None:
+                logger.warning('No events data.')
+                return
+            new_event_object._loadData()
+            self.current_event_object = new_event_object
+            self.current_showing_events = np.unique(
+                self.current_event_object.unit_IDs).tolist()
+
+        unit_header = self.current_event_object.unit_header
+        dialog = SelectEventsDialog(
+            unit_header, self.current_showing_events, parent=self)
+        result = dialog.exec_()
+        if result != QDialog.Accepted:
+            return
+
+        self.current_showing_events = dialog.select_event_IDs
+        self.signal_showing_events_changed.emit(self.current_showing_events)
+
     def setUnsavedChangeIndicator(self, row_items: list, obj: ContinuousData | DiscreteData):
         if obj is None:
             return
@@ -1289,4 +1332,129 @@ class CreateReferenceDialog(Ui_CreateReferenceDialog, QDialog):
             mbox = QMessageBox(self)
             mbox.information(self, 'Warning', 'Channel name can not be empty.')
             return
+        super().accept()
+
+
+class SelectEventsDialog(Ui_SelectEventsDialog, QDialog):
+    def __init__(self, data, selected: list = [], parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+        self.setWindowTitle("Select Events Dialog")
+        self.tableView.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(500)
+
+        self._init_state = selected
+        self.select_event_IDs: list = []
+        self.unit_checkbox_list: list = []
+        self.colnames = ['ID', 'Name', 'NumRecords']
+
+        self.data = data
+
+        self.select_all_checkBox.stateChanged.connect(
+            self.allCheckboxStateChanged)
+        self.initDataModel()
+        self.setDataModel()
+
+    def initDataModel(self):
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels([''] + self.colnames)
+        self.tableView.setModel(model)
+        self.tableView.horizontalHeader().setStretchLastSection(True)
+
+        self.tableView.verticalHeader().setVisible(False)  # hide index
+
+        selection_model = self.tableView.selectionModel()
+        selection_model.selectionChanged.connect(self.onSelectionChanged)
+
+    def setDataModel(self):
+        model = self.tableView.model()
+        model.clear()
+        model.setHorizontalHeaderLabels([''] + self.colnames)
+
+        for row, record in enumerate(self.data.to_records()):
+            self.appendChannelRow(record, row=row)
+
+        self.tableView.resizeColumnToContents(0)
+
+    def appendChannelRow(self, header_records, row):
+        model = self.tableView.model()
+        event_ID = header_records['ID']
+
+        # 創建一個 CheckBox Widget
+        checkbox = QCheckBox()
+        checkbox.setProperty("ID", int(event_ID))
+        checkbox.stateChanged.connect(self.checkboxStateChanged)
+        checkbox.setChecked(int(event_ID) in self._init_state)
+        self.unit_checkbox_list.append(checkbox)
+
+        # 將 CheckBox Widget 放入自定義的 Widget 容器中
+        checkbox_widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.addWidget(checkbox)
+        checkbox_widget.setLayout(layout)
+
+        # 將自定義的 Widget 設定為表格的單元格
+        model.appendRow([QStandardItem()] + [
+                        QStandardItem(str(header_records[col])) for col in self.colnames])
+        self.tableView.setIndexWidget(
+            model.index(row, 0), checkbox_widget)
+
+    def allCheckboxStateChanged(self, state):
+        if state == Qt.Checked:
+            # logger.debug('Checked')
+            [channel_checkbox.setChecked(True)
+             for channel_checkbox in self.unit_checkbox_list]
+            # self.locked_rows_list.append(channel_ID)
+        elif state == Qt.Unchecked:
+            # logger.debug('Unchecked')
+            [channel_checkbox.setChecked(False)
+             for channel_checkbox in self.unit_checkbox_list]
+            # self.locked_rows_list.remove(channel_ID)
+        elif state == Qt.PartiallyChecked:
+            # logger.debug('PartiallyChecked')
+            self.select_all_checkBox.setCheckState(Qt.Checked)
+
+    def checkboxStateChanged(self, state):
+        checkbox = self.sender()
+        channel_ID = checkbox.property("ID")
+        if state == Qt.Checked:
+            self.select_event_IDs.append(channel_ID)
+        elif state == Qt.Unchecked:
+            self.select_event_IDs.remove(channel_ID)
+
+        all_checkbox_state = [channel_checkbox.isChecked()
+                              for channel_checkbox in self.unit_checkbox_list]
+
+        # set all checkbox state
+        self.select_all_checkBox.blockSignals(True)
+
+        if np.all(all_checkbox_state):
+            self.select_all_checkBox.setCheckState(Qt.Checked)
+        elif np.any(all_checkbox_state):
+            self.select_all_checkBox.setCheckState(Qt.PartiallyChecked)
+        else:
+            self.select_all_checkBox.setCheckState(Qt.Unchecked)
+
+        self.select_all_checkBox.blockSignals(False)
+
+    def onSelectionChanged(self, selected, deselected):
+        checkbox = self.tableView.indexWidget(
+            selected.indexes()[0]).layout().itemAt(0).widget()
+
+        current_state = checkbox.checkState()
+        if current_state == Qt.Unchecked:
+            checkbox.setCheckState(Qt.Checked)
+        elif current_state == Qt.Checked:
+            checkbox.setCheckState(Qt.Unchecked)
+
+    def accept(self):
+        # if len(self.select_event_IDs) < 2:
+        #     mbox = QMessageBox(self)
+        #     mbox.information(
+        #         self, 'Warning', 'Must select at least two channels.')
+        #     return
         super().accept()

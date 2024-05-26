@@ -114,6 +114,9 @@ class PySortGUI(MainWindowDocks):
         self.children_dict['EditMenu']["RenameSpike"].triggered.connect(
             self.renameSpike)
 
+        self.children_dict['ViewMenu']["SelectEvents"].triggered.connect(
+            self.selectEvents)
+
         self.children_dict['SettingMenu']["SaveLayout"].triggered.connect(
             self.saveLayout)
         self.children_dict['SettingMenu']["RestoreLayout"].triggered.connect(
@@ -133,6 +136,8 @@ class PySortGUI(MainWindowDocks):
 
         self.children_dict['ChannelDetail'].signal_event_data_changed.connect(
             self.children_dict["TimelineView"].event_data_changed)
+        self.children_dict['ChannelDetail'].signal_showing_events_changed.connect(
+            self.children_dict["TimelineView"].showing_events_changed)
         self.children_dict['ChannelDetail'].signal_continuous_data_changed.connect(
             self.children_dict["TimelineView"].continuous_data_changed)
         self.children_dict['ChannelDetail'].signal_spike_data_changed.connect(
@@ -287,8 +292,13 @@ class PySortGUI(MainWindowDocks):
 
     def renameSpike(self):
         """Rename the spike data."""
-        print("renameSpike")
+        logger.error('renameSpike: Unimplemented error')
 
+    # View
+    def selectEvents(self):
+        self.children_dict['ChannelDetail'].selectEvents()
+
+    # Setting
     def saveLayout(self, id=0):
         """Save the layout changes."""
         self.settings.setValue(

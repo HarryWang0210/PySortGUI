@@ -48,6 +48,8 @@ class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
     def event_data_changed(self, new_event_object: DiscreteData | None):
         self.graphWidget.event_data_changed(new_event_object)
 
+    def showing_events_changed(self, showing_event_IDs):
+        self.graphWidget.showing_events_changed(showing_event_IDs)
     # def spike_chan_changed(self, current_chan_info):
     #     self.raw_pushButton.setChecked(current_chan_info['Type'] == 'Raws')
     #     self.graphWidget.spike_chan_changed(current_chan_info)
@@ -122,6 +124,8 @@ class TimelineViewGraph(pg.PlotWidget):
         # self.current_wav_colors = []  # (units, 3)
         # self.current_wav_units = []
         self.current_showing_units = []
+        self.current_showing_events: list = []
+
         self.initPlotItem()
 
     def initPlotItem(self):
@@ -207,8 +211,16 @@ class TimelineViewGraph(pg.PlotWidget):
         self.updatePlot()
 
     def event_data_changed(self, new_event_object: DiscreteData | None):
+        if new_event_object is self.current_event_object:
+            return
         self.current_event_object = new_event_object
+        self.current_showing_events = []
         self.updatePlot()
+
+    def showing_events_changed(self, showing_event_IDs):
+        self.current_showing_events = showing_event_IDs
+        self.updatePlot()
+        # self.graphWidget.showing_events_changed(showing_event_IDs)
 
     # def spike_chan_changed(self, current_chan_info):
     #     self.current_chan_info = current_chan_info
@@ -437,10 +449,12 @@ class TimelineViewGraph(pg.PlotWidget):
         self.events_item_list = []
 
         current_showing_units = np.unique(self.current_event_object.unit_IDs)
+        if self.current_showing_events == []:
+            return
 
         self.events_item_list = self.tsToLines(self.current_event_object.timestamps,
                                                unit_IDs=self.current_event_object.unit_IDs,
-                                               showing_unit_IDs=current_showing_units,
+                                               showing_unit_IDs=self.current_showing_events,
                                                data_type="events")
 
         [self.addItem(item) for item in self.events_item_list]

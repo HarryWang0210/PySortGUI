@@ -191,6 +191,13 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         self.children_dict["ViewMenu"] = ViewMenu_dict
 
+        ViewMenu.addSeparator()
+
+        SelectEventsAction = QtWidgets.QAction('Select events', self)
+        ViewMenu.addAction(SelectEventsAction)
+        ViewMenu_dict["SelectEvents"] = SelectEventsAction
+
+
     def _addSettingMenu(self):
         # Setting
         SettingMenu = self.menu_bar.addMenu('&Setting')
