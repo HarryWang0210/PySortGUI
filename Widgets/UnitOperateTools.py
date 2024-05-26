@@ -48,6 +48,15 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.locked_rows_list = []  # store the rows that have been locked
         self.selected_rows_list = []  # store the rows that have been selected
         self.color_palette_list = sns.color_palette('bright', 64)
+        self.axis_features = ["PCA1", "PCA2", "PCA3", 'time']
+        self.feature1_comboBox.addItems(self.axis_features)
+        self.feature1_comboBox.setCurrentIndex(0)
+
+        self.feature2_comboBox.addItems(self.axis_features)
+        self.feature2_comboBox.setCurrentIndex(1)
+
+        self.feature3_comboBox.addItems(self.axis_features)
+        self.feature3_comboBox.setCurrentIndex(2)
 
         self.wav_actions_state = {
             self.add_wav_new_pushButton.objectName(): [self.add_wav_new_pushButton, False],

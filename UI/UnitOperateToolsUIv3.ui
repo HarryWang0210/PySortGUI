@@ -271,36 +271,6 @@
          <height>20</height>
         </size>
        </property>
-       <item>
-        <property name="text">
-         <string>PCA1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>PCA2</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>PCA3</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>time</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>amplitude</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>slice</string>
-        </property>
-       </item>
       </widget>
      </item>
      <item>
@@ -318,41 +288,11 @@
         </size>
        </property>
        <property name="currentText">
-        <string>PCA2</string>
+        <string/>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>-1</number>
        </property>
-       <item>
-        <property name="text">
-         <string>PCA1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>PCA2</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>PCA3</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>time</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>amplitude</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>slice</string>
-        </property>
-       </item>
       </widget>
      </item>
      <item>
@@ -370,41 +310,11 @@
         </size>
        </property>
        <property name="currentText">
-        <string>PCA3</string>
+        <string/>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>-1</number>
        </property>
-       <item>
-        <property name="text">
-         <string>PCA1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>PCA2</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>PCA3</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>time</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>amplitude</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>slice</string>
-        </property>
-       </item>
       </widget>
      </item>
     </layout>

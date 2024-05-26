@@ -39,6 +39,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.manual_mode = False
         self.feature_on_selection = False
         self.axis_label = ["PCA1", "PCA2", "PCA3"]
+        self.axis_features = ["PCA1", "PCA2", "PCA3", 'time']
 
         # change only when waveforms change
         # self.num_wavs = 0  # N
