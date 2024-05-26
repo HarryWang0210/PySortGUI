@@ -1,12 +1,15 @@
 import logging
 import os
+
 import numpy as np
+import seaborn as sns
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QItemSelectionModel, Qt
 from PyQt5.QtGui import QColor, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (QAbstractItemView, QApplication, QCheckBox,
-                             QDialog, QMainWindow, QMessageBox, QUndoCommand,
-                             QUndoStack, QVBoxLayout, QWidget)
+                             QDialog, QMainWindow, QMessageBox,
+                             QStyledItemDelegate, QUndoCommand, QUndoStack,
+                             QVBoxLayout, QWidget)
 
 from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
 from UI.ChannelDetailv2_ui import Ui_ChannelDetail
@@ -1349,6 +1352,8 @@ class SelectEventsDialog(Ui_SelectEventsDialog, QDialog):
         self.select_event_IDs: list = []
         self.unit_checkbox_list: list = []
         self.colnames = ['ID', 'Name', 'NumRecords']
+        self.color_palette_list = sns.color_palette(
+            'bright', 64)  # palette for events and spikes
 
         self.data = data
 
@@ -1356,6 +1361,9 @@ class SelectEventsDialog(Ui_SelectEventsDialog, QDialog):
             self.allCheckboxStateChanged)
         self.initDataModel()
         self.setDataModel()
+
+        delegate = EventsColorDelegate(self.data, self.color_palette_list)
+        self.tableView.setItemDelegate(delegate)
 
     def initDataModel(self):
         model = QStandardItemModel()
@@ -1458,3 +1466,18 @@ class SelectEventsDialog(Ui_SelectEventsDialog, QDialog):
         #         self, 'Warning', 'Must select at least two channels.')
         #     return
         super().accept()
+
+
+class EventsColorDelegate(QStyledItemDelegate):
+    def __init__(self, header, color_palette):
+        super().__init__()
+        self.color_palette_list = color_palette
+        self.unit_color_map = dict(zip(header['ID'], np.arange(
+            header.shape[0], dtype=int)))
+
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        color = self.color_palette_list[index.row()]
+        color = (np.array(color) * 255).astype(int)
+
+        option.backgroundBrush = QColor(*color)
