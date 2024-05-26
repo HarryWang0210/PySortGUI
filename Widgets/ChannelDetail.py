@@ -1,5 +1,5 @@
 import logging
-
+import os
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QItemSelectionModel, Qt
@@ -27,6 +27,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         self.main_window = parent
         self.window_title = "Channel Detail"
         self.setupUi(self)
+        self.default_root_folder = './'
         self.current_data_object: SpikeSorterData | None = None
         self.current_raw_object: ContinuousData | None = None
         self.current_filted_object: ContinuousData | None = None
@@ -298,7 +299,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             "pyephys": "pyephys format (*.h5)"
         }  # File types to load
         if filename == "":
-            filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
+            filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file",
+                                                                       self.default_root_folder,
                                                                        ";;".join(self.file_type_dict.values()))  # start path
         if filename == "":
             return
@@ -306,6 +308,8 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             if filename == self.current_data_object.path:
                 return
         self.current_data_object = SpikeSorterData(filename, 'pyephys')
+        self.default_root_folder = os.path.split(
+            self.current_data_object.path)[0]
         self.signal_data_file_name_changed.emit(self.current_data_object)
 
         self.setDataModel()
@@ -315,13 +319,13 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
         for undo_stack in self.main_window.undo_group.stacks():
             self.main_window.undo_group.removeStack(undo_stack)
 
-        self.sorting_label_comboBox.clear()
+        # self.sorting_label_comboBox.clear()
         self.file_name_lineEdit.setText(filename)
 
     def openFolder(self):
         """Open file manager and load selected folder. """
         folder_path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Open folder", "./")
+            self, "Open folder", self.default_root_folder)
         # filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "./",
         #                                                            ";;".join(self.file_type_dict.values()))  # start path
         if folder_path == "":
@@ -332,6 +336,7 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
                 return
 
         self.current_data_object = SpikeSorterData(folder_path, 'openephys')
+        self.default_root_folder = os.path.split(self.current_data_object.path)
         self.signal_data_file_name_changed.emit(self.current_data_object)
 
         self.setDataModel()
@@ -878,7 +883,9 @@ class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
             # "openephy": "Open Ephys Format (*.continuous)",
             "pyephys": "pyephys format (*.h5)"
         }  # File types to load
-        new_filename, filetype = QtWidgets.QFileDialog.getSaveFileName(self, "Export file", "./test.h5",
+        default_filename = os.path.splitext(
+            self.current_data_object.path)[0] + '.h5'
+        new_filename, filetype = QtWidgets.QFileDialog.getSaveFileName(self, "Export file", default_filename,
                                                                        ";;".join(self.file_type_dict.values()))  # start path
         if new_filename == "":
             return
