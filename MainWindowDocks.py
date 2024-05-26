@@ -7,7 +7,7 @@ Created on Dec 5, 2022
 '''
 import logging
 
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from Widgets.ChannelDetail import ChannelDetail
 from Widgets.ClustersView_graph import ClustersView
@@ -15,6 +15,7 @@ from Widgets.ISIView import ISIView
 from Widgets.TimelineView_graph import TimelineView
 from Widgets.UnitOperateTools import UnitOperateTools
 from Widgets.WaveformsView_graph import WaveformsView
+from Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +198,6 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         ViewMenu.addAction(SelectEventsAction)
         ViewMenu_dict["SelectEvents"] = SelectEventsAction
 
-
     def _addSettingMenu(self):
         # Setting
         SettingMenu = self.menu_bar.addMenu('&Setting')
@@ -256,7 +256,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
 
         if widget_class is None:
             return
-        obj = widget_class(parent=self, **kwargs)
+        obj: WidgetsInterface = widget_class(parent=self, **kwargs)
 
         if name is None:
             name = obj.window_title
@@ -270,6 +270,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         dock.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea)
         dock.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                          QtWidgets.QDockWidget.DockWidgetMovable)
+        dock.visibilityChanged.connect(obj.widgetVisibilityChanged)
 
         self.children_dict[attr_name] = obj
         self.children_dict[attr_name + '_dock'] = dock
