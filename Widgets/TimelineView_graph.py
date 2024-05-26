@@ -10,11 +10,12 @@ from PyQt5.QtWidgets import QApplication
 
 from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
 from UI.TimelineView_ui import Ui_TimelineView
+from Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
 
 
-class TimelineView(QtWidgets.QWidget, Ui_TimelineView):
+class TimelineView(WidgetsInterface, Ui_TimelineView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.window_title = "Timeline View"

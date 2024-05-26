@@ -16,11 +16,12 @@ from UI.ChannelDetailv2_ui import Ui_ChannelDetail
 from UI.CreateReferenceDialog_ui import Ui_CreateReferenceDialog
 from UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
 from UI.SelectEventsDialog_ui import Ui_SelectEventsDialog
+from Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
 
 
-class ChannelDetail(QtWidgets.QWidget, Ui_ChannelDetail):
+class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
     signal_data_file_name_changed = QtCore.pyqtSignal(object)
     signal_continuous_data_changed = QtCore.pyqtSignal((object, object))
     signal_spike_data_changed = QtCore.pyqtSignal((object, bool))
