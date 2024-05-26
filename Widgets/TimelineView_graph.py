@@ -127,7 +127,6 @@ class TimelineViewGraph(pg.PlotWidget):
     def initPlotItem(self):
         self.plot_item = self.getPlotItem()
         self.plot_item.setMenuEnabled(False)
-        # self.plot_item.setClipToView(True)  # FIXME
 
         # setup background
         background_color = (0.35, 0.35, 0.35)
@@ -301,7 +300,6 @@ class TimelineViewGraph(pg.PlotWidget):
     #     self.num_data_show = 1000  # initial number of data points show in window
 
     # def getEvents(self, events):
-    #     # TODO: getEvents
     #     self.events = events
     #     self.has_events = True
 
