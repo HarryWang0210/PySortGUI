@@ -51,24 +51,6 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QLabel" name="sorting_type_label">
-       <property name="text">
-        <string>Sorting label</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="sorting_label_comboBox">
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_6">
      <property name="spacing">
       <number>0</number>
@@ -98,13 +80,6 @@
       <widget class="QPushButton" name="sort_channel_pushButton">
        <property name="text">
         <string>Sort channal</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="sort_methods_toolButton">
-       <property name="text">
-        <string>...</string>
        </property>
       </widget>
      </item>

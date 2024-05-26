@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\harry\Desktop\Lab\Project_spikesorter\try\UI\ChannelDetailv2.ui'
+# Form implementation generated from reading ui file 'c:\Users\harry\Desktop\Lab\Project_spikesorter\PySortGUI\UI\ChannelDetailv2.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -36,16 +36,6 @@ class Ui_ChannelDetail(object):
         self.treeView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.treeView.setObjectName("treeView")
         self.verticalLayout.addWidget(self.treeView)
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.sorting_type_label = QtWidgets.QLabel(ChannelDetail)
-        self.sorting_type_label.setObjectName("sorting_type_label")
-        self.horizontalLayout_2.addWidget(self.sorting_type_label)
-        self.sorting_label_comboBox = QtWidgets.QComboBox(ChannelDetail)
-        self.sorting_label_comboBox.setEditable(True)
-        self.sorting_label_comboBox.setObjectName("sorting_label_comboBox")
-        self.horizontalLayout_2.addWidget(self.sorting_label_comboBox)
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_6.setSpacing(0)
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
@@ -62,9 +52,6 @@ class Ui_ChannelDetail(object):
         self.sort_channel_pushButton = QtWidgets.QPushButton(ChannelDetail)
         self.sort_channel_pushButton.setObjectName("sort_channel_pushButton")
         self.horizontalLayout_5.addWidget(self.sort_channel_pushButton)
-        self.sort_methods_toolButton = QtWidgets.QToolButton(ChannelDetail)
-        self.sort_methods_toolButton.setObjectName("sort_methods_toolButton")
-        self.horizontalLayout_5.addWidget(self.sort_methods_toolButton)
         self.verticalLayout.addLayout(self.horizontalLayout_5)
 
         self.retranslateUi(ChannelDetail)
@@ -74,8 +61,6 @@ class Ui_ChannelDetail(object):
         _translate = QtCore.QCoreApplication.translate
         ChannelDetail.setWindowTitle(_translate("ChannelDetail", "Form"))
         self.open_file_toolButton.setText(_translate("ChannelDetail", "..."))
-        self.sorting_type_label.setText(_translate("ChannelDetail", "Sorting label"))
         self.extract_wav_pushButton.setText(_translate("ChannelDetail", "Extract Waveform"))
         self.extract_wav_setting_toolButton.setText(_translate("ChannelDetail", "..."))
         self.sort_channel_pushButton.setText(_translate("ChannelDetail", "Sort channal"))
-        self.sort_methods_toolButton.setText(_translate("ChannelDetail", "..."))
