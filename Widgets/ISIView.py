@@ -103,14 +103,7 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
 
     def isi_threshold_changed(self, isi_thr: float):
         self.isi_thr = isi_thr
-        if self.time_axis is None:
-            return
-        under_thr_mask = self.time_axis < self.isi_thr
-        for barplot_item in self.barplot_item_list:
-            barplot_color = barplot_item.opts['brush']
-            new_color = [(224, 224, 224) if under else barplot_color
-                         for under in under_thr_mask]
-            barplot_item.setOpts(brushes=new_color)
+        self.drawAreaUnderISIThreshold(self.isi_thr)
 
     def widgetVisibilityChanged(self, active: bool):
         self.widget_visible = active
@@ -129,13 +122,6 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
             (self.box_size+self.border_width)
         self.y_start = np.arange(len(unit_ID_list)) * \
             (self.box_size+self.border_width)
-
-        # under_thr_mask = self.time_axis < self.isi_thr
-        # for barplot_item in self.barplot_item_list:
-        #     barplot_color = barplot_item.opts['brush']
-        #     new_color = [(224, 224, 224) if under else barplot_color
-        #                  for under in under_thr_mask]
-        #     barplot_item.setOpts(brushes=new_color)
 
         for i in range(len(unit_ID_list)):
             ID_y = unit_ID_list[i]
@@ -161,7 +147,6 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
                     self.isi_distrib_dict[(ID_y, ID_x)] = y
                     if self.time_axis is None:
                         self.time_axis = x
-                under_thr_mask = self.time_axis < self.isi_thr
 
                 # if (ID_y, ID_x) in self.isi_distrib_dict.keys():
                 #     # use caches
@@ -186,17 +171,11 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
                                       y0=y_offset, height=y_values,
                                       pen=(0, 0, 0, 0),
                                       brush=color)
-                barplot_color = bar.opts['brush']
-                new_color = [(224, 224, 224) if under else barplot_color
-                             for under in under_thr_mask]
-                bar.setOpts(brushes=new_color)
-                # barplot_color = bar.opts['brush']
-                # new_color = [(224, 224, 224) if under else color
-                #              for under in under_thr_mask]
-                # bar.setOpts(brushes=new_color)
 
                 self.barplot_item_list.append(bar)
                 self.addItem(bar)
+
+        self.drawAreaUnderISIThreshold(self.isi_thr)
 
         x_mid = self.x_start + self.box_size / 2
         y_mid = self.y_start + self.box_size / 2
@@ -207,6 +186,16 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
         y_axis = self.getAxis('left')
         x_axis.setTicks([x_ticks])
         y_axis.setTicks([y_ticks])
+
+    def drawAreaUnderISIThreshold(self, isi_thr: float):
+        if self.time_axis is None:
+            return
+        under_thr_mask = self.time_axis < isi_thr
+        for barplot_item in self.barplot_item_list:
+            barplot_color = barplot_item.opts['brush']
+            new_color = [(224, 224, 224) if under else barplot_color
+                         for under in under_thr_mask]
+            barplot_item.setOpts(brushes=new_color)
 
     def computeISI(self, unit1: int, unit2: int):
         x, y = self.current_spike_object.ISI(list({unit1, unit2}),
