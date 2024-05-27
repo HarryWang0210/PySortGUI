@@ -21,7 +21,7 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
         self.setMinimumHeight(100)
 
         self.color_palette_list = sns.color_palette('bright', 64)
-        self.visible = False  # overall visible
+        self.plot_visible = False  # overall visible
         self.widget_visible = False
 
         self.box_size = 1  # size of a barplot
@@ -77,20 +77,22 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
 
     def data_file_name_changed(self, data):
         self.data_object = data
-        self.visible = False
+        self.plot_visible = False
         self.initAxis()
         self.updatePlot()
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+        if new_spike_object is self.current_spike_object:
+            return
         self.current_spike_object = new_spike_object
 
-        self.visible = True
+        self.plot_visible = True
         # array-like, cache the time axis of computed isi distribution result
         self.time_axis = None
         # a dictionary cache all computed isi distribution result
         self.isi_distrib_dict.clear()
         if self.current_spike_object is None:
-            self.visible = False
+            self.plot_visible = False
             self.initAxis()
             self.updatePlot()
             return
@@ -111,7 +113,8 @@ class ISIView(pg.PlotWidget, WidgetsInterface):
 
     def updatePlot(self):
         self.clear()
-        if self.visible and self.widget_visible:
+        visible = self.plot_visible and self.widget_visible
+        if visible:
             self.drawISI(self.current_showing_units)
 
     def drawISI(self, unit_ID_list: list):
