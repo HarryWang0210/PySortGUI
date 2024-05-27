@@ -30,6 +30,9 @@ class TimelineView(WidgetsInterface, Ui_TimelineView):
         self.spikes_pushButton.clicked.connect(self.graphWidget.showSpikes)
         self.raw_pushButton.toggled.connect(self.graphWidget.showRaw)
 
+    def widgetVisibilityChanged(self, visible: bool):
+        self.graphWidget.widgetVisibilityChanged(visible)
+
     def data_file_name_changed(self, data):
         self.graphWidget.data_file_name_changed(data)
 
@@ -83,7 +86,8 @@ class TimelineViewGraph(pg.PlotWidget):
         self.current_spike_object: DiscreteData | None = None
         self.current_event_object: DiscreteData | None = None
         # self.current_chan_info = None
-        self.visible = False  # overall visible
+        self.plot_visible = False  # determine when to show plot
+        self.widget_visible = False
         self.color_palette_list = sns.color_palette(
             'bright', 64)  # palette for events and spikes
 
@@ -161,18 +165,22 @@ class TimelineViewGraph(pg.PlotWidget):
         self.plot_item.scene().mouseMoveEvent = self.graphMouseMoveEvent
         self.plot_item.scene().mouseReleaseEvent = self.graphMouseReleaseEvent
 
+    def widgetVisibilityChanged(self, visible: bool):
+        self.widget_visible = visible
+        self.updatePlot()
+
     def data_file_name_changed(self, data):
         self.data_object = data
-        self.visible = False
+        self.plot_visible = False
         self.updatePlot()
 
     def continuous_data_changed(self, new_raw_object, new_filted_object):
         self.current_raw_object: ContinuousData | None = new_raw_object
         self.current_filted_object: ContinuousData | None = new_filted_object
 
-        self.visible = True
+        self.plot_visible = True
         if self.current_raw_object is None:
-            self.visible = False
+            self.plot_visible = False
             self.updatePlot()
             return
         data = self.current_raw_object.data
@@ -227,7 +235,7 @@ class TimelineViewGraph(pg.PlotWidget):
     #     self.current_chan_info = current_chan_info
     #     logger.debug(self.current_chan_info['Type'])
     #     if self.current_chan_info['Type'] == 'Spikes':
-    #         self.visible = True
+    #         self.plot_visible = True
     #         self.has_thr = True
     #         self.has_spikes = True
 
@@ -240,7 +248,7 @@ class TimelineViewGraph(pg.PlotWidget):
     #         self.num_spike_units = self.current_chan_info["unitInfo"].shape[0]
 
     #     elif self.current_chan_info['Type'] == 'Raws':
-    #         self.visible = True
+    #         self.plot_visible = True
     #         self.has_thr = False
     #         self.has_spikes = False
 
@@ -250,7 +258,7 @@ class TimelineViewGraph(pg.PlotWidget):
     #         self.num_spike_units = 0
 
     #     elif self.current_chan_info['Type'] == 'Filted':
-    #         self.visible = True
+    #         self.plot_visible = True
     #         self.has_thr = True
     #         self.has_spikes = False
 
@@ -260,7 +268,7 @@ class TimelineViewGraph(pg.PlotWidget):
     #         self.num_spike_units = 0
 
     #     elif self.current_chan_info['Type'] == 'Events':
-    #         self.visible = False
+    #         self.plot_visible = False
     #         logger.critical('Not implement error.')
 
     #     self.spike_units_visible = [True] * self.num_spike_units
@@ -318,14 +326,14 @@ class TimelineViewGraph(pg.PlotWidget):
 
     # def getSpikes(self, spikes):
     #     if spikes["unitInfo"] is None:
-    #         self.visible = False
+    #         self.plot_visible = False
 
     #         self.has_spikes = False
     #         self.spikes = None
     #         self.num_spike_units = 0
 
     #     else:
-    #         self.visible = True
+    #         self.plot_visible = True
 
     #         self.has_spikes = True
     #         self.spikes = spikes
@@ -375,8 +383,10 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def updatePlot(self):
         # logger.debug('updatePlot')
-        # logger.debug(self.visible)
-        if self.visible:
+        # logger.debug(self.plot_visible)
+        visible = self.plot_visible and self.widget_visible
+
+        if visible:
             if self.show_raw:
                 # logger.debug('draw raw')
                 self.drawData('raw')
@@ -401,17 +411,17 @@ class TimelineViewGraph(pg.PlotWidget):
                 # logger.debug('draw event')
                 self.drawEvents()
 
-        self.data_item.setVisible(self.visible)
-        self.thr_item.setVisible(self.visible and
+        self.data_item.setVisible(visible)
+        self.thr_item.setVisible(visible and
                                  self.show_thr and
                                  not self.current_filted_object is None)
 
         for item in self.spikes_item_list:
-            item.setVisible(self.visible and
+            item.setVisible(visible and
                             self.show_spikes and
                             not self.current_spike_object is None)
         for item in self.events_item_list:
-            item.setVisible(self.visible and
+            item.setVisible(visible and
                             self.show_events and
                             not self.current_event_object is None)
 

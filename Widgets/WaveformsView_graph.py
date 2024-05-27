@@ -28,7 +28,8 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.thr = 0.0
         self.has_thr = False
         self.color_palette_list = sns.color_palette('bright', 64)
-        self.visible = False  # overall visible
+        self.plot_visible = False
+        self.widget_visible = False
 
         # self.num_unit = 1
         # self.current_wav_units = []
@@ -85,19 +86,23 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.plot_item.scene().mouseMoveEvent = self.graphMouseMoveEvent
         self.plot_item.scene().mouseReleaseEvent = self.graphMouseReleaseEvent
 
+    def widgetVisibilityChanged(self, visible: bool):
+        self.widget_visible = visible
+        self.updatePlot()
+
     def data_file_name_changed(self, data):
         self.data_object = data
-        self.visible = False
+        self.plot_visible = False
         self.updatePlot()
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         self.current_spike_object = new_spike_object
 
         # self.has_spikes = True
-        self.visible = True
+        self.plot_visible = True
         if self.current_spike_object is None:
             # self.has_spikes = False
-            self.visible = False
+            self.plot_visible = False
             self.updatePlot()
             return
         self.data_scale = np.max(np.abs(self.current_spike_object.waveforms))
@@ -127,9 +132,9 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     #     self.updatePlot()
 
     # def selected_units_changed(self, selected_rows):
-    #     self.visible = [False] * self.num_unit
+    #     self.plot_visible = [False] * self.num_unit
     #     for i in selected_rows:
-    #         self.visible[i] = True
+    #         self.plot_visible[i] = True
     #     self.redraw = False
     #     self.updatePlot()
 
@@ -178,16 +183,16 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     #     if spikes["unitID"] is None:
     #         self.has_spikes = False
     #         self.spikes = None
-    #         self.visible = False
+    #         self.plot_visible = False
 
     #         self.data_scale = 1.0
     #     else:
     #         self.has_spikes = True
     #         self.spikes = spikes
-    #         self.visible = True
+    #         self.plot_visible = True
 
     #         self.data_scale = np.max(np.abs(spikes["waveforms"]))
-    #     logger.debug(self.visible)
+    #     logger.debug(self.plot_visible)
 
     # def getColor(self, unit_data):
     #     n = len(unit_data)
@@ -204,7 +209,8 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     #     self.current_showing_data = self.spikes['waveforms'][self.current_wavs_mask]
 
     def updatePlot(self):
-        if self.visible and not self.current_spike_object is None:
+        visible = self.plot_visible and self.widget_visible
+        if visible and not self.current_spike_object is None:
             self.removeWaveformItems()
 
             self.drawWaveforms()
@@ -213,9 +219,9 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
         for waveforms_item in self.waveforms_item_list:
             waveforms_item.setVisible(
-                self.visible and not self.current_spike_object is None)
+                visible and not self.current_spike_object is None)
 
-        self.thr_item.setVisible(self.visible)
+        self.thr_item.setVisible(visible)
 
     def drawThreshold(self):
         self.thr_item.setValue(self.current_spike_object.threshold)

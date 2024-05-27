@@ -33,7 +33,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         # self.spikes = None
         # self.has_spikes = False
         self.color_palette_list = sns.color_palette('bright', 64)
-        self.visible = False  # overall visible
+        self.plot_visible = False
+        self.widget_visible = False
 
         # from UnitOperateTools widget
         self.manual_mode = False
@@ -103,19 +104,23 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.addItem(self.manual_curve_item)
         self.manual_curve_item.setVisible(False)
 
+    def widgetVisibilityChanged(self, visible: bool):
+        self.widget_visible = visible
+        self.updatePlot()
+
     def data_file_name_changed(self, data):
         # self.data_object = data
-        self.visible = False
+        self.plot_visible = False
         self.updatePlot()
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         self.current_spike_object = new_spike_object
 
         # self.has_spikes = True
-        self.visible = True
+        self.plot_visible = True
         if self.current_spike_object is None:
             # self.has_spikes = False
-            self.visible = False
+            self.plot_visible = False
             self.updatePlot()
             return
         # self.has_spikes = not self.current_spike_object is None
@@ -126,12 +131,12 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     #     if spikes["unitID"] is None:
     #         self.has_spikes = False
     #         self.spikes = None
-    #         self.visible = False
+    #         self.plot_visible = False
     #     else:
     #         self.has_spikes = True
     #         self.spikes = spikes
 
-    #         self.visible = True
+    #         self.plot_visible = True
 
     #         # self.current_wav_colors = self.getColor(self.current_wav_units)
 
@@ -173,10 +178,12 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.updatePlot()
 
     def updatePlot(self):
-        if self.visible and not self.current_spike_object is None:
+        visible = self.plot_visible and self.widget_visible
+
+        if visible and not self.current_spike_object is None:
             self.drawScatter()
         self.scatter_item.setVisible(
-            self.visible and not self.current_spike_object is None)
+            visible and not self.current_spike_object is None)
 
     def drawScatter(self):
         self.current_wavs_mask = np.isin(self.current_spike_object.unit_IDs,
