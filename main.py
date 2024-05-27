@@ -130,6 +130,8 @@ class PySortGUI(MainWindowDocks):
         self.children_dict['ChannelDetail'].signal_data_file_name_changed.connect(
             self.children_dict["WaveformsView"].data_file_name_changed)
         self.children_dict['ChannelDetail'].signal_data_file_name_changed.connect(
+            self.children_dict["ISIView"].data_file_name_changed)
+        self.children_dict['ChannelDetail'].signal_data_file_name_changed.connect(
             self.children_dict["ClustersView"].data_file_name_changed)
         self.children_dict['ChannelDetail'].signal_data_file_name_changed.connect(
             self.children_dict["UnitOperateTools"].data_file_name_changed)
