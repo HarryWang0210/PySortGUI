@@ -353,7 +353,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                 return
 
         self.current_data_object = SpikeSorterData(folder_path, 'openephys')
-        self.default_root_folder = os.path.split(self.current_data_object.path)
+        self.default_root_folder = os.path.split(
+            self.current_data_object.path)[0]
         self.signal_data_file_name_changed.emit(self.current_data_object)
 
         self.setDataModel()
