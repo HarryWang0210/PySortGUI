@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 from typing import TYPE_CHECKING
@@ -595,7 +596,10 @@ def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
     # logger.debug(total_size)
 
     # logger.debug(os.path.getsize(new_filename))
+    # Exported to H5 on Mar 14 2023
 
+    [file_header.update({'Comment': f'Exported to H5 on {datetime.datetime.today().strftime("%b %d %Y")}'})
+     for file_header in data_object._file_headers]
     # File
     saveFileHeader(filename=new_filename, headers=[FileHeader.model_validate(
         file_header, extra='allow') for file_header in data_object._file_headers])
