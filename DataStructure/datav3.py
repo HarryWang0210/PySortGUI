@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 
@@ -557,10 +558,19 @@ class ContinuousData(object):
         #     return result
 
     def bandpassFilter(self, low, high) -> ContinuousData | None:
-        result = design_and_filter(
-            self.data, FSampling=self.fs, LowCutOff=low, HighCutOff=high)
+        order = 4
+        filter_family = 'Butterworth'
 
-        return self.createCopy(input_array=result, low_cutoff=low, high_cutoff=high)
+        result = design_and_filter(
+            self.data, FSampling=self.fs, LowCutOff=low, HighCutOff=high,
+            Order=order, FilterFamily=filter_family)
+        header = self.header
+        header['HighCutOffOrder'] = order
+        header['HighCutOffType'] = filter_family
+        header['LowCutOffOrder'] = order
+        header['LowCutOffType'] = filter_family
+
+        return self.createCopy(input_array=result, low_cutoff=low, high_cutoff=high, header=header)
         # if isinstance(result, self.__class__):
         #     result._setFilter(low=low, high=high)
         # elif isinstance(result, np.ndarray):
@@ -585,7 +595,7 @@ class ContinuousData(object):
         unit_IDs = np.zeros(len(timestamps), dtype=int)
 
         header = self.header
-        header['Comment'] = 'TODO'
+        header['Comment'] = f'Extracted on {datetime.datetime.today().strftime("%Y-%b-%d")}'
         header['NumRecords'] = len(unit_IDs)
         header['Type'] = 'Spikes'
         header['ReferenceID'] = self.reference
