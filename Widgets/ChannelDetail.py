@@ -34,6 +34,11 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         self.window_title = "Channel Detail"
         self.setupUi(self)
         self.default_root_folder = './'
+        self.default_spike_setting = {
+            'Reference': 0,
+            'Filter': (250, 6000),
+            'Threshold': ('MAD', -3)
+        }
         self.current_data_object: SpikeSorterData | None = None
         self.current_raw_object: ContinuousData | None = None
         self.current_filted_object: ContinuousData | None = None
@@ -462,31 +467,41 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         dialog = ExtractWaveformSettingsDialog(
             filted_object=self.current_filted_object,
             all_chan_ID=all_chan_ID,
+            default_setting=self.default_spike_setting,
             parent=self)
 
         result = dialog.exec_()
         if result != QDialog.Accepted:
             return
 
-        if dialog.channel_ref_radioButton.isChecked():
-            ref = int(dialog.channel_ref_comboBox.currentText())
+        # if dialog.channel_ref_radioButton.isChecked():
+        #     ref = int(dialog.channel_ref_comboBox.currentText())
 
-        elif dialog.median_ref_radioButton.isChecked():
-            ref = [int(i)
-                   for i in dialog.show_channels_lineEdit.text().split(', ')]
+        # elif dialog.median_ref_radioButton.isChecked():
+        #     ref = [int(i)
+        #            for i in dialog.show_channels_lineEdit.text().split(', ')]
 
-        low = dialog.filter_low_doubleSpinBox.value()
-        high = dialog.filter_high_doubleSpinBox.value()
+        # low = dialog.filter_low_doubleSpinBox.value()
+        # high = dialog.filter_high_doubleSpinBox.value()
 
-        new_filted_object = self.preprocessing(ref, low, high)
-        if dialog.const_thr_radioButton.isChecked():
-            threshold = dialog.const_thr_doubleSpinBox.value()
-        elif dialog.mad_thr_radioButton.isChecked():
+        ref = dialog.setting['Reference']
+        filter_values = dialog.setting['Filter']
+
+        new_filted_object = self.preprocessing(ref, *filter_values)
+        # if dialog.const_thr_radioButton.isChecked():
+        #     threshold = dialog.const_thr_doubleSpinBox.value()
+        # elif dialog.mad_thr_radioButton.isChecked():
+        #     threshold = new_filted_object.estimated_sd * \
+        #         dialog.mad_thr_doubleSpinBox.value()
+
+        if dialog.setting['Threshold'][0] == 'MAD':
             threshold = new_filted_object.estimated_sd * \
-                dialog.mad_thr_doubleSpinBox.value()
+                dialog.setting['Threshold'][1]
 
         new_filted_object = new_filted_object.createCopy(threshold=threshold)
         new_spike_object = None
+
+        self.default_spike_setting = dialog.setting
 
         # command = ChangeFilterCommand("Change filter",
         #                               self,
@@ -521,23 +536,23 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
     def extractWaveforms(self):
         row_items = self.getSelectedRowItems()
-        # model = self.treeView.model()
-        # # logger.debug(model)
-
-        # selection_model = self.treeView.selectionModel()
-        # selected_indexes = selection_model.selectedIndexes()
-        # # selected_rows_list = [index.row() for index in selected_indexes]
-        # # logger.debug(selected_indexes)
-        # items = [model.itemFromIndex(ind) for ind in selected_indexes]
-
-        # if items[0].parent() == None:  # Group
-        #     return
-        # elif items[0].parent().parent() != None:  # Label
-        #     items[0] = items[0].parent()
-
         meta_data = [item.text() for item in row_items]
         meta_data = dict(zip(self.header_name, meta_data))
         row_type = meta_data['Type']
+        if self.current_filted_object is None:
+            ref = self.default_spike_setting['Reference']
+            filter_values = self.default_spike_setting['Filter']
+            new_filted_object = self.preprocessing(ref, *filter_values)
+
+            if self.default_spike_setting['Threshold'][0] == 'MAD':
+                threshold = new_filted_object.estimated_sd * \
+                    self.default_spike_setting['Threshold'][1]
+
+            new_filted_object = new_filted_object.createCopy(
+                threshold=threshold)
+            new_spike_object = None
+
+            self.current_filted_object = new_filted_object
 
         new_spike_object = self.current_filted_object.extractWaveforms(
             self.current_filted_object.threshold)
@@ -1106,18 +1121,15 @@ class ChangeSpikeCommand(QUndoCommand):
 
 
 class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
-    def __init__(self, filted_object: ContinuousData | None, all_chan_ID: list, parent=None):
+    def __init__(self, filted_object: ContinuousData | None, all_chan_ID: list,
+                 default_setting=None, parent=None):
         super().__init__(parent)
         self.setupUi(self)
         self.setWindowTitle("Extract Waveform Settings Dialog")
-        self.default_spike_setting = {
-            'Reference': [0],
-            'Filter': (250, 6000),
-            'Threshold': ('MAD', -3)
-        }
+        # self.default_spike_setting = default_setting
 
         if filted_object is None:
-            self.setting = self.default_spike_setting
+            self.setting = default_setting
         else:
             try:
                 mad = filted_object.threshold / filted_object.estimated_sd
@@ -1150,6 +1162,24 @@ class ExtractWaveformSettingsDialog(Ui_ExtractWaveformSettings, QDialog):
         elif self.setting['Threshold'][0] == 'Const':
             self.const_thr_radioButton.setChecked(True)
             self.const_thr_doubleSpinBox.setValue(self.setting['Threshold'][1])
+
+    def accept(self):
+        if self.channel_ref_radioButton.isChecked():
+            self.setting['Reference'] = int(
+                self.channel_ref_comboBox.currentText())
+
+        self.setting['Filter'] = (
+            self.filter_low_doubleSpinBox.value(), self.filter_high_doubleSpinBox.value())
+        # low = self.filter_low_doubleSpinBox.value()
+        # high = self.filter_high_doubleSpinBox.value()
+        if self.const_thr_radioButton.isChecked():
+            pass
+            # threshold = self.const_thr_doubleSpinBox.value()
+        elif self.mad_thr_radioButton.isChecked():
+            self.setting['Threshold'] = (
+                'MAD', self.mad_thr_doubleSpinBox.value())
+            # threshold = self.mad_thr_doubleSpinBox.value()
+        super().accept()
 
 
 class CreateReferenceDialog(Ui_CreateReferenceDialog, QDialog):
