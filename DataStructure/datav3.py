@@ -373,7 +373,8 @@ class SpikeSorterData(object):
         header['Name'] = new_channel_name
         header['Comment'] = new_comment
 
-        ref_object = ContinuousData(median_reference,
+        ref_object = ContinuousData(timestamps=self._records_timestamps,
+                                    input_array=median_reference,
                                     filename=self._path,
                                     data_format=self._data_format,
                                     header=header,
