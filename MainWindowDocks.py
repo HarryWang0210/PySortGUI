@@ -198,6 +198,11 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         ViewMenu.addAction(SelectEventsAction)
         ViewMenu_dict["SelectEvents"] = SelectEventsAction
 
+        SetBackgroundChannelAction = QtWidgets.QAction(
+            'Set background channel', self)
+        ViewMenu.addAction(SetBackgroundChannelAction)
+        ViewMenu_dict["SetBackgroundChannel"] = SetBackgroundChannelAction
+
     def _addSettingMenu(self):
         # Setting
         SettingMenu = self.menu_bar.addMenu('&Setting')

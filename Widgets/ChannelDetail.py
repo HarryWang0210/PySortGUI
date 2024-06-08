@@ -5,9 +5,9 @@ import numpy as np
 import seaborn as sns
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QItemSelectionModel, Qt
-from PyQt5.QtGui import QColor, QStandardItem, QStandardItemModel
+from PyQt5.QtGui import QColor, QStandardItem, QStandardItemModel, QPalette
 from PyQt5.QtWidgets import (QAbstractItemView, QApplication, QCheckBox,
-                             QDialog, QMainWindow, QMessageBox,
+                             QColorDialog, QDialog, QMainWindow, QMessageBox,
                              QStyledItemDelegate, QUndoCommand, QUndoStack,
                              QVBoxLayout, QWidget)
 
@@ -16,6 +16,7 @@ from UI.ChannelDetailv2_ui import Ui_ChannelDetail
 from UI.CreateReferenceDialog_ui import Ui_CreateReferenceDialog
 from UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
 from UI.SelectEventsDialog_ui import Ui_SelectEventsDialog
+from UI.SetBackgroundChannelDialog_ui import Ui_SetBackgroundChannelDialog
 from Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
     signal_spike_data_changed = QtCore.pyqtSignal((object, bool))
     signal_event_data_changed = QtCore.pyqtSignal(object)
     signal_showing_events_changed = QtCore.pyqtSignal(list)
+    signal_background_continuous_data_changed = QtCore.pyqtSignal(
+        (object, object))
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -38,6 +41,12 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
             'Reference': 0,
             'Filter': (250, 6000),
             'Threshold': ('MAD', -3)
+        }
+        self.default_background_channel_setting = {
+            'BackgroundChannel': 'No select',
+            'Color': None,
+            'Reference': (False, 0),
+            'Filter': (False, 250, 6000),
         }
         self.current_data_object: SpikeSorterData | None = None
         self.current_raw_object: ContinuousData | None = None
@@ -522,13 +531,13 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                                                  self.current_filted_object)
         self.signal_spike_data_changed.emit(new_spike_object, True)
 
-    def preprocessing(self, ref: int,
+    def preprocessing(self, ref: int | None = None,
                       low: int | float = None,
                       high: int | float = None) -> ContinuousData:
         new_filted_object = self.current_raw_object.createCopy()
-        # if len(ref) > 0:
-        new_filted_object = self.current_data_object.subtractReference(channel_ID=self.current_raw_object.channel_ID,
-                                                                       reference_ID=ref)
+        if not ref is None:
+            new_filted_object = self.current_data_object.subtractReference(channel_ID=self.current_raw_object.channel_ID,
+                                                                           reference_ID=ref)
         if not low is None and not high is None:
             new_filted_object = new_filted_object.bandpassFilter(
                 low, high)
@@ -968,6 +977,48 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         self.current_showing_events = dialog.select_event_IDs
         self.signal_showing_events_changed.emit(self.current_showing_events)
+
+    def setBackgroundChannel(self):
+        if self.current_data_object is None:
+            mbox = QMessageBox(self)
+            mbox.warning(self, 'Warning',
+                         'Not load data yet.')
+            return
+        all_chan_ID = self.current_data_object.channel_IDs
+
+        dialog = SetBackgroundChannelDialog(all_channel_IDs=all_chan_ID,
+                                            default_setting=self.default_background_channel_setting,
+                                            parent=self)
+        result = dialog.exec_()
+        if result != QDialog.Accepted:
+            return
+
+        self.default_background_channel_setting = dialog.setting
+
+        new_bg_object = None
+
+        if dialog.setting['BackgroundChannel'] == 'No select':
+            self.signal_background_continuous_data_changed.emit(new_bg_object,
+                                                                dialog.setting['Color'])
+            return
+
+        new_bg_object = self.current_data_object.getRaw(
+            dialog.setting['BackgroundChannel'], load_data=True)
+
+        if dialog.setting['Reference'][0]:
+            new_bg_object = self.current_data_object.subtractReference(
+                channel_ID=dialog.setting['BackgroundChannel'],
+                reference_ID=dialog.setting['Reference'][1])
+        else:
+            new_bg_object = self.current_data_object.getRaw(
+                dialog.setting['BackgroundChannel'], load_data=True)
+
+        if dialog.setting['Filter'][0]:
+            new_bg_object = new_bg_object.bandpassFilter(low=dialog.setting['Filter'][1],
+                                                         high=dialog.setting['Filter'][2])
+
+        self.signal_background_continuous_data_changed.emit(new_bg_object,
+                                                            dialog.setting['Color'])
 
     def setUnsavedChangeIndicator(self, row_items: list, obj: ContinuousData | DiscreteData):
         if obj is None:
@@ -1513,3 +1564,96 @@ class EventsColorDelegate(QStyledItemDelegate):
         color = (np.array(color) * 255).astype(int)
 
         option.backgroundBrush = QColor(*color)
+
+
+class SetBackgroundChannelDialog(Ui_SetBackgroundChannelDialog, QDialog):
+    def __init__(self, all_channel_IDs, default_setting, parent=None):
+        """_summary_
+
+        Args:
+            all_channel_IDs (_type_): _description_
+            default_setting (_type_): {
+                'BackgroundChannel': 'No select',
+                'Color': None,
+                'Reference': (False, 0),
+                'Filter': (False, 250, 6000),
+                }
+            parent (_type_, optional): _description_. Defaults to None.
+        """
+        super().__init__(parent)
+        self.setupUi(self)
+        self.setWindowTitle("Set BackgroundChannel Dialog")
+        # self.setMinimumWidth(500)
+        # self.setMinimumHeight(500)
+        self.setting = default_setting
+        self.setColor()
+        self.bg_channel_comboBox.addItems(
+            map(str, ['No select']+all_channel_IDs))
+        self.bg_channel_comboBox.setCurrentText(
+            str(self.setting['BackgroundChannel']))
+
+        self.ref_groupBox.setChecked(self.setting['Reference'][0])
+        self.select_reference_comboBox.addItems(map(str, all_channel_IDs))
+
+        # if self.ref_groupBox.isChecked():
+        #     if self.setting['Reference'][1] == 'raw':
+        #         self.raw_reference_radioButton.setChecked(True)
+        #         self.raw_reference_comboBox.setCurrentText(
+        #             str(self.setting['Reference'][2]))
+
+        #     elif self.setting['Reference'][1] == 'ref':
+        #         self.raw_reference_radioButton.setChecked(True)
+        #         self.raw_reference_comboBox.setCurrentText(
+        #             str(self.setting['Reference'][2]))
+
+        self.filter_groupBox.setChecked(self.setting['Filter'][0])
+        self.filter_low_doubleSpinBox.setValue(self.setting['Filter'][1])
+        self.filter_high_doubleSpinBox.setValue(self.setting['Filter'][2])
+
+        self.color_pushButton.clicked.connect(self.selectColor)
+
+    def setColor(self):
+        if self.setting['Color'] is None:
+            return
+        self.color_pushButton.setStyleSheet(
+            f"background-color: {self.setting['Color'].name()}")
+
+    def selectColor(self):
+        if self.setting['Color'] is None:
+            color = QColorDialog.getColor(parent=self)
+        else:
+            color = QColorDialog.getColor(
+                initial=self.setting['Color'], parent=self)
+
+        if color.isValid():
+            self.setting['Color'] = color
+            self.setColor()
+
+    def accept(self):
+        bg_channel = self.bg_channel_comboBox.currentText()
+        if bg_channel != 'No select':
+            try:
+                bg_channel = int(bg_channel)
+            except TypeError:
+                pass
+
+        # if self.raw_reference_radioButton.isChecked():
+        #     ref = 'raw'
+        #     ref_channel = self.raw_reference_comboBox.currentText()
+        # elif self.ref_reference_radioButton.isChecked():
+        #     ref = 'ref'
+        ref_channel = self.select_reference_comboBox.currentText()
+        try:
+            ref_channel = int(ref_channel)
+        except TypeError:
+            pass
+
+        self.setting['BackgroundChannel'] = bg_channel
+        # self.setting['Color']
+        self.setting['Reference'] = (self.ref_groupBox.isChecked(),
+                                     ref_channel)
+        self.setting['Filter'] = (self.filter_groupBox.isChecked(),
+                                  self.filter_low_doubleSpinBox.value(),
+                                  self.filter_high_doubleSpinBox.value())
+
+        super().accept()

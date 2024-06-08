@@ -116,6 +116,8 @@ class PySortGUI(MainWindowDocks):
 
         self.children_dict['ViewMenu']["SelectEvents"].triggered.connect(
             self.selectEvents)
+        self.children_dict['ViewMenu']["SetBackgroundChannel"].triggered.connect(
+            self.setBackgroundChannel)
 
         self.children_dict['SettingMenu']["SaveLayout"].triggered.connect(
             self.saveLayout)
@@ -142,6 +144,9 @@ class PySortGUI(MainWindowDocks):
             self.children_dict["TimelineView"].showing_events_changed)
         self.children_dict['ChannelDetail'].signal_continuous_data_changed.connect(
             self.children_dict["TimelineView"].continuous_data_changed)
+        self.children_dict['ChannelDetail'].signal_background_continuous_data_changed.connect(
+            self.children_dict["TimelineView"].background_continuous_data_changed)
+
         self.children_dict['ChannelDetail'].signal_spike_data_changed.connect(
             self.children_dict["UnitOperateTools"].spike_data_changed)
 
@@ -299,6 +304,9 @@ class PySortGUI(MainWindowDocks):
     # View
     def selectEvents(self):
         self.children_dict['ChannelDetail'].selectEvents()
+
+    def setBackgroundChannel(self):
+        self.children_dict['ChannelDetail'].setBackgroundChannel()
 
     # Setting
     def saveLayout(self, id=0):
