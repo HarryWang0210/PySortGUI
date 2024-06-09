@@ -19,11 +19,11 @@ from PyQt5 import QtCore, QtWidgets
 # Load Widgets
 from MainWindowDocks import MainWindowDocks
 
-# logging.basicConfig(
-#     level=logging.DEBUG,
-#     format="[%(asctime)s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
-#     datefmt="%Y-%m-%d %H:%M:%S",
-# )
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="[%(asctime)s][%(levelname)-5s] %(message)s (%(filename)s:%(lineno)d)",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 organization = 'NYCU'
