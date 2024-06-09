@@ -1622,7 +1622,7 @@ class SetBackgroundChannelDialog(Ui_SetBackgroundChannelDialog, QDialog):
 
     def setColor(self):
         if self.setting['Color'] is None:
-            return
+            self.setting['Color'] = QColor(0, 255, 255)
         self.color_pushButton.setStyleSheet(
             f"background-color: {self.setting['Color'].name()}")
 
