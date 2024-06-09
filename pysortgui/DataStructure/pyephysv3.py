@@ -12,7 +12,7 @@ import tables
 if TYPE_CHECKING:
     from .datav3 import ContinuousData, DiscreteData, SpikeSorterData
 
-from .header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
+from pysortgui.DataStructure.header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
 
 logger = logging.getLogger(__name__)
 

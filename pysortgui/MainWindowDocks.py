@@ -9,13 +9,13 @@ import logging
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from Widgets.ChannelDetail import ChannelDetail
-from Widgets.ClustersView_graph import ClustersView
-from Widgets.ISIView import ISIView
-from Widgets.TimelineView_graph import TimelineView
-from Widgets.UnitOperateTools import UnitOperateTools
-from Widgets.WaveformsView_graph import WaveformsView
-from Widgets.WidgetsInterface import WidgetsInterface
+from pysortgui.Widgets.ChannelDetail import ChannelDetail
+from pysortgui.Widgets.ClustersView_graph import ClustersView
+from pysortgui.Widgets.ISIView import ISIView
+from pysortgui.Widgets.TimelineView_graph import TimelineView
+from pysortgui.Widgets.UnitOperateTools import UnitOperateTools
+from pysortgui.Widgets.WaveformsView_graph import WaveformsView
+from pysortgui.Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
 

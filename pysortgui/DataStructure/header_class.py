@@ -3,7 +3,7 @@ import os
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .DataClasses import DataClass, convert_and_enforce_types
+from pysortgui.DataStructure.DataClasses import DataClass, convert_and_enforce_types
 
 # from pydantic import BaseModel, Field, computed_field, field_validator
 # from pydantic_core.core_schema import FieldValidationInfo

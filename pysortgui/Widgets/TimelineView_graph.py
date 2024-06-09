@@ -8,9 +8,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QGuiApplication
 from PyQt5.QtWidgets import QApplication
 
-from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
-from UI.TimelineView_ui import Ui_TimelineView
-from Widgets.WidgetsInterface import WidgetsInterface
+from pysortgui.DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
+from pysortgui.UI.TimelineView_ui import Ui_TimelineView
+from pysortgui.Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
 

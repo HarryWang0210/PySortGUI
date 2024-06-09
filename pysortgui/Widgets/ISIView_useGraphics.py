@@ -7,8 +7,8 @@ from PyQt5.QtGui import QColor
 
 # from OpenGL.GL import *
 # from PyQt5.QtWidgets import QOpenGLWidget
-from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
-from Widgets.WidgetsInterface import WidgetsInterface
+from pysortgui.DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
+from pysortgui.Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
 

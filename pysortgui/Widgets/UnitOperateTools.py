@@ -10,8 +10,8 @@ from PyQt5.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
                              QHBoxLayout, QLabel, QMessageBox, QPushButton,
                              QStyledItemDelegate, QVBoxLayout, QWidget)
 
-from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
-from UI.UnitOperateToolsUIv3_ui import Ui_UnitOperateTools
+from pysortgui.DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
+from pysortgui.UI.UnitOperateToolsUIv3_ui import Ui_UnitOperateTools
 
 logger = logging.getLogger(__name__)
 

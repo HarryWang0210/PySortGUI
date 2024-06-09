@@ -8,8 +8,8 @@ from xml.etree import cElementTree as ET
 import numpy as np
 import pandas as pd
 
-from .DataClasses import DataClass, convert_and_enforce_types
-from .header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
+from pysortgui.DataStructure.DataClasses import DataClass, convert_and_enforce_types
+from pysortgui.DataStructure.header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
 
 # from pydantic import BaseModel, field_validator
 

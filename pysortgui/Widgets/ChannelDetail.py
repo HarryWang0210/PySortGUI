@@ -11,13 +11,13 @@ from PyQt5.QtWidgets import (QAbstractItemView, QApplication, QCheckBox,
                              QStyledItemDelegate, QUndoCommand, QUndoStack,
                              QVBoxLayout, QWidget)
 
-from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
-from UI.ChannelDetailv2_ui import Ui_ChannelDetail
-from UI.CreateReferenceDialog_ui import Ui_CreateReferenceDialog
-from UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
-from UI.SelectEventsDialog_ui import Ui_SelectEventsDialog
-from UI.SetBackgroundChannelDialog_ui import Ui_SetBackgroundChannelDialog
-from Widgets.WidgetsInterface import WidgetsInterface
+from pysortgui.DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
+from pysortgui.UI.ChannelDetailv2_ui import Ui_ChannelDetail
+from pysortgui.UI.CreateReferenceDialog_ui import Ui_CreateReferenceDialog
+from pysortgui.UI.ExtractWaveformSettings_ui import Ui_ExtractWaveformSettings
+from pysortgui.UI.SelectEventsDialog_ui import Ui_SelectEventsDialog
+from pysortgui.UI.SetBackgroundChannelDialog_ui import Ui_SetBackgroundChannelDialog
+from pysortgui.Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
 

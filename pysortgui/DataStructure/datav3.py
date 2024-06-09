@@ -9,13 +9,13 @@ import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MaxAbsScaler
 
-from DataStructure import openephys
-from DataStructure import pyephysv3 as pyephys
-from DataStructure.FunctionsLib.DiscreteSignalLib import ISI, firing_rate
-from DataStructure.FunctionsLib.SignalProcessing import design_and_filter
-from DataStructure.FunctionsLib.Sorting import auto_sort
-from DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
-from DataStructure.header_class import (EventsHeader, FileHeader, RawsHeader,
+from pysortgui.DataStructure import openephys
+from pysortgui.DataStructure import pyephysv3 as pyephys
+from pysortgui.DataStructure.FunctionsLib.DiscreteSignalLib import ISI, firing_rate
+from pysortgui.DataStructure.FunctionsLib.SignalProcessing import design_and_filter
+from pysortgui.DataStructure.FunctionsLib.Sorting import auto_sort
+from pysortgui.DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
+from pysortgui.DataStructure.header_class import (EventsHeader, FileHeader, RawsHeader,
                                         SpikesHeader)
 
 # from .openephys import (getFilesInFolder, loadContinuous, loadEvents, loadTimestamps,

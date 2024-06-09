@@ -5,7 +5,7 @@ import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import seaborn as sns
 from matplotlib.path import Path
-from OpenGL.GL import *  # noqa
+# from OpenGL.GL import *  # noqa
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QColor, QPainter
@@ -13,8 +13,8 @@ from PyQt5.QtWidgets import QApplication
 from scipy.spatial import KDTree
 from sklearn.preprocessing import MaxAbsScaler
 
-from DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
-from Widgets.WidgetsInterface import WidgetsInterface
+from pysortgui.DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
+from pysortgui.Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
 

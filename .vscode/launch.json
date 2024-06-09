@@ -8,7 +8,7 @@
             "name": "Python: Current File",
             "type": "debugpy",
             "request": "launch",
-            "program": "pysortgui/main.py",
+            "program": "bin/pysortgui",
             "console": "integratedTerminal",
             "justMyCode": true
         }
