@@ -3,5 +3,7 @@ seaborn
 scikit-learn 
 tables
 pandas
+PyQt5
+pyopengl
 pyqtgraph==0.13.3
 
