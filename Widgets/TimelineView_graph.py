@@ -54,6 +54,12 @@ class TimelineView(WidgetsInterface, Ui_TimelineView):
 
     def showing_events_changed(self, showing_event_IDs):
         self.graphWidget.showing_events_changed(showing_event_IDs)
+
+    def background_continuous_data_changed(self, new_bg_object, color, show_on_top):
+        self.graphWidget.background_continuous_data_changed(new_bg_object,
+                                                            color,
+                                                            show_on_top)
+
     # def spike_chan_changed(self, current_chan_info):
     #     self.raw_pushButton.setChecked(current_chan_info['Type'] == 'Raws')
     #     self.graphWidget.spike_chan_changed(current_chan_info)
@@ -83,6 +89,7 @@ class TimelineViewGraph(pg.PlotWidget):
         self.data_object = None
         self.current_raw_object: ContinuousData | None = None
         self.current_filted_object: ContinuousData | None = None
+        self.current_bg_object: ContinuousData | None = None
         self.current_spike_object: DiscreteData | None = None
         self.current_event_object: DiscreteData | None = None
         # self.current_chan_info = None
@@ -116,6 +123,8 @@ class TimelineViewGraph(pg.PlotWidget):
         # self.has_filted_data = False
 
         self.show_raw = True
+        self.show_bg = False
+        self.bg_color = None
 
         # self.data_len = 0
         # self.data_scale = 1000  # maximun height of data
@@ -152,6 +161,11 @@ class TimelineViewGraph(pg.PlotWidget):
         self.data_item = pg.PlotDataItem(pen='w')
         self.data_item.setVisible(False)
         self.addItem(self.data_item)
+
+        self.bg_data_item = pg.PlotDataItem(pen='w')
+        self.bg_data_item.setZValue(-1)
+        self.bg_data_item.setVisible(False)
+        self.addItem(self.bg_data_item)
 
         self.thr_item = pg.InfiniteLine(pos=self.thr, angle=0, pen="g")
         self.thr_item.setVisible(False)
@@ -231,131 +245,21 @@ class TimelineViewGraph(pg.PlotWidget):
         self.updatePlot()
         # self.graphWidget.showing_events_changed(showing_event_IDs)
 
-    # def spike_chan_changed(self, current_chan_info):
-    #     self.current_chan_info = current_chan_info
-    #     logger.debug(self.current_chan_info['Type'])
-    #     if self.current_chan_info['Type'] == 'Spikes':
-    #         self.plot_visible = True
-    #         self.has_thr = True
-    #         self.has_spikes = True
+    def background_continuous_data_changed(self, new_bg_object, color, show_on_top):
+        # if new_bg_object is self.current_bg_object:
+        #     return
+        self.current_bg_object = new_bg_object
 
-    #         self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
-    #         self.thr = self.current_chan_info["Threshold"]
+        self.show_bg = True
+        self.bg_color = color
+        if self.current_bg_object is None:
+            self.show_bg = False
 
-    #         # self.spikes = self.data_object.getSpikes(self.current_chan_info['ID'],
-    #         #                                          self.current_chan_info['Label'])
-    #         # logger.debug(self.current_chan_info)
-    #         self.num_spike_units = self.current_chan_info["unitInfo"].shape[0]
-
-    #     elif self.current_chan_info['Type'] == 'Raws':
-    #         self.plot_visible = True
-    #         self.has_thr = False
-    #         self.has_spikes = False
-
-    #         self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
-    #         self.thr = 0.0
-    #         # self.spikes = None
-    #         self.num_spike_units = 0
-
-    #     elif self.current_chan_info['Type'] == 'Filted':
-    #         self.plot_visible = True
-    #         self.has_thr = True
-    #         self.has_spikes = False
-
-    #         self.getRaw(self.data_object.getRaw(self.current_chan_info['ID']))
-    #         self.thr = self.current_chan_info["Threshold"]
-    #         # self.spikes = None
-    #         self.num_spike_units = 0
-
-    #     elif self.current_chan_info['Type'] == 'Events':
-    #         self.plot_visible = False
-    #         logger.critical('Not implement error.')
-
-    #     self.spike_units_visible = [True] * self.num_spike_units
-
-    # def filted_data_changed(self, filted_data):
-    #     self.filted_data = filted_data
-    #     if isinstance(self.filted_data, np.ndarray):
-    #         self.has_filted_data = True
-    #         self.data_scale = np.max(np.abs(self.filted_data)) / 2
-
-    #     else:
-    #         self.has_filted_data = False
-    #     logger.debug('filted_data_changed')
-    #     self.updatePlot()
-
-    # def extract_wav_changed(self, wav_dict):
-    #     self.has_spikes = True
-    #     self.spikes['timestamps'] = wav_dict['timestamps']
-    #     self.spikes['waveforms'] = wav_dict['waveforms']
-    #     self.spikes['unitInfo'] = None
-    #     self.spikes['unitID'] = np.zeros(len(self.spikes['timestamps']))
-    #     self.current_wav_units = self.spikes['unitID']
-    #     logger.debug('extract_wav_changed')
-    #     self.updatePlot()
-
-    # def sorting_result_changed(self, unitID):
-    #     self.has_spikes = True
-    #     self.spikes['unitInfo'] = None
-    #     self.spikes['unitID'] = unitID
-    #     self.current_wav_units = self.spikes['unitID']
-
-    #     logger.debug('sorting_result_changed')
-    #     self.updatePlot()
-
-    # def showing_spikes_data_changed(self, spikes_data):
-    #     if self.has_spikes:
-    #         self.current_wav_units = spikes_data['current_wav_units']
-    #         self.current_showing_units = spikes_data['current_showing_units']
-    #         # self.current_wavs_mask = np.isin(spikes_data['current_wav_units'],
-    #         #                                  spikes_data['current_showing_units'])
-    #         # self.num_unit = len(np.unique(self.current_wav_units))
-    #     logger.debug('showing_spikes_data_changed')
-    #     # self.current_wav_colors = self.getColor(self.current_wav_units)
-    #     self.updatePlot()
-
-    # def getRaw(self, raw):
-    #     self.raw_data = raw
-    #     self.data_len = len(raw)
-    #     self.data_scale = np.max(np.abs(self.raw_data)) / 2
-    #     self.num_data_show = 1000  # initial number of data points show in window
-
-    # def getEvents(self, events):
-    #     self.events = events
-    #     self.has_events = True
-
-    # def getSpikes(self, spikes):
-    #     if spikes["unitInfo"] is None:
-    #         self.plot_visible = False
-
-    #         self.has_spikes = False
-    #         self.spikes = None
-    #         self.num_spike_units = 0
-
-    #     else:
-    #         self.plot_visible = True
-
-    #         self.has_spikes = True
-    #         self.spikes = spikes
-    #         self.num_spike_units = spikes["unitInfo"].shape[0]
-    #     self.spike_units_visible = [True] * self.num_spike_units
-
-    # def getColor(self, unit_data):
-    #     """_summary_
-
-    #     Args:
-    #         unit_data (list): list of all unit ID (int).
-
-    #     Returns:
-    #         list: color palette list.
-    #     """
-    #     n = len(unit_data)
-    #     color = np.zeros((n, 3))
-
-    #     for i in range(n):
-    #         color[i, :] = self.color_palette_list[int(unit_data[i])]
-    #     color = color * 255
-    #     return color.astype(np.int32)
+        if show_on_top:
+            self.bg_data_item.setZValue(1)
+        else:
+            self.bg_data_item.setZValue(-1)
+        self.updatePlot()
 
     def showThreshold(self, show):
         """Control from TimelineView."""
@@ -394,6 +298,9 @@ class TimelineViewGraph(pg.PlotWidget):
                 # logger.debug('draw filted')
                 self.drawData('filted')
 
+            if self.show_bg:
+                self.drawBackgroundData()
+
             # if not self.show_raw and self.has_filted_data:
             #     self.drawData(self.filted_data)
             # else:
@@ -412,6 +319,7 @@ class TimelineViewGraph(pg.PlotWidget):
                 self.drawEvents()
 
         self.data_item.setVisible(visible)
+        self.bg_data_item.setVisible(visible and self.show_bg)
         self.thr_item.setVisible(visible and
                                  self.show_thr and
                                  not self.current_filted_object is None)
@@ -452,6 +360,26 @@ class TimelineViewGraph(pg.PlotWidget):
         self.data_item.setData(x=x, y=data, connect=connect)
         self.plot_item.getViewBox().setXRange(*self._x_range, padding=0)
         self.plot_item.getViewBox().setYRange(*self._y_range, padding=0)
+
+    def drawBackgroundData(self):
+        data = self.current_bg_object.data
+
+        if self.current_bg_object.timestamps is None:
+            # generate x
+            x = np.arange(start=self._x_range[0], stop=self._x_range[1]+1)
+            data = data[self._x_range[0]: self._x_range[1] + 1]
+            connect = 'auto'
+        else:
+            timestamps = self.current_bg_object.timestamps
+            mask = (timestamps >= self._x_range[0]) & \
+                (timestamps <= self._x_range[1])
+
+            x = timestamps[mask]
+            data = data[mask]
+            connect = np.append(np.diff(x) <= 1, 0)
+
+        self.bg_data_item.setPen(pg.mkPen(self.bg_color))
+        self.bg_data_item.setData(x=x, y=data, connect=connect)
 
     def drawThreshold(self):
         if self.current_filted_object is None:
