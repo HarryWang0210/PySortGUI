@@ -55,9 +55,10 @@ class TimelineView(WidgetsInterface, Ui_TimelineView):
     def showing_events_changed(self, showing_event_IDs):
         self.graphWidget.showing_events_changed(showing_event_IDs)
 
-    def background_continuous_data_changed(self, new_bg_object, color):
+    def background_continuous_data_changed(self, new_bg_object, color, show_on_top):
         self.graphWidget.background_continuous_data_changed(new_bg_object,
-                                                            color)
+                                                            color,
+                                                            show_on_top)
 
     # def spike_chan_changed(self, current_chan_info):
     #     self.raw_pushButton.setChecked(current_chan_info['Type'] == 'Raws')
@@ -244,7 +245,7 @@ class TimelineViewGraph(pg.PlotWidget):
         self.updatePlot()
         # self.graphWidget.showing_events_changed(showing_event_IDs)
 
-    def background_continuous_data_changed(self, new_bg_object, color):
+    def background_continuous_data_changed(self, new_bg_object, color, show_on_top):
         # if new_bg_object is self.current_bg_object:
         #     return
         self.current_bg_object = new_bg_object
@@ -253,6 +254,11 @@ class TimelineViewGraph(pg.PlotWidget):
         self.bg_color = color
         if self.current_bg_object is None:
             self.show_bg = False
+
+        if show_on_top:
+            self.bg_data_item.setZValue(1)
+        else:
+            self.bg_data_item.setZValue(-1)
         self.updatePlot()
 
     def showThreshold(self, show):

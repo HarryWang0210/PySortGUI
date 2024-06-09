@@ -29,7 +29,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
     signal_event_data_changed = QtCore.pyqtSignal(object)
     signal_showing_events_changed = QtCore.pyqtSignal(list)
     signal_background_continuous_data_changed = QtCore.pyqtSignal(
-        (object, object))
+        (object, object, bool))
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,8 +43,10 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
             'Threshold': ('MAD', -3)
         }
         self.default_background_channel_setting = {
-            'BackgroundChannel': 'No select',
+            'Show': False,
+            'BackgroundChannel': 0,
             'Color': None,
+            'ShowOnTop': False,
             'Reference': (False, 0),
             'Filter': (False, 250, 6000),
         }
@@ -997,9 +999,10 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         new_bg_object = None
 
-        if dialog.setting['BackgroundChannel'] == 'No select':
+        if not dialog.setting['Show']:
             self.signal_background_continuous_data_changed.emit(new_bg_object,
-                                                                dialog.setting['Color'])
+                                                                dialog.setting['Color'],
+                                                                dialog.setting['ShowOnTop'])
             return
 
         new_bg_object = self.current_data_object.getRaw(
@@ -1018,7 +1021,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                                                          high=dialog.setting['Filter'][2])
 
         self.signal_background_continuous_data_changed.emit(new_bg_object,
-                                                            dialog.setting['Color'])
+                                                            dialog.setting['Color'],
+                                                            dialog.setting['ShowOnTop'])
 
     def setUnsavedChangeIndicator(self, row_items: list, obj: ContinuousData | DiscreteData):
         if obj is None:
@@ -1587,10 +1591,14 @@ class SetBackgroundChannelDialog(Ui_SetBackgroundChannelDialog, QDialog):
         # self.setMinimumHeight(500)
         self.setting = default_setting
         self.setColor()
-        self.bg_channel_comboBox.addItems(
-            map(str, ['No select']+all_channel_IDs))
+
+        self.bg_channel_checkBox.setChecked(self.setting['Show'])
+        self.bg_channel_comboBox.setEnabled(self.setting['Show'])
+        self.bg_channel_comboBox.addItems(map(str, all_channel_IDs))
         self.bg_channel_comboBox.setCurrentText(
             str(self.setting['BackgroundChannel']))
+
+        self.show_on_top_checkBox.setChecked(self.setting['ShowOnTop'])
 
         self.ref_groupBox.setChecked(self.setting['Reference'][0])
         self.select_reference_comboBox.addItems(map(str, all_channel_IDs))
@@ -1631,11 +1639,10 @@ class SetBackgroundChannelDialog(Ui_SetBackgroundChannelDialog, QDialog):
 
     def accept(self):
         bg_channel = self.bg_channel_comboBox.currentText()
-        if bg_channel != 'No select':
-            try:
-                bg_channel = int(bg_channel)
-            except TypeError:
-                pass
+        try:
+            bg_channel = int(bg_channel)
+        except TypeError:
+            pass
 
         # if self.raw_reference_radioButton.isChecked():
         #     ref = 'raw'
@@ -1647,9 +1654,10 @@ class SetBackgroundChannelDialog(Ui_SetBackgroundChannelDialog, QDialog):
             ref_channel = int(ref_channel)
         except TypeError:
             pass
-
+        self.setting['Show'] = self.bg_channel_checkBox.isChecked()
         self.setting['BackgroundChannel'] = bg_channel
         # self.setting['Color']
+        self.setting['ShowOnTop'] = self.show_on_top_checkBox.isChecked()
         self.setting['Reference'] = (self.ref_groupBox.isChecked(),
                                      ref_channel)
         self.setting['Filter'] = (self.filter_groupBox.isChecked(),

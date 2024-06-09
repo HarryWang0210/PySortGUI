@@ -15,27 +15,38 @@ class Ui_SetBackgroundChannelDialog(object):
     def setupUi(self, SetBackgroundChannelDialog):
         SetBackgroundChannelDialog.setObjectName("SetBackgroundChannelDialog")
         SetBackgroundChannelDialog.resize(400, 300)
-        self.verticalLayout = QtWidgets.QVBoxLayout(SetBackgroundChannelDialog)
-        self.verticalLayout.setObjectName("verticalLayout")
+        self.verticalLayout_4 = QtWidgets.QVBoxLayout(
+            SetBackgroundChannelDialog)
+        self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.label = QtWidgets.QLabel(SetBackgroundChannelDialog)
-        self.label.setObjectName("label")
-        self.horizontalLayout_3.addWidget(self.label)
-        self.bg_channel_comboBox = QtWidgets.QComboBox(SetBackgroundChannelDialog)
-        self.bg_channel_comboBox.setObjectName("bg_channel_comboBox")
-        self.horizontalLayout_3.addWidget(self.bg_channel_comboBox)
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
+        self.verticalLayout = QtWidgets.QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.bg_channel_checkBox = QtWidgets.QCheckBox(
+            SetBackgroundChannelDialog)
+        self.bg_channel_checkBox.setObjectName("bg_channel_checkBox")
+        self.verticalLayout.addWidget(self.bg_channel_checkBox)
         self.label_2 = QtWidgets.QLabel(SetBackgroundChannelDialog)
         self.label_2.setObjectName("label_2")
-        self.horizontalLayout_4.addWidget(self.label_2)
-        self.color_pushButton = QtWidgets.QPushButton(SetBackgroundChannelDialog)
+        self.verticalLayout.addWidget(self.label_2)
+        self.horizontalLayout_3.addLayout(self.verticalLayout)
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout()
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.bg_channel_comboBox = QtWidgets.QComboBox(
+            SetBackgroundChannelDialog)
+        self.bg_channel_comboBox.setObjectName("bg_channel_comboBox")
+        self.verticalLayout_3.addWidget(self.bg_channel_comboBox)
+        self.color_pushButton = QtWidgets.QPushButton(
+            SetBackgroundChannelDialog)
         self.color_pushButton.setText("")
         self.color_pushButton.setObjectName("color_pushButton")
-        self.horizontalLayout_4.addWidget(self.color_pushButton)
-        self.verticalLayout.addLayout(self.horizontalLayout_4)
+        self.verticalLayout_3.addWidget(self.color_pushButton)
+        self.horizontalLayout_3.addLayout(self.verticalLayout_3)
+        self.verticalLayout_4.addLayout(self.horizontalLayout_3)
+        self.show_on_top_checkBox = QtWidgets.QCheckBox(
+            SetBackgroundChannelDialog)
+        self.show_on_top_checkBox.setObjectName("show_on_top_checkBox")
+        self.verticalLayout_4.addWidget(self.show_on_top_checkBox)
         self.ref_groupBox = QtWidgets.QGroupBox(SetBackgroundChannelDialog)
         self.ref_groupBox.setCheckable(True)
         self.ref_groupBox.setChecked(False)
@@ -46,9 +57,10 @@ class Ui_SetBackgroundChannelDialog(object):
         self.select_reference_label.setObjectName("select_reference_label")
         self.horizontalLayout_5.addWidget(self.select_reference_label)
         self.select_reference_comboBox = QtWidgets.QComboBox(self.ref_groupBox)
-        self.select_reference_comboBox.setObjectName("select_reference_comboBox")
+        self.select_reference_comboBox.setObjectName(
+            "select_reference_comboBox")
         self.horizontalLayout_5.addWidget(self.select_reference_comboBox)
-        self.verticalLayout.addWidget(self.ref_groupBox)
+        self.verticalLayout_4.addWidget(self.ref_groupBox)
         self.filter_groupBox = QtWidgets.QGroupBox(SetBackgroundChannelDialog)
         self.filter_groupBox.setCheckable(True)
         self.filter_groupBox.setChecked(False)
@@ -60,7 +72,8 @@ class Ui_SetBackgroundChannelDialog(object):
         self.filter_low_label = QtWidgets.QLabel(self.filter_groupBox)
         self.filter_low_label.setObjectName("filter_low_label")
         self.horizontalLayout_2.addWidget(self.filter_low_label)
-        self.filter_low_doubleSpinBox = QtWidgets.QDoubleSpinBox(self.filter_groupBox)
+        self.filter_low_doubleSpinBox = QtWidgets.QDoubleSpinBox(
+            self.filter_groupBox)
         self.filter_low_doubleSpinBox.setMaximum(30000.0)
         self.filter_low_doubleSpinBox.setProperty("value", 250.0)
         self.filter_low_doubleSpinBox.setObjectName("filter_low_doubleSpinBox")
@@ -71,32 +84,48 @@ class Ui_SetBackgroundChannelDialog(object):
         self.filter_high_label = QtWidgets.QLabel(self.filter_groupBox)
         self.filter_high_label.setObjectName("filter_high_label")
         self.horizontalLayout.addWidget(self.filter_high_label)
-        self.filter_high_doubleSpinBox = QtWidgets.QDoubleSpinBox(self.filter_groupBox)
+        self.filter_high_doubleSpinBox = QtWidgets.QDoubleSpinBox(
+            self.filter_groupBox)
         self.filter_high_doubleSpinBox.setMaximum(30000.0)
         self.filter_high_doubleSpinBox.setProperty("value", 6000.0)
-        self.filter_high_doubleSpinBox.setObjectName("filter_high_doubleSpinBox")
+        self.filter_high_doubleSpinBox.setObjectName(
+            "filter_high_doubleSpinBox")
         self.horizontalLayout.addWidget(self.filter_high_doubleSpinBox)
         self.verticalLayout_2.addLayout(self.horizontalLayout)
-        self.verticalLayout.addWidget(self.filter_groupBox)
+        self.verticalLayout_4.addWidget(self.filter_groupBox)
         self.buttonBox = QtWidgets.QDialogButtonBox(SetBackgroundChannelDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setCenterButtons(True)
         self.buttonBox.setObjectName("buttonBox")
-        self.verticalLayout.addWidget(self.buttonBox)
+        self.verticalLayout_4.addWidget(self.buttonBox)
 
         self.retranslateUi(SetBackgroundChannelDialog)
-        self.buttonBox.accepted.connect(SetBackgroundChannelDialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(SetBackgroundChannelDialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(
+            SetBackgroundChannelDialog.accept)  # type: ignore
+        self.buttonBox.rejected.connect(
+            SetBackgroundChannelDialog.reject)  # type: ignore
+        self.bg_channel_checkBox.toggled['bool'].connect(
+            self.bg_channel_comboBox.setEnabled)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(SetBackgroundChannelDialog)
 
     def retranslateUi(self, SetBackgroundChannelDialog):
         _translate = QtCore.QCoreApplication.translate
-        SetBackgroundChannelDialog.setWindowTitle(_translate("SetBackgroundChannelDialog", "Dialog"))
-        self.label.setText(_translate("SetBackgroundChannelDialog", "Background channel"))
+        SetBackgroundChannelDialog.setWindowTitle(
+            _translate("SetBackgroundChannelDialog", "Dialog"))
+        self.bg_channel_checkBox.setText(_translate(
+            "SetBackgroundChannelDialog", "Background channel"))
         self.label_2.setText(_translate("SetBackgroundChannelDialog", "Color"))
-        self.ref_groupBox.setTitle(_translate("SetBackgroundChannelDialog", "Reference"))
-        self.select_reference_label.setText(_translate("SetBackgroundChannelDialog", "Select channel."))
-        self.filter_groupBox.setTitle(_translate("SetBackgroundChannelDialog", "Filter raw"))
-        self.filter_low_label.setText(_translate("SetBackgroundChannelDialog", "Low cutoff"))
-        self.filter_high_label.setText(_translate("SetBackgroundChannelDialog", "High cutoff"))
+        self.show_on_top_checkBox.setText(_translate(
+            "SetBackgroundChannelDialog", "Display on top"))
+        self.ref_groupBox.setTitle(_translate(
+            "SetBackgroundChannelDialog", "Reference"))
+        self.select_reference_label.setText(_translate(
+            "SetBackgroundChannelDialog", "Select channel."))
+        self.filter_groupBox.setTitle(_translate(
+            "SetBackgroundChannelDialog", "Filter raw"))
+        self.filter_low_label.setText(_translate(
+            "SetBackgroundChannelDialog", "Low cutoff"))
+        self.filter_high_label.setText(_translate(
+            "SetBackgroundChannelDialog", "High cutoff"))
