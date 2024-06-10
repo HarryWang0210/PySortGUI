@@ -11,19 +11,11 @@ from subprocess import call
 
 from PyQt5.QtWidgets import QApplication
 
-from pysortgui.main import PySortGUI
+from pysortgui.main import launch_app
 
 # from spikesortergl import main_window
 # import pdb
 # from PyQt4 import QtCore, QtGui
-
-
-def launch_app():
-    app = QApplication(sys.argv)
-    window = PySortGUI()
-    window.show()
-
-    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
