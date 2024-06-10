@@ -1,8 +1,9 @@
-from setuptools import setup, find_packages
-# from pip.req import parse_requirements
 import pathlib
 
 import pkg_resources
+# from pip.req import parse_requirements
+from setuptools import find_packages, setup
+
 # parse the requirements given in the requirements.txt file
 # install_reqs = parse_requirements('./requirements.txt', session=False)
 # reqs = [str(ir.req) for ir in install_reqs]
@@ -22,8 +23,13 @@ setup(
     name="pysortgui",
     version="1.0.0",
     packages=find_packages(),
-    scripts=['bin/pysortgui',
-             ],  # 'bin/spikesortercli'],
+    entry_points={
+        'console_scripts': [
+            'pysortgui=pysortgui.main:launch_app',
+        ],
+    },
+    # scripts=['bin/pysortgui',
+    #          ],  # 'bin/spikesortercli'],
 
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine

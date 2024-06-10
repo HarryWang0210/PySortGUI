@@ -339,9 +339,13 @@ class PySortGUI(MainWindowDocks):
         super().closeEvent(event)
 
 
-if __name__ == "__main__":
+def launch_app():
     app = QApplication(sys.argv)
     window = PySortGUI()
     window.show()
 
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    launch_app()
