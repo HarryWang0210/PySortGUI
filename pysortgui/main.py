@@ -78,7 +78,14 @@ class PySortGUI(MainWindowDocks):
         Load the QSS format app style.
         """
         # style_file = '/home/user/qt-material/examples/exporter/dark_teal.qss'
-        style_file = 'pysortgui/UI/style.qss'
+        default_style_file = './UI/style.qss'
+        import os
+        path = os.path.split(__file__)[0] + os.path.sep
+        style_file = os.path.abspath(path + default_style_file)
+        # try:
+        # import pkg_resources
+        # style_file = pkg_resources.resource_filename(
+        #     'pysortgui', default_style_file)
         style_sheet = QSSLoader.read_qss_file(style_file)
         self.setStyleSheet(style_sheet)
 
