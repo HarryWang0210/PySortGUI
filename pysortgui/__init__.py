@@ -75,15 +75,17 @@ def _get_logger_file_name():
     else:
         log_file = os.path.expanduser('~')
 
+    log_file = os.path.join(log_file, __name__ + '.log')
+    # if not os.path.isdir(log_file):
+    #    os.mkdir(log_file)
     try:
-        log_file = os.path.join(log_file, __name__ + '.log')
-        # if not os.path.isdir(log_file):
-        #    os.mkdir(log_file)
-
         # remove log older than n days
         n_days = 7
+
         if os.stat(log_file).st_ctime < time.time() - n_days * 24 * 60 * 60:
             os.remove(log_file)
+    except:
+        pass
 
         # old remove code for folder
         # rem_list = []
@@ -93,9 +95,6 @@ def _get_logger_file_name():
 
         # if len(rem_list) > 0:
         #    [os.remove(file_) for file_ in rem_list]
-
-    except:
-        log_file = None
 
     return log_file
 
@@ -142,13 +141,14 @@ def _remove_handler():
 
 
 if _DEBUG:
-    _attach_handler(file_handler=True)
-    logger.setLevel('INFO')
+    _attach_handler(file_handler=True, level=logging.INFO)
+    # logger.setLevel('INFO')
+    logger.setLevel(logging.DEBUG)
     # FileLogger logs complete execution
     logger.handlers[-1].setLevel(logging.DEBUG)
 
 else:
     _attach_handler(file_handler=False)
-    logger.setLevel('INFO')
+    logger.setLevel(logging.INFO)
 
 del logging
