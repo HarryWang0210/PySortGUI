@@ -335,9 +335,9 @@ class TimelineViewGraph(pg.PlotWidget):
 
     def drawData(self, data_type):
         if data_type == 'raw':
-            data = self.current_raw_object.data
+            data = self.current_raw_object._data
         elif data_type == 'filted':
-            data = self.current_filted_object.data
+            data = self.current_filted_object._data
 
         if self.current_raw_object.timestamps is None:
             # generate x
@@ -345,7 +345,7 @@ class TimelineViewGraph(pg.PlotWidget):
             data = data[self._x_range[0]: self._x_range[1] + 1]
             connect = 'auto'
         else:
-            timestamps = self.current_raw_object.timestamps
+            timestamps = self.current_raw_object._timestamps
             mask = (timestamps >= self._x_range[0]) & \
                 (timestamps <= self._x_range[1])
 
