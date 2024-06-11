@@ -30,6 +30,8 @@ def _check_types(parameters, hints,
                  convert_int, convert_float, convert_str, convert_types):
     new_kwargs = {}
     for name, value in parameters.items():
+        if name == 'self':
+            continue
         type_hint = hints.get(name, typing.Any)
         actual_types = tuple(_find_type_origin(type_hint))
         logger.debug(f'{name}: {actual_types}')
