@@ -79,6 +79,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.tableView.setItemDelegate(delegate)
 
         self.setupConnections()
+        self.is_multiunit_checkBox.setEnabled(False)  # Unimplemented function
 
     def initDataModel(self):
         model = QStandardItemModel()

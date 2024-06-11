@@ -98,6 +98,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         SaveAllAction.setStatusTip('Save all channels')
         FileMenu.addAction(SaveAllAction)
         FileMenu_dict["SaveAll"] = SaveAllAction
+        SaveAllAction.setEnabled(False)  # Unimplemented function
 
         ExportAction = QtWidgets.QAction('Export', self)
         # ExportAction.setShortcut('Ctrl+Alt+S')
@@ -158,6 +159,7 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         RenameSpikeAction = QtWidgets.QAction('Rename this Spike Data', self)
         EditMenu.addAction(RenameSpikeAction)
         EditMenu_dict["RenameSpike"] = RenameSpikeAction
+        RenameSpikeAction.setEnabled(False)  # Unimplemented function
 
         self.children_dict["EditMenu"] = EditMenu_dict
 
