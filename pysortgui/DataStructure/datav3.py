@@ -16,7 +16,7 @@ from pysortgui.DataStructure.FunctionsLib.SignalProcessing import design_and_fil
 from pysortgui.DataStructure.FunctionsLib.Sorting import auto_sort
 from pysortgui.DataStructure.FunctionsLib.ThresholdOperations import extract_waveforms
 from pysortgui.DataStructure.header_class import (EventsHeader, FileHeader, RawsHeader,
-                                        SpikesHeader)
+                                                  SpikesHeader)
 
 # from .openephys import (getFilesInFolder, loadContinuous, loadEvents, loadTimestamps,
 #                         loadOpenephysHeader)
@@ -239,11 +239,15 @@ class SpikeSorterData(object):
 
     def subtractReference(self, channel_ID: int, reference_ID: int) -> ContinuousData:
         ch_object = self.getRaw(channel_ID, load_data=True)
-
-        # if isinstance(reference, int):
-        # reference_ID = self.validateChannel(reference)
         ref_object = self.getRaw(reference_ID, load_data=True)
 
+        if ref_object is None:
+            if reference_ID == -1:
+                return ch_object.createCopy()
+            else:
+                logger.error(f'Can not get reference channel {reference_ID}!!')
+                return
+        logger.info(f'Subtracting with reference channel {reference_ID}.')
         result = ch_object.subtractReference(ref_object.data, reference_ID)
 
         return result
