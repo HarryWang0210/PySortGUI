@@ -126,6 +126,12 @@ class TimelineViewGraph(pg.PlotWidget):
         self.show_bg = False
         self.bg_color = None
 
+        self.redraw_data = False
+        self.redraw_bg = False
+        self.redraw_thr = False
+        self.redraw_spikes = False
+        self.redraw_events = False
+
         # self.data_len = 0
         # self.data_scale = 1000  # maximun height of data
         # initial number of data points show in window
@@ -191,63 +197,67 @@ class TimelineViewGraph(pg.PlotWidget):
     def continuous_data_changed(self, new_raw_object, new_filted_object):
         self.current_raw_object: ContinuousData | None = new_raw_object
         self.current_filted_object: ContinuousData | None = new_filted_object
+        self.current_spike_object = None
+        self.current_event_object = None
 
         self.plot_visible = True
         if self.current_raw_object is None:
             self.plot_visible = False
             self.updatePlot()
             return
-        data = self.current_raw_object.data
-        if self.current_raw_object.timestamps is None:
-            self._x_boundary = (0, len(data))
 
-            # self.data_len = len(data)
+        self.redraw_data = True
+        data = self.current_raw_object._data
+        if self.current_raw_object._timestamps is None:
+            self._x_boundary = (0, len(data))
         else:
-            self._x_boundary = (self.current_raw_object.timestamps[0],
-                                int(self.current_raw_object.timestamps[-1]) + 1)
-            # self.data_len = int(self.current_raw_object.timestamps[-1]) + 1
+            self._x_boundary = (self.current_raw_object._timestamps[0],
+                                int(self.current_raw_object._timestamps[-1]) + 1)
 
         if self.current_filted_object is None:
             data_scale = np.max(np.abs(data)) / 2
         else:
-            data = self.current_filted_object.data
+            data = self.current_filted_object._data
             data_scale = np.max(np.abs(data)) / 2
             self.thr = self.current_filted_object.threshold
+            self.redraw_thr = True
 
-        # self.data_len = len(data)
-        # self.data_scale = np.max(np.abs(data)) / 2
-        # initial number of data points show in window
         self.num_data_show = self.DEFAULT_DATA_SHOW
         self._x_range = (0, self.num_data_show)
         self._y_range = (-data_scale, data_scale)
 
+        self.redraw_bg = True
+        self.redraw_spikes = True
+        self.redraw_events = True
         self.updatePlot()
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
         self.current_spike_object = new_spike_object
         self.current_showing_units = []
-        # self.has_spikes = not self.current_spike_object is None
-        self.updatePlot()
+        # self.updatePlot()
 
     def showing_units_changed(self, showing_unit_IDs):
+        self.redraw_spikes = True
         self.current_showing_units = showing_unit_IDs
         self.updatePlot()
 
     def event_data_changed(self, new_event_object: DiscreteData | None):
         if new_event_object is self.current_event_object:
             return
+        # self.redraw_events = True
         self.current_event_object = new_event_object
         self.current_showing_events = []
-        self.updatePlot()
+        # self.updatePlot()
 
     def showing_events_changed(self, showing_event_IDs):
+        self.redraw_events = True
         self.current_showing_events = showing_event_IDs
         self.updatePlot()
-        # self.graphWidget.showing_events_changed(showing_event_IDs)
 
     def background_continuous_data_changed(self, new_bg_object, color, show_on_top):
         # if new_bg_object is self.current_bg_object:
         #     return
+        self.redraw_bg = True
         self.current_bg_object = new_bg_object
 
         self.show_bg = True
@@ -282,6 +292,7 @@ class TimelineViewGraph(pg.PlotWidget):
     def showRaw(self, show):
         """Control from TimelineView."""
         self.show_raw = show
+        self.redraw_data = True
         logger.debug(f'showRaw: {show}')
         self.updatePlot()
 
@@ -291,86 +302,87 @@ class TimelineViewGraph(pg.PlotWidget):
         visible = self.plot_visible and self.widget_visible
 
         if visible:
-            if self.show_raw:
-                # logger.debug('draw raw')
-                self.drawData('raw')
-            else:
-                # logger.debug('draw filted')
-                self.drawData('filted')
+            if self.redraw_data:
+                logger.debug('redraw data')
+                if self.show_raw:
+                    self.drawData('raw')
+                else:
+                    self.drawData('filted')
+                self.redraw_data = False
 
-            if self.show_bg:
+            if self.show_bg and self.redraw_bg:
+                logger.debug('redraw bg data')
                 self.drawBackgroundData()
+                self.redraw_bg = False
 
-            # if not self.show_raw and self.has_filted_data:
-            #     self.drawData(self.filted_data)
-            # else:
-            #     self.drawData(self.raw_data)
-
-            if self.show_thr and not self.current_filted_object is None:
-                # logger.debug('draw thr')
+            if self.show_thr and self.redraw_thr:
+                logger.debug('redraw thr')
                 self.drawThreshold()
+                self.redraw_thr = False
 
-            if self.show_spikes and not self.current_spike_object is None:
-                # logger.debug('draw spike')
+            if self.show_spikes and self.redraw_spikes:
+                logger.debug('redraw spikes')
                 self.drawSpikes()
+                self.redraw_spikes = False
 
-            if self.show_events and not self.current_event_object is None:
-                # logger.debug('draw event')
+            if self.show_events and self.redraw_events:
+                logger.debug('redraw events')
                 self.drawEvents()
+                self.redraw_events = False
 
         self.data_item.setVisible(visible)
         self.bg_data_item.setVisible(visible and self.show_bg)
-        self.thr_item.setVisible(visible and
-                                 self.show_thr and
-                                 not self.current_filted_object is None)
+        self.thr_item.setVisible(visible and self.show_thr)
 
         for item in self.spikes_item_list:
-            item.setVisible(visible and
-                            self.show_spikes and
-                            not self.current_spike_object is None)
+            item.setVisible(visible and self.show_spikes)
         for item in self.events_item_list:
-            item.setVisible(visible and
-                            self.show_events and
-                            not self.current_event_object is None)
+            item.setVisible(visible and self.show_events)
 
     def drawData(self, data_type):
+        import time
+        start = time.time()
         if data_type == 'raw':
             data = self.current_raw_object._data
         elif data_type == 'filted':
             data = self.current_filted_object._data
+        logger.debug(f'get data {time.time() - start}')
 
-        if self.current_raw_object.timestamps is None:
+        start = time.time()
+        if self.current_raw_object._timestamps is None:
             # generate x
             x = np.arange(start=self._x_range[0], stop=self._x_range[1]+1)
             data = data[self._x_range[0]: self._x_range[1] + 1]
             connect = 'auto'
         else:
             timestamps = self.current_raw_object._timestamps
+
+            start2 = time.time()
             mask = (timestamps >= self._x_range[0]) & \
                 (timestamps <= self._x_range[1])
+            logger.debug(f'compute timestamps mask {time.time() - start2}')
 
             x = timestamps[mask]
             data = data[mask]
             connect = np.append(np.diff(x) <= 1, 0)
+        logger.debug(f'get timestamps {time.time() - start}')
 
-        # logger.debug(np.any(np.diff(x) < 0))
-        # logger.debug(x)
-        # logger.debug(connect)
-
+        start = time.time()
         self.data_item.setData(x=x, y=data, connect=connect)
         self.plot_item.getViewBox().setXRange(*self._x_range, padding=0)
         self.plot_item.getViewBox().setYRange(*self._y_range, padding=0)
+        logger.debug(f'draw data {time.time() - start}')
 
     def drawBackgroundData(self):
-        data = self.current_bg_object.data
+        data = self.current_bg_object._data
 
-        if self.current_bg_object.timestamps is None:
+        if self.current_bg_object._timestamps is None:
             # generate x
             x = np.arange(start=self._x_range[0], stop=self._x_range[1]+1)
             data = data[self._x_range[0]: self._x_range[1] + 1]
             connect = 'auto'
         else:
-            timestamps = self.current_bg_object.timestamps
+            timestamps = self.current_bg_object._timestamps
             mask = (timestamps >= self._x_range[0]) & \
                 (timestamps <= self._x_range[1])
 
@@ -391,12 +403,13 @@ class TimelineViewGraph(pg.PlotWidget):
         self.removeItems(self.events_item_list)
         self.events_item_list = []
 
-        current_showing_units = np.unique(self.current_event_object.unit_IDs)
         if self.current_showing_events == []:
             return
+        if self.current_event_object is None:
+            return
 
-        self.events_item_list = self.tsToLines(self.current_event_object.timestamps,
-                                               unit_IDs=self.current_event_object.unit_IDs,
+        self.events_item_list = self.tsToLines(self.current_event_object._timestamps,
+                                               unit_IDs=self.current_event_object._unit_IDs,
                                                showing_unit_IDs=self.current_showing_events,
                                                data_type="events")
 
@@ -408,9 +421,11 @@ class TimelineViewGraph(pg.PlotWidget):
 
         if self.current_showing_units == []:
             return
+        if self.current_spike_object is None:
+            return
 
-        self.spikes_item_list = self.tsToLines(self.current_spike_object.timestamps,
-                                               unit_IDs=self.current_spike_object.unit_IDs,
+        self.spikes_item_list = self.tsToLines(self.current_spike_object._timestamps,
+                                               unit_IDs=self.current_spike_object._unit_IDs,
                                                showing_unit_IDs=self.current_showing_units,
                                                data_type="spikes")
 
@@ -419,7 +434,7 @@ class TimelineViewGraph(pg.PlotWidget):
     def removeItems(self, item_list):
         for item in item_list:
             self.removeItem(item)
-        self.spikes_item_list = []
+        # self.spikes_item_list = []
 
     def tsToLines(self, ts, showing_unit_IDs, unit_IDs, data_type):
         """_summary_
@@ -444,17 +459,21 @@ class TimelineViewGraph(pg.PlotWidget):
             unit_color_map = dict(zip(self.current_event_object.unit_header['ID'], np.arange(
                 self.current_event_object.unit_header.shape[0], dtype=int)))
         else:
-            print('Unknown type of timestamps.')
+            logger.error('Unknown type of timestamps data.')
             return
 
+        mask = (ts >= self._x_range[0]) & (ts <= self._x_range[1])
+        sub_ts = ts[mask]
+        sub_unit_IDs = unit_IDs[mask]
+
         for ID in showing_unit_IDs:
-            data_filtered = ts[unit_IDs == ID]
+            unit_ts = sub_ts[sub_unit_IDs == ID]
 
             color = self.color_palette_list[unit_color_map[int(ID)]]
             color = (np.array(color) * 255).astype(int)
 
-            n = data_filtered.shape[0]
-            x = np.repeat(data_filtered, 2)
+            n = unit_ts.shape[0]
+            x = np.repeat(unit_ts, 2)
             y = np.tile(y_element, n)
             item_list.append(pg.PlotCurveItem(
                 x=x, y=y, pen=pg.mkPen(color=color), connect="pairs"))
@@ -483,6 +502,10 @@ class TimelineViewGraph(pg.PlotWidget):
                              self._x_boundary[1])
             self._x_range = new_range
 
+            self.redraw_data = True
+            self.redraw_bg = True
+            self.redraw_events = True
+            self.redraw_spikes = True
             self.updatePlot()
 
             # self.plot_item.getViewBox().setXRange(*new_range, padding=0)
@@ -493,6 +516,11 @@ class TimelineViewGraph(pg.PlotWidget):
             # current_range = self.plot_item.getViewBox().state['viewRange']
             data_scale = int(self._y_range[1] / (1 + delta / 10))
             self._y_range = (-data_scale, data_scale)
+
+            self.redraw_data = True
+            self.redraw_bg = True
+            self.redraw_events = True
+            self.redraw_spikes = True
             self.updatePlot()
             # new_range = [-self.data_scale, self.data_scale]
 
@@ -511,6 +539,11 @@ class TimelineViewGraph(pg.PlotWidget):
                 new_range = (self._x_boundary[1] - self.num_data_show,
                              self._x_boundary[1])
             self._x_range = new_range
+
+            self.redraw_data = True
+            self.redraw_bg = True
+            self.redraw_events = True
+            self.redraw_spikes = True
             self.updatePlot()
 
             # self.plot_item.getViewBox().setXRange(*new_range, padding=0)
