@@ -343,6 +343,10 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
             if filename == self.current_data_object.path:
                 return
         self.current_data_object = SpikeSorterData(filename, 'pyephys')
+        self.current_raw_object = None
+        self.current_filted_object = None
+        self.current_spike_object = None
+        self.current_event_object = None
         self.default_root_folder = os.path.split(
             self.current_data_object.path)[0]
         self.signal_data_file_name_changed.emit(self.current_data_object)
@@ -371,6 +375,10 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                 return
 
         self.current_data_object = SpikeSorterData(folder_path, 'openephys')
+        self.current_raw_object = None
+        self.current_filted_object = None
+        self.current_spike_object = None
+        self.current_event_object = None
         self.default_root_folder = os.path.split(
             self.current_data_object.path)[0]
         self.signal_data_file_name_changed.emit(self.current_data_object)
