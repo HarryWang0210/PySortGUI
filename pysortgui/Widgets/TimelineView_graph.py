@@ -192,6 +192,7 @@ class TimelineViewGraph(pg.PlotWidget):
     def data_file_name_changed(self, data):
         self.data_object = data
         self.plot_visible = False
+        self.current_bg_object = None
         self.updatePlot()
 
     def continuous_data_changed(self, new_raw_object, new_filted_object):
@@ -374,6 +375,10 @@ class TimelineViewGraph(pg.PlotWidget):
         logger.debug(f'draw data {time.time() - start}')
 
     def drawBackgroundData(self):
+        if self.current_bg_object is None:
+            self.bg_data_item.setData(x=[], y=[])
+            return
+
         data = self.current_bg_object._data
 
         if self.current_bg_object._timestamps is None:
