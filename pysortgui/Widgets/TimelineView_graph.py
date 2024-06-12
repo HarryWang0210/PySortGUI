@@ -473,6 +473,8 @@ class TimelineViewGraph(pg.PlotWidget):
 
         for ID in showing_unit_IDs:
             unit_ts = sub_ts[sub_unit_IDs == ID]
+            if len(unit_ts) == 0:
+                continue
 
             color = self.color_palette_list[unit_color_map[int(ID)]]
             color = (np.array(color) * 255).astype(int)
