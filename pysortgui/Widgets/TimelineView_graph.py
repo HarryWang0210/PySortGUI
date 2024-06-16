@@ -193,13 +193,13 @@ class TimelineViewGraph(pg.PlotWidget):
         self.data_object = data
         self.plot_visible = False
         self.current_bg_object = None
+        self.current_event_object = None
         self.updatePlot()
 
     def continuous_data_changed(self, new_raw_object, new_filted_object):
         self.current_raw_object: ContinuousData | None = new_raw_object
         self.current_filted_object: ContinuousData | None = new_filted_object
         self.current_spike_object = None
-        self.current_event_object = None
 
         self.plot_visible = True
         if self.current_raw_object is None:
