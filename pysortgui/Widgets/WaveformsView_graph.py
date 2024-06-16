@@ -160,9 +160,10 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.manual_mode = state
 
     def select_point(self, data):
+        current_showing_data = self.current_spike_object.waveforms[self.current_wavs_mask]
         selected, wav_index = data
         if selected:
-            y = self.current_spike_object.waveforms[wav_index, :]
+            y = current_showing_data[wav_index, :]
             x = np.arange(len(y))
             self.select_point_item.setData(x, y)
 
