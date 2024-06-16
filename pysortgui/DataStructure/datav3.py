@@ -465,11 +465,11 @@ class ContinuousData(object):
     def timestamps(self):
         if self._timestamps is None:
             return None
-        return self._timestamps.copy()
+        return self._timestamps
 
     @property
     def data(self):
-        return self._data.copy()
+        return self._data
 
     @property
     def data_type(self):
@@ -795,15 +795,15 @@ class DiscreteData(object):
 
     @property
     def timestamps(self) -> np.ndarray:
-        return self._timestamps.copy()
+        return self._timestamps
 
     @property
     def unit_IDs(self) -> np.ndarray:
-        return self._unit_IDs.copy()
+        return self._unit_IDs
 
     @property
     def waveforms(self) -> np.ndarray:
-        return self._waveforms.copy()
+        return self._waveforms
 
     @property
     def fs(self):
