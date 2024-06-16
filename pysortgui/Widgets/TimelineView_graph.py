@@ -85,6 +85,8 @@ class TimelineViewGraph(pg.PlotWidget):
         self.MIN_DATA_SHOW = 100
         self.MAX_DATA_SHOW = 300000
         self.DEFAULT_DATA_SHOW = 30000
+        self.do_downsampling = True
+        self.DOWNSAMPLE_SIZE = 30000
 
         self.data_object = None
         self.current_raw_object: ContinuousData | None = None
@@ -303,33 +305,39 @@ class TimelineViewGraph(pg.PlotWidget):
         visible = self.plot_visible and self.widget_visible
 
         if visible:
+            import time
             if self.redraw_data:
-                logger.debug('redraw data')
+                start = time.time()
                 if self.show_raw:
                     self.drawData('raw')
                 else:
                     self.drawData('filted')
                 self.redraw_data = False
+                logger.debug(f'redraw data: {time.time() - start}')
 
             if self.show_bg and self.redraw_bg:
-                logger.debug('redraw bg data')
+                start = time.time()
                 self.drawBackgroundData()
                 self.redraw_bg = False
+                logger.debug(f'redraw bg data: {time.time() - start}')
 
             if self.show_thr and self.redraw_thr:
-                logger.debug('redraw thr')
+                start = time.time()
                 self.drawThreshold()
                 self.redraw_thr = False
+                logger.debug(f'redraw thr: {time.time() - start}')
 
             if self.show_spikes and self.redraw_spikes:
-                logger.debug('redraw spikes')
+                start = time.time()
                 self.drawSpikes()
                 self.redraw_spikes = False
+                logger.debug(f'redraw spikes: {time.time() - start}')
 
             if self.show_events and self.redraw_events:
-                logger.debug('redraw events')
+                start = time.time()
                 self.drawEvents()
                 self.redraw_events = False
+                logger.debug(f'redraw events: {time.time() - start}')
 
         self.data_item.setVisible(visible)
         self.bg_data_item.setVisible(visible and self.show_bg)
@@ -341,15 +349,11 @@ class TimelineViewGraph(pg.PlotWidget):
             item.setVisible(visible and self.show_events)
 
     def drawData(self, data_type):
-        import time
-        start = time.time()
         if data_type == 'raw':
             data = self.current_raw_object._data
         elif data_type == 'filted':
             data = self.current_filted_object._data
-        logger.debug(f'get data {time.time() - start}')
 
-        start = time.time()
         if self.current_raw_object._timestamps is None:
             # generate x
             x = np.arange(start=self._x_range[0], stop=self._x_range[1]+1)
@@ -358,21 +362,20 @@ class TimelineViewGraph(pg.PlotWidget):
         else:
             timestamps = self.current_raw_object._timestamps
 
-            start2 = time.time()
             mask = (timestamps >= self._x_range[0]) & \
                 (timestamps <= self._x_range[1])
-            logger.debug(f'compute timestamps mask {time.time() - start2}')
 
             x = timestamps[mask]
             data = data[mask]
             connect = np.append(np.diff(x) <= 1, 0)
-        logger.debug(f'get timestamps {time.time() - start}')
 
-        start = time.time()
+        if len(x) > self.DOWNSAMPLE_SIZE*1.2 and self.do_downsampling:
+            x, data, connect = self.downsampling(x, data, connect)
+
         self.data_item.setData(x=x, y=data, connect=connect)
         self.plot_item.getViewBox().setXRange(*self._x_range, padding=0)
         self.plot_item.getViewBox().setYRange(*self._y_range, padding=0)
-        logger.debug(f'draw data {time.time() - start}')
+        logger.debug(f'show {len(x)} data point')
 
     def drawBackgroundData(self):
         if self.current_bg_object is None:
@@ -486,6 +489,25 @@ class TimelineViewGraph(pg.PlotWidget):
                 x=x, y=y, pen=pg.mkPen(color=color), connect="pairs"))
 
         return item_list
+
+    def downsampling(self, x, y, connect):
+        ds = len(x) // (self.DOWNSAMPLE_SIZE // 2)
+        n = len(x) // ds
+        x1 = np.empty((n, 2))
+        # start of x-values; try to select a somewhat centered point
+        stx = ds // 2
+        x1[:] = x[stx:stx + n * ds:ds, np.newaxis]
+        x = x1.reshape(n * 2)
+
+        y1 = np.empty((n, 2))
+        y2 = y[:n * ds].reshape((n, ds))
+        y1[:, 0] = y2.max(axis=1)
+        y1[:, 1] = y2.min(axis=1)
+        y = y1.reshape(n * 2)
+
+        if connect != 'auto':
+            connect = np.append(np.diff(x) <= ds, 0)
+        return x, y, connect
 
     def graphMouseWheelEvent(self, event):
         """Overwrite PlotItem.getViewBox().wheelEvent."""
