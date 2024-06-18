@@ -339,6 +339,9 @@ class TimelineViewGraph(pg.PlotWidget):
                 self.redraw_events = False
                 logger.debug(f'redraw events: {time.time() - start}')
 
+        self.plot_item.getViewBox().setXRange(*self._x_range, padding=0)
+        self.plot_item.getViewBox().setYRange(*self._y_range, padding=0)
+
         self.data_item.setVisible(visible)
         self.bg_data_item.setVisible(visible and self.show_bg)
         self.thr_item.setVisible(visible and self.show_thr)
@@ -379,8 +382,6 @@ class TimelineViewGraph(pg.PlotWidget):
             x, data, connect = self.downsampling(x, data, connect)
 
         self.data_item.setData(x=x, y=data, connect=connect)
-        self.plot_item.getViewBox().setXRange(*self._x_range, padding=0)
-        self.plot_item.getViewBox().setYRange(*self._y_range, padding=0)
         logger.debug(f'show {len(x)} data point')
 
     def drawBackgroundData(self):
@@ -576,8 +577,8 @@ class TimelineViewGraph(pg.PlotWidget):
             data_scale = int(self._y_range[1] / (1 + delta / 10))
             self._y_range = (-data_scale, data_scale)
 
-            self.redraw_data = True
-            self.redraw_bg = True
+            # self.redraw_data = True
+            # self.redraw_bg = True
             self.redraw_events = True
             self.redraw_spikes = True
             self.updatePlot()
