@@ -268,7 +268,19 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
     def graphMouseWheelEvent(self, event):
         """Overwrite PlotItem.getViewBox().wheelEvent."""
-        pass
+        modifiers = QGuiApplication.keyboardModifiers()
+        if (modifiers == (QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier)):
+            """scale y axis."""
+            delta = int(event.delta() / 120)
+            # current_range = self.plot_item.getViewBox().state['viewRange']
+            data_scale = int(self._y_range[1] / (1 + delta / 10))
+            self._y_range = (-data_scale, data_scale)
+
+            # self.redraw_data = True
+            # self.redraw_bg = True
+            # self.redraw_events = True
+            # self.redraw_spikes = True
+            self.updatePlot()
 
     def graphMousePressEvent(self, event):
         """Overwrite PlotItem.scene().mousePressEvent."""
