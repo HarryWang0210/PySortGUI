@@ -582,7 +582,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     def moveWaveforms(self, wav_index, target_unit, unit_IDs=None):
         if unit_IDs is None:
-            new_unit_IDs = self.current_spike_object.unit_IDs
+            new_unit_IDs = self.current_spike_object.unit_IDs.copy()
         else:
             new_unit_IDs = unit_IDs
         new_unit_IDs[wav_index] = target_unit
