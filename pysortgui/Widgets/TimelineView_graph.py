@@ -83,10 +83,10 @@ class TimelineViewGraph(pg.PlotWidget):
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
         self.MIN_DATA_SHOW = 100
-        self.MAX_DATA_SHOW = 300000
+        self.MAX_DATA_SHOW = np.inf
         self.DEFAULT_DATA_SHOW = 30000
         self.do_downsampling = True
-        self.DOWNSAMPLE_SIZE = 30000
+        self.DOWNSAMPLE_SIZE = self.DEFAULT_DATA_SHOW * 5
 
         self.data_object = None
         self.current_raw_object: ContinuousData | None = None
@@ -356,20 +356,26 @@ class TimelineViewGraph(pg.PlotWidget):
 
         if self.current_raw_object._timestamps is None:
             # generate x
-            x = np.arange(start=self._x_range[0], stop=self._x_range[1]+1)
-            data = data[self._x_range[0]: self._x_range[1] + 1]
+            start = self._x_range[0]
+            end = self._x_range[1]
+            if start < self._x_boundary[0]:
+                start = self._x_boundary[0]
+            if end > self._x_boundary[1]:
+                end = self._x_boundary[1]
+            x = np.arange(start=start, stop=end)
+            data = data[start: end]
             connect = 'auto'
         else:
             timestamps = self.current_raw_object._timestamps
 
             mask = (timestamps >= self._x_range[0]) & \
-                (timestamps <= self._x_range[1])
+                (timestamps < self._x_range[1])
 
             x = timestamps[mask]
             data = data[mask]
             connect = np.append(np.diff(x) <= 1, 0)
 
-        if len(x) > self.DOWNSAMPLE_SIZE*1.2 and self.do_downsampling:
+        if len(x) > self.DOWNSAMPLE_SIZE and self.do_downsampling:
             x, data, connect = self.downsampling(x, data, connect)
 
         self.data_item.setData(x=x, y=data, connect=connect)
@@ -386,8 +392,14 @@ class TimelineViewGraph(pg.PlotWidget):
 
         if self.current_bg_object._timestamps is None:
             # generate x
-            x = np.arange(start=self._x_range[0], stop=self._x_range[1]+1)
-            data = data[self._x_range[0]: self._x_range[1] + 1]
+            start = self._x_range[0]
+            end = self._x_range[1]
+            if start < self._x_boundary[0]:
+                start = self._x_boundary[0]
+            if end > self._x_boundary[1]:
+                end = self._x_boundary[1]
+            x = np.arange(start=start, stop=end)
+            data = data[start: end]
             connect = 'auto'
         else:
             timestamps = self.current_bg_object._timestamps
@@ -397,6 +409,9 @@ class TimelineViewGraph(pg.PlotWidget):
             x = timestamps[mask]
             data = data[mask]
             connect = np.append(np.diff(x) <= 1, 0)
+
+        if len(x) > self.DOWNSAMPLE_SIZE and self.do_downsampling:
+            x, data, connect = self.downsampling(x, data, connect)
 
         self.bg_data_item.setPen(pg.mkPen(self.bg_color))
         self.bg_data_item.setData(x=x, y=data, connect=connect)
@@ -491,22 +506,33 @@ class TimelineViewGraph(pg.PlotWidget):
         return item_list
 
     def downsampling(self, x, y, connect):
-        ds = len(x) // (self.DOWNSAMPLE_SIZE // 2)
-        n = len(x) // ds
-        x1 = np.empty((n, 2))
-        # start of x-values; try to select a somewhat centered point
-        stx = ds // 2
-        x1[:] = x[stx:stx + n * ds:ds, np.newaxis]
-        x = x1.reshape(n * 2)
+        logger.info(f'x in {len(x)}')
+        logger.info(f'y in {len(y)}')
 
-        y1 = np.empty((n, 2))
-        y2 = y[:n * ds].reshape((n, ds))
-        y1[:, 0] = y2.max(axis=1)
-        y1[:, 1] = y2.min(axis=1)
-        y = y1.reshape(n * 2)
-
+        ds = len(x) // self.DOWNSAMPLE_SIZE
+        x1 = x[::ds]
+        y1 = y[::ds]
+        x = x1
+        y = y1
+        logger.info(f'x out {len(x)}')
+        logger.info(f'y out {len(y)}')
         if connect != 'auto':
             connect = np.append(np.diff(x) <= ds, 0)
+        # ds = len(x) // (self.DOWNSAMPLE_SIZE // 2)
+        # x1 = np.empty((n, 2))
+        # # start of x-values; try to select a somewhat centered point
+        # stx = ds // 2
+        # x1[:] = x[stx:stx + n * ds:ds, np.newaxis]
+        # x = x1.reshape(n * 2)
+
+        # y1 = np.empty((n, 2))
+        # y2 = y[:n * ds].reshape((n, ds))
+        # y1[:, 0] = y2.max(axis=1)
+        # y1[:, 1] = y2.min(axis=1)
+        # y = y1.reshape(n * 2)
+
+        # if connect != 'auto':
+        #     connect = np.append(np.diff(x) <= ds, 0)
         return x, y, connect
 
     def graphMouseWheelEvent(self, event):
