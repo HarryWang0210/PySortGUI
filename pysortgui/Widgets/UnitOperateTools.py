@@ -174,6 +174,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         self.current_spike_object = new_spike_object
 
         self.sendFeatures()
+        self.features_on_selection_pushButton.setChecked(False)
+        self.setFeatureOnSelection(False)
         self.signal_showing_spike_data_changed.emit(self.current_spike_object)
 
         if self.current_spike_object is None:
