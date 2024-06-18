@@ -80,6 +80,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
         self.setupConnections()
         self.is_multiunit_checkBox.setEnabled(False)  # Unimplemented function
+        self.is_multiunit_checkBox.setVisible(False)
 
     def initDataModel(self):
         model = QStandardItemModel()
