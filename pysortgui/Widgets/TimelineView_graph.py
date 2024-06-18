@@ -476,12 +476,12 @@ class TimelineViewGraph(pg.PlotWidget):
         """
         item_list = []
         if data_type == "spikes":
-            y_element = np.array([self._y_range[0], self.thr])
+            y_element = np.array([self._y_range[0], 0])
             unit_color_map = dict(zip(self.current_spike_object.unit_header['ID'], np.arange(
                 self.current_spike_object.unit_header.shape[0], dtype=int)))
 
         elif data_type == "events":
-            y_element = np.array([self._y_range[1], self.thr])
+            y_element = np.array([self._y_range[1], 0])
             unit_color_map = dict(zip(self.current_event_object.unit_header['ID'], np.arange(
                 self.current_event_object.unit_header.shape[0], dtype=int)))
         else:
@@ -510,8 +510,10 @@ class TimelineViewGraph(pg.PlotWidget):
             n = unit_ts.shape[0]
             x = np.repeat(unit_ts, 2)
             y = np.tile(y_element, n)
-            item_list.append(pg.PlotCurveItem(
-                x=x, y=y, pen=pg.mkPen(color=color), connect="pairs"))
+            item = pg.PlotCurveItem(
+                x=x, y=y, pen=pg.mkPen(color=color), connect="pairs")
+            item.setZValue(-2)
+            item_list.append(item)
 
         return item_list
 
