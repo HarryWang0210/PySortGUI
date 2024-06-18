@@ -525,10 +525,14 @@ class TimelineViewGraph(pg.PlotWidget):
                          self._x_range[0] + self.num_data_show)
             # check boundary
             if new_range[0] < self._x_boundary[0]:
-                new_range = (0, self.num_data_show)
+                new_range = (self._x_boundary[0], self.num_data_show)
             if new_range[1] > self._x_boundary[1]:
                 new_range = (self._x_boundary[1] - self.num_data_show,
                              self._x_boundary[1])
+
+            if new_range[0] < self._x_boundary[0]:
+                new_range = (self._x_boundary[0], self.num_data_show)
+
             self._x_range = new_range
 
             self.redraw_data = True
@@ -563,10 +567,14 @@ class TimelineViewGraph(pg.PlotWidget):
                          self._x_range[1] - int(delta * self.num_data_show / 10))
             # check boundary
             if new_range[0] < self._x_boundary[0]:
-                new_range = (0, self.num_data_show)
+                new_range = (self._x_boundary[0], self.num_data_show)
             if new_range[1] > self._x_boundary[1]:
                 new_range = (self._x_boundary[1] - self.num_data_show,
                              self._x_boundary[1])
+
+            if new_range[0] < self._x_boundary[0]:
+                new_range = (self._x_boundary[0], self.num_data_show)
+
             self._x_range = new_range
 
             self.redraw_data = True
