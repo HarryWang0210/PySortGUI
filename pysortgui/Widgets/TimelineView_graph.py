@@ -378,8 +378,9 @@ class TimelineViewGraph(pg.PlotWidget):
             data = data[mask]
             connect = np.append(np.diff(x) <= 1, 0)
 
-        if len(x) > self.DOWNSAMPLE_SIZE and self.do_downsampling:
-            x, data, connect = self.downsampling(x, data, connect)
+        if self._x_range[1] - self._x_range[0] > self.DOWNSAMPLE_SIZE and self.do_downsampling:
+            x, data, connect = self.downsampling(
+                x, data, connect, DOWNSAMPLE_SIZE=self.DOWNSAMPLE_SIZE)
 
         self.data_item.setData(x=x, y=data, connect=connect)
         logger.debug(f'show {len(x)} data point')
@@ -411,8 +412,9 @@ class TimelineViewGraph(pg.PlotWidget):
             data = data[mask]
             connect = np.append(np.diff(x) <= 1, 0)
 
-        if len(x) > self.DOWNSAMPLE_SIZE and self.do_downsampling:
-            x, data, connect = self.downsampling(x, data, connect)
+        if self._x_range[1] - self._x_range[0] > self.DOWNSAMPLE_SIZE and self.do_downsampling:
+            x, data, connect = self.downsampling(
+                x, data, connect, DOWNSAMPLE_SIZE=self.DOWNSAMPLE_SIZE)
 
         self.bg_data_item.setPen(pg.mkPen(self.bg_color))
         self.bg_data_item.setData(x=x, y=data, connect=connect)
@@ -490,6 +492,13 @@ class TimelineViewGraph(pg.PlotWidget):
         sub_ts = ts[mask]
         sub_unit_IDs = unit_IDs[mask]
 
+        # if len(sub_ts) > 30000 and self.do_downsampling:
+        #     sub_ts = self.downsampling(
+        #         sub_ts, DOWNSAMPLE_SIZE=self.DOWNSAMPLE_SIZE)
+        #     sub_unit_IDs = self.downsampling(
+        #         sub_unit_IDs, DOWNSAMPLE_SIZE=self.DOWNSAMPLE_SIZE)
+        # logger.info(len(sub_ts))
+
         for ID in showing_unit_IDs:
             unit_ts = sub_ts[sub_unit_IDs == ID]
             if len(unit_ts) == 0:
@@ -506,18 +515,19 @@ class TimelineViewGraph(pg.PlotWidget):
 
         return item_list
 
-    def downsampling(self, x, y, connect):
-        logger.info(f'x in {len(x)}')
-        logger.info(f'y in {len(y)}')
-
-        ds = len(x) // self.DOWNSAMPLE_SIZE
+    def downsampling(self, x, y=None, connect=None, DOWNSAMPLE_SIZE=1):
+        length = self._x_range[1] - self._x_range[0]
+        ds = length // DOWNSAMPLE_SIZE
+        if ds < 1:
+            ds = 1
         x1 = x[::ds]
-        y1 = y[::ds]
         x = x1
+        if y is None and connect is None:
+            return x
+
+        y1 = y[::ds]
         y = y1
-        logger.info(f'x out {len(x)}')
-        logger.info(f'y out {len(y)}')
-        if connect != 'auto':
+        if not isinstance(connect, str):
             connect = np.append(np.diff(x) <= ds, 0)
         # ds = len(x) // (self.DOWNSAMPLE_SIZE // 2)
         # x1 = np.empty((n, 2))
