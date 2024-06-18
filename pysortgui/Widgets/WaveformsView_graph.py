@@ -5,7 +5,7 @@ import pyqtgraph as pg
 import seaborn as sns
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QGuiApplication
 from PyQt5.QtWidgets import QApplication
 
 from pysortgui.DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
@@ -20,24 +20,27 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.window_title = "Waveforms View"
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
+        self.GLOBAL_WAVS_LIMIT = 50000
+
+        self.redraw_wavs = False
 
         self.data_object = None  # SpikeSorterData object
-        self.data_scale = 1.0
+        # self.data_scale = 1.0
         # self.spikes = None
         # self.has_spikes = False
         self.thr = 0.0
-        self.has_thr = False
+        # self.has_thr = False
         self.color_palette_list = sns.color_palette('bright', 64)
         self.plot_visible = False
         self.widget_visible = False
 
-        # self.num_unit = 1
-        # self.current_wav_units = []
-        self.current_wavs_mask = []
-        # self.current_wav_colors = []
+        self._x_boundary: tuple[int, int] = (0, 0)
+        self._x_range: tuple[int, int] = (0, 1)
+        # self._y_boundary: tuple[int, int] = (0, 0)
+        self._y_range: tuple[int, int] = (-1000, 1000)
 
+        self.current_wavs_mask = []
         self.current_showing_units = []
-        # self.current_showing_data = []
 
         self.current_spike_object = None
         self.manual_mode = False
@@ -99,13 +102,15 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.current_spike_object = new_spike_object
 
         # self.has_spikes = True
+        self.redraw_wavs = True
         self.plot_visible = True
         if self.current_spike_object is None:
             # self.has_spikes = False
             self.plot_visible = False
             self.updatePlot()
             return
-        self.data_scale = np.max(np.abs(self.current_spike_object.waveforms))
+        data_scale = np.max(np.abs(self.current_spike_object.waveforms)) / 2
+        self._y_range = (-data_scale, data_scale)
 
     # def spike_chan_changed(self, current_chan_info):
     #     self.getThreshold(current_chan_info["Threshold"])
@@ -142,6 +147,7 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.current_showing_units = showing_unit_IDs
         self.current_wavs_mask = np.isin(self.current_spike_object.unit_IDs,
                                          self.current_showing_units)
+        self.redraw_wavs = True
         self.updatePlot()
 
     # def showing_spikes_data_changed(self, spikes_data):
@@ -160,12 +166,17 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.manual_mode = state
 
     def select_point(self, data):
-        current_showing_data = self.current_spike_object.waveforms[self.current_wavs_mask]
+        import time
+        start = time.perf_counter()
+        current_showing_data = self.current_spike_object._waveforms[self.current_wavs_mask]
+        logger.info(f'get current data{time.perf_counter() - start}')
         selected, wav_index = data
         if selected:
+            start = time.perf_counter()
             y = current_showing_data[wav_index, :]
             x = np.arange(len(y))
             self.select_point_item.setData(x, y)
+            logger.info(f'plot data{time.perf_counter() - start}')
 
         self.select_point_item.setVisible(selected)
 
@@ -212,11 +223,15 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
     def updatePlot(self):
         visible = self.plot_visible and self.widget_visible
         if visible and not self.current_spike_object is None:
-            self.removeWaveformItems()
-
-            self.drawWaveforms()
+            if self.redraw_wavs:
+                self.removeWaveformItems()
+                self.drawWaveforms()
+                self.redraw_wavs = False
             # if self.has_thr:
             self.drawThreshold()
+
+        # self.plot_item.getViewBox().setXRange(*self._x_range, padding=0)
+        self.plot_item.getViewBox().setYRange(*self._y_range, padding=0)
 
         for waveforms_item in self.waveforms_item_list:
             waveforms_item.setVisible(
@@ -228,22 +243,35 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
         self.thr_item.setValue(self.current_spike_object.threshold)
 
     def drawWaveforms(self):
+        import time
+
+        start = time.perf_counter()
         # create elements
-        waveforms = self.current_spike_object.waveforms[self.current_wavs_mask]
-        unit_IDs = self.current_spike_object.unit_IDs[self.current_wavs_mask]
+        waveforms = self.current_spike_object._waveforms[self.current_wavs_mask]
+        unit_IDs = self.current_spike_object._unit_IDs[self.current_wavs_mask]
         xlen = waveforms.shape[1]
         x_element = np.arange(xlen)
         connect_element = np.append(np.ones(xlen - 1), 0).astype(np.int32)
+        logger.info(f'create elements {time.perf_counter() - start}')
 
         # setup range
         self.plot_item.getViewBox().setXRange(
             x_element[0], x_element[-1], padding=0)
-        self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
+        # self.plot_item.getViewBox().setYRange(-self.data_scale, self.data_scale, padding=0)
 
         unit_color_map = dict(zip(self.current_spike_object.unit_header['ID'], np.arange(
             self.current_spike_object.unit_header.shape[0], dtype=int)))
 
+        start = time.perf_counter()
         # logger.debug(unit_color_map)
+        ds_index = self.downsamplingWaveforms(waveforms, unit_IDs)
+
+        waveforms = waveforms[ds_index]
+        unit_IDs = unit_IDs[ds_index]
+        logger.info(f'downsamplingWaveforms {time.perf_counter() - start}')
+
+        # if len(unit_IDs) > self.GLOBAL_WAVS_LIMIT:
+        start = time.perf_counter()
         for ID in self.current_showing_units:
             data_filtered = waveforms[unit_IDs == ID]
             n = data_filtered.shape[0]
@@ -260,11 +288,38 @@ class WaveformsView(pg.PlotWidget, WidgetsInterface):
 
             self.waveforms_item_list.append(
                 self.plot(x=x, y=y, connect=connect, pen=pg.mkPen(color=color)))
+        logger.info(f'plot {time.perf_counter() - start}')
 
     def removeWaveformItems(self):
         for waveforms_item in self.waveforms_item_list:
             self.removeItem(waveforms_item)
         self.waveforms_item_list = []
+
+    def downsamplingWaveforms(self, waveforms, unit_IDs):
+        length = waveforms.shape[0]
+        if length > self.GLOBAL_WAVS_LIMIT:
+            msg = "reducing number of waveforms to plot"
+            logger.info(msg)
+            max_set = []
+            min_set = []
+            # waveforms = self.data_spike_chan.Waveforms
+            for unit in np.unique(unit_IDs):
+                unit_mask = unit_IDs == unit
+                waveforms_unit = waveforms[unit_mask, :]
+                max_set_u = np.argmax(waveforms_unit, axis=0)
+                min_set_u = np.argmin(waveforms_unit, axis=0)
+                inv = np.where(unit_mask)[0]
+                max_set.append(inv[max_set_u])
+                min_set.append(inv[min_set_u])
+
+            max_set = np.concatenate(max_set)
+            min_set = np.concatenate(min_set)
+
+            rand_set = np.random.permutation(length)[:self.GLOBAL_WAVS_LIMIT]
+
+            ds_index = np.unique(np.hstack((max_set, rand_set, min_set)))
+
+            return ds_index
 
     def graphMouseWheelEvent(self, event):
         """Overwrite PlotItem.getViewBox().wheelEvent."""
