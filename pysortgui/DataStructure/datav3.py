@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MaxAbsScaler
-
+from functools import lru_cache
 from pysortgui.DataStructure import openephys
 from pysortgui.DataStructure import pyephysv3 as pyephys
 from pysortgui.DataStructure.FunctionsLib.DiscreteSignalLib import ISI, firing_rate
@@ -237,6 +237,7 @@ class SpikeSorterData(object):
     def getEvent(self, event_ID: int) -> DiscreteData | None:
         return self._events_dict.get(event_ID)
 
+    @lru_cache(maxsize=32)
     def subtractReference(self, channel_ID: int, reference_ID: int) -> ContinuousData:
         ch_object = self.getRaw(channel_ID, load_data=True)
         ref_object = self.getRaw(reference_ID, load_data=True)
@@ -400,6 +401,7 @@ class SpikeSorterData(object):
             logger.warning('Can only delete reference channel!')
             return
         self._raws_dict[channel_ID] = 'Removed'
+        self.subtractReference.cache_clear()  # clear cache avoid getting ghost channel
 
     # def validateChannel(self, channel: int | str) -> int:
     #     if isinstance(channel, str):
@@ -562,6 +564,7 @@ class ContinuousData(object):
         #     result._setReference(referenceID)
         #     return result
 
+    @lru_cache(maxsize=4)
     def bandpassFilter(self, low, high) -> ContinuousData | None:
         order = 4
         filter_family = 'Butterworth'
