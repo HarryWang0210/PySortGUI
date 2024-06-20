@@ -14,7 +14,7 @@ from pysortgui.Widgets.ClustersView_graph import ClustersView
 from pysortgui.Widgets.ISIView import ISIView
 from pysortgui.Widgets.TimelineView_graph import TimelineView
 from pysortgui.Widgets.UnitOperateTools import UnitOperateTools
-from pysortgui.Widgets.WaveformsView_graph import WaveformsView
+from pysortgui.Widgets.WaveformsView_gl import WaveformsView
 from pysortgui.Widgets.WidgetsInterface import WidgetsInterface
 
 logger = logging.getLogger(__name__)
