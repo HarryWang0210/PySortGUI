@@ -691,10 +691,10 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         selection_model = self.tableView.selectionModel()
         for row in self.selected_rows_list:
             if row > model.rowCount() - 1:
-                selection_model.select(model.index(0, 0),
-                                       QItemSelectionModel.Rows | QItemSelectionModel.Select)
-            selection_model.select(model.index(row, 0),
-                                   QItemSelectionModel.Rows | QItemSelectionModel.Select)
+                selection_model.select(model.index(0, 1),
+                                       QItemSelectionModel.Select)
+            selection_model.select(model.index(row, 1),
+                                   QItemSelectionModel.Select)
             # selection_model.select(model.index(row, 1),
             #                        QItemSelectionModel.Select)
 
