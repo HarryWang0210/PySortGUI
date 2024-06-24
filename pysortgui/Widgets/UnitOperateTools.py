@@ -4,13 +4,14 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QItemSelectionModel, Qt
+from PyQt5.QtCore import QItemSelection, QItemSelectionModel, Qt
 from PyQt5.QtGui import QColor, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QDialog,
                              QHBoxLayout, QLabel, QMessageBox, QPushButton,
                              QStyledItemDelegate, QVBoxLayout, QWidget)
 
-from pysortgui.DataStructure.datav3 import ContinuousData, DiscreteData, SpikeSorterData
+from pysortgui.DataStructure.datav3 import (ContinuousData, DiscreteData,
+                                            SpikeSorterData)
 from pysortgui.UI.UnitOperateToolsUIv3_ui import Ui_UnitOperateTools
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         super().__init__(parent)
         self.window_title = "Unit Operate Tools"
         self.setupUi(self)
-        self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.tableView.setSelectionBehavior(QAbstractItemView.SelectItems)
 
         self.current_data_object: SpikeSorterData | None = None
         self.current_spike_object: DiscreteData | None = None
@@ -223,8 +224,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             # selection_model.select(model.index(0, 0),
             #                        QItemSelectionModel.Select)
             if reset_selection:
-                selection_model.select(model.index(0, 0),
-                                       QItemSelectionModel.Rows | QItemSelectionModel.Select)
+                selection_model.select(model.index(0, 1),
+                                       QItemSelectionModel.ClearAndSelect)
             else:
                 self.restoreSelection()
 
@@ -262,7 +263,22 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
 
     def onSelectionChanged(self, selected, deselected):
         selection_model = self.tableView.selectionModel()
-        selected_indexes = selection_model.selectedRows()
+
+        selection = QItemSelection()
+        for item_index in selected.indexes():
+            if item_index.column() == 0:
+                new_item_index = selection_model.model().index(
+                    item_index.row(), 1)
+                selection.select(item_index, new_item_index)
+
+        selection_model.blockSignals(True)
+
+        selection_model.select(selection,
+                               QItemSelectionModel.Toggle)
+
+        selection_model.blockSignals(False)
+
+        selected_indexes = selection_model.selectedIndexes()
         self.selected_rows_list = [index.row() for index in selected_indexes]
         logger.debug('onSelectionChanged')
         self.sendShowingUnits()
