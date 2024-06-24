@@ -737,6 +737,7 @@ class TableColorDelegate(QStyledItemDelegate):
 
         if index.row() < 2:
             option.backgroundBrush = QColor(255, 255, 255)
+            option.palette.setColor(option.palette.Text, QColor(0, 0, 0))
         else:
             option.backgroundBrush = QColor(
                 *[int(c * 255) for c in self.color_palette_list[index.row() - 2]])
