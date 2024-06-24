@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 class WaveformsView(gl.GLViewWidget, WidgetsInterface):
     def __init__(self, parent=None):
         super().__init__(parent)
+        # fix the bug that plot incompleted when focus in from other gl-based widget
         self.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+
         self.window_title = "Waveforms View"
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
