@@ -185,8 +185,6 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         self.thr_item.setData(pos=pos)
 
     def drawWaveforms(self):
-        import time
-
         # create elements
         waveforms = self.current_spike_object._waveforms[self.current_wavs_mask]
         unit_IDs = self.current_spike_object._unit_IDs[self.current_wavs_mask]
