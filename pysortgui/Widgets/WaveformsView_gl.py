@@ -68,21 +68,19 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         self.setCameraParams(fov=90)
 
         self.waveform_item = GLWaveformItem()
+        self.waveform_item.setDepthValue(0)
         self.waveform_item.setGLOptions('opaque')  # not to mix color
         self.addItem(self.waveform_item)
 
         self.thr_item = gl.GLLinePlotItem(width=2, mode='lines')
+        self.thr_item.setDepthValue(1)
         self.thr_item.setVisible(False)
         self.addItem(self.thr_item)
 
         # self.select_point_item = SelectWaveformGLItem()
         self.select_point_item = gl.GLLinePlotItem(
             width=2, color='w', mode='line_strip')
-        self.select_point_item.setGLOptions('opaque')  # not to mix color
-
-        # pg.PlotCurveItem(
-        #     pen=pg.mkPen('w', width=2), clickable=False)
-        # self.select_point_item.setZValue(1)
+        self.select_point_item.setDepthValue(2)
         self.select_point_item.setVisible(False)
         self.addItem(self.select_point_item)
 
@@ -147,7 +145,7 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
             current_showing_data = self.current_spike_object._waveforms[self.current_wavs_mask]
             y = current_showing_data[wav_index, :]
             x = np.arange(len(y))
-            z = np.ones(len(y)) * .01*2
+            z = np.zeros(len(y))
             pos = np.vstack([x, y, z]).transpose()
 
             self.select_point_item.setData(pos=pos)
@@ -181,7 +179,7 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
     def drawThreshold(self):
         x = self._x_range
         y = np.ones(len(x)) * self.current_spike_object.threshold
-        z = np.ones(len(x)) * .01
+        z = np.zeros(len(x))
         pos = np.vstack([x, y, z]).transpose()
 
         self.thr_item.setData(pos=pos)
