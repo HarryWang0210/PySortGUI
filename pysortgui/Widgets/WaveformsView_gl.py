@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class WaveformsView(gl.GLViewWidget, WidgetsInterface):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         self.window_title = "Waveforms View"
         self.setMinimumWidth(100)
         self.setMinimumHeight(100)
@@ -192,7 +193,6 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         xlen = waveforms.shape[1]
         x_element = np.arange(xlen)
 
-        start = time.perf_counter()
         if len(unit_IDs) > self.GLOBAL_WAVS_LIMIT:
             ds_index = self.downsamplingWaveforms(waveforms, unit_IDs)
             waveforms = waveforms[ds_index]
@@ -201,7 +201,6 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         elif len(unit_IDs) < 1:
             self.waveform_item.setData(pos=None)
             return
-        logger.info(f'downsamplingWaveforms {time.perf_counter() - start}')
 
         resort_index = np.argsort(unit_IDs)
         waveforms = waveforms[resort_index]
