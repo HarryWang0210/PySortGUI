@@ -65,7 +65,7 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         self.setCameraPosition(distance=50, azimuth=-90, elevation=90)  # 固定视角
         self.setCameraParams(fov=90)
 
-        self.waveform_item = WaveformGLItem()
+        self.waveform_item = GLWaveformItem()
         self.waveform_item.setGLOptions('opaque')  # not to mix color
         self.addItem(self.waveform_item)
 
@@ -332,7 +332,7 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         self.manual_curve_item.setVisible(False)
 
 
-class WaveformGLItem(gl.GLGraphicsItem.GLGraphicsItem):
+class GLWaveformItem(gl.GLGraphicsItem.GLGraphicsItem):
     def __init__(self, **kwds):
         super().__init__()
         glopts = kwds.pop('glOptions', 'additive')
