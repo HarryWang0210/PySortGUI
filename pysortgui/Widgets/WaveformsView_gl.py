@@ -414,7 +414,7 @@ class GLWaveformItem(gl.GLGraphicsItem.GLGraphicsItem):
         finally:
             glDisableClientState(GL_COLOR_ARRAY)
             glDisableClientState(GL_VERTEX_ARRAY)
-        logger.info(f'plot wav {time.perf_counter() - start}')
+        # logger.info(f'plot wav {time.perf_counter() - start}')
 
 
 # class SelectWaveformGLItem(gl.GLGraphicsItem.GLGraphicsItem):
