@@ -519,11 +519,17 @@ class ContinuousData(object):
         return self._data_loaded
 
     def _loadData(self):
-        if not self._from_file or self.isLoaded():
-            logger.warning('No data to load.')
+        if self.isLoaded():
+            logger.info(
+                f'{self.channel_name} {self.data_type} data already loaded.')
             return
 
-        logger.info(f'Loading {self.channel_ID} raws data...')
+        if not self._from_file:
+            logger.warning(f'Can not load {self.channel_name} {self.data_type} data' +
+                           f'This {self.__class__.__name__} object was not imported from an existing file!')
+            return
+
+        logger.info(f'Loading {self.channel_name} raws data...')
         if self._data_format == 'pyephys':
             data = pyephys.loadRaws(
                 self._filename, self._header['H5Location'], self._header['H5Name'])
@@ -822,9 +828,20 @@ class DiscreteData(object):
         return self._data_loaded
 
     def _loadData(self):
+        label = ''
+        if self.data_type == 'Spikes':
+            label = ' ' + self.label
+
         if self.isLoaded():
-            logger.warning('Data alreadly loaded.')
+            logger.info(
+                f'{self.channel_name}{label} {self.data_type} data already loaded.')
             return
+
+        if not self._from_file:
+            logger.warning(f'Can not load {self.channel_name}{label} {self.data_type} data' +
+                           f'This {self.__class__.__name__} object was not imported from an existing file!')
+            return
+
         data: dict = None
         if self._data_format == 'pyephys':
             if self.data_type == 'Spikes':
