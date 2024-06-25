@@ -66,7 +66,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.initPlotItem()
 
     def initPlotItem(self):
-        background_color = (0.35, 0.35, 0.35)
+        # background_color = (0.35, 0.35, 0.35)
+        background_color = (0, 0, 0)
         background_color = QColor(*[int(c * 255) for c in background_color])
         self.setBackgroundColor(background_color)
 
