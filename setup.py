@@ -22,7 +22,7 @@ setup(
     install_requires=install_requires,
     package_data={
         # If any package contains *.txt or *.rst files, include them:
-        'pysortgui': ['External/bins/*.*',
+        'pysortgui': ['External/bins/*',
                       'UI/style.qss',
                       #   'plugins/*.*',
                       #   'datafun/*.*',
