@@ -3,3 +3,4 @@ data
 test*
 pysortgui.egg-info
 build
+dist
