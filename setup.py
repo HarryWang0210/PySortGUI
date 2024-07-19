@@ -9,10 +9,11 @@ with pathlib.Path('requirements.txt').open() as requirements_txt:
         for requirement
         in pkg_resources.parse_requirements(requirements_txt)
     ]
+long_description = pathlib.Path("README.md").read_text(encoding="utf8")
 
 setup(
     name="pysortgui",
-    version="1.0.0",
+    version="0.1.2",
     packages=find_packages(),
     entry_points={
         'console_scripts': [
@@ -34,8 +35,12 @@ setup(
     author="Harry Wang",
     author_email="harry.wang0210@gmail.com",
     description="This package provides a spike sorter for neural data",
-    # license="PSF",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    url="https://github.com/HarryWang0210/PySortGUI",
+    license="MIT",
     keywords="ephys neurons spike sorting",
+    python_requires='>=3.6',
     # url="http://example.com/HelloWorld/",   # project home page, if any
 
     # could also include long_description, download_url, classifiers, etc.
