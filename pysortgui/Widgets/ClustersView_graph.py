@@ -67,7 +67,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
 
     def initPlotItem(self):
         # background_color = (0.35, 0.35, 0.35)
-        background_color = (0, 0, 0)
+        background_color = (0.15, 0.15, 0.15)
+        # background_color = (0, 0, 0)
         background_color = QColor(*[int(c * 255) for c in background_color])
         self.setBackgroundColor(background_color)
 
@@ -440,7 +441,10 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                     line_data, [[self.mousePos.x(), self.mousePos.y()]], axis=0)
                 self.manual_curve_item.setData(pos=line_data)
         elif ev.buttons() == QtCore.Qt.MouseButton.RightButton:
-            self.orbit(-diff.x(), diff.y())
+            if (ev.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier):
+                self.pan(diff.x(), diff.y(), 0, relative='view')
+            else:
+                self.orbit(-diff.x(), diff.y())
 
     def mouseReleaseEvent(self, ev):
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:

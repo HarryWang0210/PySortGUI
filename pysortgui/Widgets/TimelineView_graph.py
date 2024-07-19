@@ -156,7 +156,8 @@ class TimelineViewGraph(pg.PlotWidget):
 
         # setup background
         # background_color = (0.35, 0.35, 0.35)
-        background_color = (0, 0, 0)
+        background_color = (0.15, 0.15, 0.15)
+        # background_color = (0, 0, 0)
         background_color = QColor(*[int(c * 255) for c in background_color])
         self.setBackground(background_color)
 
