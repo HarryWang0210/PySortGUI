@@ -18,6 +18,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pysortgui=pysortgui.main:launch_app',
+            'pysortgui-cli=pysortgui.plugins.cli:launch_cli'
         ],
     },
     install_requires=install_requires,
