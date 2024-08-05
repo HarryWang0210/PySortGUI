@@ -140,9 +140,7 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
     def activate_manual_mode(self, state):
         self.manual_mode = state
 
-    def select_point(self, data):
-        selected, wav_index = data
-
+    def select_point(self, selected, wav_index):
         if selected:
             current_showing_data = self.current_spike_object._waveforms[self.current_wavs_mask]
             y = current_showing_data[wav_index, :]

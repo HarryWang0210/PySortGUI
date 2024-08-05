@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
     signal_manual_waveforms = QtCore.pyqtSignal(object)
-    signal_select_point = QtCore.pyqtSignal(object)
+    # send select or not and waveform index
+    signal_select_point = QtCore.pyqtSignal((bool, int))
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -402,7 +403,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                     return
                 self.nearest_point_index = new_nearest_point_index
 
-                self.signal_select_point.emit((True, self.nearest_point_index))
+                self.signal_select_point.emit(True, self.nearest_point_index)
                 self.nearest_point_item.setData(pos=self.current_showing_data[self.nearest_point_index, :].reshape((-1, 3)),
                                                 size=10,
                                                 color=[1, 1, 1, 1])
@@ -430,7 +431,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                     return
                 self.nearest_point_index = new_nearest_point_index
 
-                self.signal_select_point.emit((True, self.nearest_point_index))
+                self.signal_select_point.emit(True, self.nearest_point_index)
                 self.nearest_point_item.setData(pos=self.current_showing_data[self.nearest_point_index, :].reshape((-1, 3)),
                                                 size=10,
                                                 color=[1, 1, 1, 1])
@@ -449,7 +450,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     def mouseReleaseEvent(self, ev):
         if ev.button() == QtCore.Qt.MouseButton.LeftButton:
             self.nearest_point_index = None
-            self.signal_select_point.emit((False, 0))
+            self.signal_select_point.emit(False, 0)
             self.nearest_point_item.setVisible(False)
 
             if self.manual_mode:
