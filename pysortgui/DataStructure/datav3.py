@@ -36,7 +36,7 @@ class SpikeSorterData(object):
             data_format (_type_): 'pyephys', 'openephys'
         """
         super().__init__()
-        self._path = file_or_folder
+        self._path = os.path.abspath(file_or_folder)
         self._data_format = data_format
         self._file_headers = []
         self._raws_dict = dict()
