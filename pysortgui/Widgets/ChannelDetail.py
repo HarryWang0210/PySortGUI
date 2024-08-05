@@ -194,10 +194,10 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         num_col = self.spike_group_item.columnCount()
 
         channel_items = [self.spike_group_item.child(
-            row, 0) for row in range(num_row)]
-        channel_IDs = [item.text()[:-1] if item.text().endswith('*')
-                       else item.text() for item in channel_items]
-        row = channel_IDs.index(str(channel))
+            row, 0) for row in range(num_row)]  # get all channel ID item
+        # get all channel 'ID'
+        channel_IDs = [self.dropSuffix(item.text()) for item in channel_items]
+        row = channel_IDs.index(str(channel))  # get row of given channel
 
         result = [[self.spike_group_item.child(row, col)
                    for col in range(num_col)]]
