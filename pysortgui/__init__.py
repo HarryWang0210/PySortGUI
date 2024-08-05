@@ -1,3 +1,4 @@
+# modified from PyEphys.__init__.py
 '''
 PyEphys is a module that allows the manipulation of Neurophysiological data in
 Python.

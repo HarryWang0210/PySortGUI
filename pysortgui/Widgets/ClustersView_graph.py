@@ -20,6 +20,12 @@ logger = logging.getLogger(__name__)
 
 
 class ClustersView(gl.GLViewWidget, WidgetsInterface):
+    """ClustersView widget
+    Display Scatter plot of waveforms. 
+    Use PCA or other features. 
+    Can use manual mode.
+    """
+    # send list of waveform index
     signal_manual_waveforms = QtCore.pyqtSignal(object)
     # send select or not and waveform index
     signal_select_point = QtCore.pyqtSignal((bool, int))
@@ -34,8 +40,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         # self.spikes = None
         # self.has_spikes = False
         self.color_palette_list = sns.color_palette('bright', 64)
-        self.plot_visible = False
-        self.widget_visible = False
+        self.plot_visible = False  # has data to plot
+        self.widget_visible = False  # widget is visible
         self.data_point_size = 3
 
         # from UnitOperateTools widget
@@ -89,7 +95,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                                [0, 1, 0, 1],
                                [0, 1, 0, 1],
                                [0, 0, 1, 1],
-                               [0, 0, 1, 1]])
+                               [0, 0, 1, 1]])  # rgb
         self.axis_lines_item = gl.GLLinePlotItem(
             pos=axis_pos, color=axis_color,  width=2, mode='lines')
         self.addItem(self.axis_lines_item)
@@ -291,7 +297,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
     #     self.cache_selection_pca = new_pca
 
     def setCurrentShowingData(self, pca):
-        # TODO: time, slice
+        # TODO: slice
         showing_data = np.empty((np.sum(self.current_wavs_mask), 3))
         for i in range(3):
             if self.axis_label[i] == 'PCA1':
@@ -343,7 +349,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
 
     def __project(self, obj_pos):
         # modify from pyqtgraph.opengl.items.GLTextItem
-        # FIXME: work when obj_pos shape=(1, 3)
+        # FIXME: Can not work when obj_pos shape=(1, 3)
         modelview = np.array(self.viewMatrix().data()
                              ).reshape((4, 4))  # (4, 4)
         projection = np.array(self.projectionMatrix().data()
@@ -365,13 +371,29 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                                         viewport[3] - (viewport[1] + (1.0 + nozero_proj_vec[:, 1]) * viewport[3] / 2)]).T
         return result
 
-    def findNearestNeighbor(self, pos):
+    def findNearestNeighbor(self, pos: np.ndarray) -> int:
+        """Find the point that is nearest to given position.
+
+        Args:
+            pos (np.ndarray): 2d position 
+
+        Returns:
+            int: nearest point waveform index
+        """
         projected_data = self.__project(self.current_showing_data)
         tree = KDTree(projected_data)
         nearest_point_index = tree.query(pos)[1]
         return nearest_point_index
 
-    def findPointInRegion(self, verteices):
+    def findPointInRegion(self, verteices: np.ndarray) -> list[int]:
+        """Find the point that is in thr region circle by given verteices.
+
+        Args:
+            verteices (np.ndarray): n x 2 array
+
+        Returns:
+            list[int]: list of waveform index
+        """
         projected_data = self.__project(self.current_showing_data)
 
         # first filter: reduce point count
@@ -383,7 +405,7 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         in_rect_points = projected_data[lower_mask & upper_mask]
         in_rect_points_index = np.where(lower_mask & upper_mask)[0]
 
-        # secind filter: find the points in polygon
+        # second filter: find the points in polygon
         region = Path(verteices)
         in_region_points_index = in_rect_points_index[
             region.contains_points(in_rect_points)]

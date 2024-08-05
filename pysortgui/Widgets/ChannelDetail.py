@@ -5,7 +5,7 @@ import numpy as np
 import seaborn as sns
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QItemSelectionModel, Qt
-from PyQt5.QtGui import QColor, QStandardItem, QStandardItemModel, QPalette
+from PyQt5.QtGui import QColor, QPalette, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (QAbstractItemView, QApplication, QCheckBox,
                              QColorDialog, QDialog, QMainWindow, QMessageBox,
                              QStyledItemDelegate, QUndoCommand, QUndoStack,
@@ -23,11 +23,21 @@ logger = logging.getLogger(__name__)
 
 
 class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
+    """ChannelDetail widget
+    Display information for raws, events, and spikes data. 
+    Retrieve and update SpikeSorterData data.
+    """
+    # send SpikeSorterData object
     signal_data_file_name_changed = QtCore.pyqtSignal(object)
+    # send raws ContinuousData and filted ContinuousData
     signal_continuous_data_changed = QtCore.pyqtSignal((object, object))
+    # send spikes DiscreteData and reset selection or not
     signal_spike_data_changed = QtCore.pyqtSignal((object, bool))
+    # send event DiscreteData
     signal_event_data_changed = QtCore.pyqtSignal(object)
+    # send shoing event units
     signal_showing_events_changed = QtCore.pyqtSignal(list)
+    # send background ContinuousData, color object, Display on top or not
     signal_background_continuous_data_changed = QtCore.pyqtSignal(
         (object, object, bool))
 
@@ -66,11 +76,12 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         self.events_header = None
         self.undo_stack_dict: dict[tuple[int, str], QUndoStack] = dict()
         self.current_undo_stack: QUndoStack = None
-        self.current_showing_events: list = []
+        self.current_showing_events: list = []  # event units that are selected to show
         self.initDataModel()
         self.setupConnections()
 
     def setupConnections(self):
+        """Connect the slots."""
         self.open_file_toolButton.released.connect(self.openFile)
         self.extract_wav_setting_toolButton.released.connect(
             self.setExtractWaveformParams)
@@ -91,6 +102,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         #     self.treeView.resizeColumnToContents(col)
 
     def setDataModel(self):
+        """Build the data tree
+        """
         model = self.treeView.model()
         model.clear()
         model.setHorizontalHeaderLabels(self.header_name)
@@ -157,7 +170,16 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                      for col_value in sub_data.iloc[0, 1:]]
                 self.events_group_item.appendRow(first_items)
 
+    # ========== Helper functions ==========
     def createRowItems(self, header: dict) -> list[QStandardItem]:
+        """Create row items(a list of QStandardItem) base on header.
+
+        Args:
+            header (dict): data header.
+
+        Returns:
+            list[QStandardItem]: a list of QStandardItem, can be used to insert into data tree.
+        """
         row_items = []
         for key in self.header_name:
             if key == 'Reference':
@@ -168,14 +190,36 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         return row_items
 
     def rowItemsToMetadata(self, row_items: list[QStandardItem]) -> dict[str, str]:
+        """Extract the text from list of QStandardItem and return a python dictionary.
+
+        Args:
+            row_items (list[QStandardItem]): a list of QStandardItem
+
+        Returns:
+            dict[str, str]: a dictionary similar to data header.
+        """
         meta_data = [item.text() for item in row_items]
         meta_data = dict(zip(self.header_name, meta_data))
         return meta_data
 
     def dropSuffix(self, text: str, suffix: str = '*') -> str:
+        """Drop the unsaved suffix marker. 
+
+        Args:
+            text (str)
+            suffix (str, optional): unsaved suffix marker. Defaults to '*'.
+
+        Returns:
+            str: droped text
+        """
         return text[:-1] if text.endswith(suffix) else text
 
-    def getSelectedRowItems(self) -> list:
+    def getSelectedRowItems(self) -> list[QStandardItem]:
+        """Get row items that are currently selected.
+
+        Returns:
+            list[QStandardItem]: a list of QStandardItem
+        """
         model = self.treeView.model()
         selection_model = self.treeView.selectionModel()
         selected_indexes = selection_model.selectedIndexes()
@@ -190,7 +234,15 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         return items
 
-    def getRowItemsFromChannel(self, channel: int) -> list:
+    def getRowItemsFromChannel(self, channel: int) -> list[list[QStandardItem]]:
+        """Get spike row items by given channel ID.
+
+        Args:
+            channel (int): channel ID
+
+        Returns:
+            list[list[QStandardItem]]: 2 layer list, multiple list of QStandardItem 
+        """
         num_row = self.spike_group_item.rowCount()
         num_col = self.spike_group_item.columnCount()
 
@@ -204,6 +256,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         result = [[self.spike_group_item.child(row, col)
                    for col in range(num_col)]]
         logger.debug([item.text() for item in result[0]])
+
+        # if this channel has mutiple spike data
         if result[0][0].hasChildren():
             ID_item = result[0][0]
             for row in range(ID_item.rowCount()):
@@ -243,14 +297,22 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         self.current_undo_stack.push(command)
 
     def onSelectionChanged(self, selected, deselected):
+        """Select action on data tree
+
+        Args:
+            selected (_type_): unused
+            deselected (_type_): unused
+        """
         row_items = self.getSelectedRowItems()
         if row_items is None:
             return
         meta_data = self.rowItemsToMetadata(row_items)
 
+        # reset
         self.current_raw_object = None
         self.current_filted_object = None
         self.current_spike_object = None
+
         chan_ID = int(self.dropSuffix(meta_data["ID"], self.unsaved_suffix))
         label = self.dropSuffix(meta_data["Label"], self.unsaved_suffix)
         logger.info(f'Selected type: {meta_data["Type"]}')
@@ -294,7 +356,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         elif meta_data['Type'] in ['Raws', 'Ref']:
             new_raw_object = self.current_data_object.getRaw(chan_ID)
             if new_raw_object == 'Removed':
-                # This spike is removed but unsaved
+                # This ref is removed but unsaved
                 new_raw_object = None
                 new_filted_object = None
                 new_spike_object = None
@@ -318,7 +380,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                 new_event_object = self.current_data_object.getEvent(
                     event_IDs[0])
             if new_event_object is None:
-                logger.warning('No events data.')
+                logger.info('This file do not have events data. skipping...')
                 return
             new_event_object._loadData()
             self.current_event_object = new_event_object
@@ -373,10 +435,11 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
             self, "Open folder", self.default_root_folder)
         if folder_path == "":
             return
-        
+
         self.openFile(folder_path, 'openephys')
 
     def copySpike(self):
+        """Copy selected spike data"""
         row_items = self.getSelectedRowItems()
         meta_data = self.rowItemsToMetadata(row_items)
         row_type = meta_data['Type']
@@ -390,6 +453,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         spike_object = self.current_raw_object.getSpike(label)
         new_spike_object = spike_object.createCopy()
 
+        # generate label name
         i = 1
         while True:
             new_label = f'label{i}'
@@ -409,9 +473,10 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         channel_item.appendRow(new_row_items)
 
+        # auto select new spike by default
         selection_model = self.treeView.selectionModel()
-        selection_model.select(
-            label_item.index(), QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
+        selection_model.select(label_item.index(),
+                               QItemSelectionModel.Rows | QItemSelectionModel.ClearAndSelect)
         self.treeView.scrollTo(label_item.index())
 
         row_items = self.getSelectedRowItems()
@@ -422,6 +487,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         self.setUnsavedChangeIndicator(row_items, new_spike_object)
 
     def deleteSpike(self):
+        """Delete selected spike dta"""
         row_items = self.getSelectedRowItems()
         meta_data = self.rowItemsToMetadata(row_items)
         row_type = meta_data['Type']
@@ -435,29 +501,6 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                                      old_filted_object=self.current_filted_object,
                                      old_spike_object=self.current_spike_object)
         self.current_undo_stack.push(command)
-
-        # if label_item.parent() is spike_group_item:
-        #     # deleting node
-        #     if ID_item.hasChildren():
-        #         # has leaves
-        #         channel_ID = int(self.dropSuffix(ID_item.text()))
-        #         channel_row_items = self.getRowItemsFromChannel(channel_ID)
-        #         next_row_items = channel_row_items[1]
-        #         for i in range(1, len(row_items)):
-        #             old = row_items[i]
-        #             new = next_row_items[i]
-        #             old.setText(new.text())
-        #             old.setFont(new.font())
-        #         row = next_row_items[1].row()
-        #         ID_item.removeRow(row)
-        #     else:
-        #         # no leaves
-        #         spike_group_item.removeRow(ID_item.row())
-        # else:
-        #     # deleting leaf
-        #     ID_item.removeRow(label_item.row())
-
-        # self.signal_data_file_name_changed.emit(self.current_data_object)
 
     def setExtractWaveformParams(self):
         if self.current_data_object is None:
@@ -519,12 +562,25 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
     def preprocessing(self, ref: int,
                       low: int | float,
                       high: int | float) -> ContinuousData:
+        """Perform subtract ref and bandpass filter.
+
+        Args:
+            ref (int): reference channel ID
+            low (int | float): low cut off for bandpass
+            high (int | float): high cut off for bandpass
+
+        Returns:
+            ContinuousData: filted ContinuousData
+        """
         new_filted_object = self.current_data_object.subtractReference(channel_ID=self.current_raw_object.channel_ID,
                                                                        reference_ID=ref)
         new_filted_object = new_filted_object.bandpassFilter(low, high)
         return new_filted_object
 
     def extractWaveforms(self):
+        """Extract waveforms from selected channel.
+        If already filted, use filted data. Otherwise, use default_spike_setting to filt first.
+        """
         row_items = self.getSelectedRowItems()
         meta_data = [item.text() for item in row_items]
         meta_data = dict(zip(self.header_name, meta_data))
@@ -558,7 +614,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         if row_type == 'Spikes':
             label = meta_data['Label']
-            label = label[:-1] if label, self.unsaved_suffix)
+            label = self.dropSuffix(label, self.unsaved_suffix)
             new_spike_object.setLabel(label)
 
             # compute old for undo
@@ -676,23 +732,6 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         #     return
         # self.setUnsavedChangeIndicator(row_items, self.current_spike_object)
 
-    # def setLabelCombox(self, labels: list | None = None, current: str | None = None):
-    #     self.sorting_label_comboBox.clear()
-    #     if labels is None:
-    #         return
-    #     self.sorting_label_comboBox.addItems(labels)
-    #     if current is None:
-    #         return
-    #     self.sorting_label_comboBox.setCurrentText(current)
-
-    # def setSpikeSetting(self):
-    #     self.current_spike_setting['Reference'] = ('Single',
-    #                                                [self.current_spike_object.reference])
-    #     self.current_spike_setting['Filter'] = (self.current_spike_object.low_cutoff,
-    #                                             self.current_spike_object.high_cutoff)
-    #     self.current_spike_setting['Threshold'] = ('MAD',
-    #                                                self.current_spike_object.threshold / self.current_filted_object.estimated_sd)
-
     def handleUndoRedo(self, action_type: str,
                        new_raw_object: ContinuousData,
                        new_filted_object: ContinuousData,
@@ -765,6 +804,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                                             reset_selection)
 
     def saveChannel(self):
+        """Save selected channel (save all spike data in this channel)"""
         row_items = self.getSelectedRowItems()
         if row_items is None:
             return
