@@ -36,7 +36,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         self.main_window = parent
         self.window_title = "Channel Detail"
         self.setupUi(self)
-        self.default_root_folder = './'
+        self.unsaved_suffix = '*'
+        self.default_root_folder = './'  # path to open file manager
         self.default_spike_setting = {
             'Reference': (True, 0),
             'Filter': (250, 6000),
@@ -196,7 +197,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         channel_items = [self.spike_group_item.child(
             row, 0) for row in range(num_row)]  # get all channel ID item
         # get all channel 'ID'
-        channel_IDs = [self.dropSuffix(item.text()) for item in channel_items]
+        channel_IDs = [self.dropSuffix(
+            item.text(), self.unsaved_suffix) for item in channel_items]
         row = channel_IDs.index(str(channel))  # get row of given channel
 
         result = [[self.spike_group_item.child(row, col)
@@ -249,8 +251,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         self.current_raw_object = None
         self.current_filted_object = None
         self.current_spike_object = None
-        chan_ID = int(self.dropSuffix(meta_data["ID"]))
-        label = self.dropSuffix(meta_data["Label"])
+        chan_ID = int(self.dropSuffix(meta_data["ID"], self.unsaved_suffix))
+        label = self.dropSuffix(meta_data["Label"], self.unsaved_suffix)
         logger.info(f'Selected type: {meta_data["Type"]}')
         new_raw_object = None
         new_filted_object = None
@@ -382,8 +384,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         if row_type != 'Spikes':
             return
 
-        channel_ID = int(self.dropSuffix(meta_data['ID']))
-        label = self.dropSuffix(meta_data['Label'])
+        channel_ID = int(self.dropSuffix(meta_data['ID'], self.unsaved_suffix))
+        label = self.dropSuffix(meta_data['Label'], self.unsaved_suffix)
         raw_object = self.current_data_object.getRaw(channel_ID)
         spike_object = self.current_raw_object.getSpike(label)
         new_spike_object = spike_object.createCopy()
@@ -556,7 +558,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         if row_type == 'Spikes':
             label = meta_data['Label']
-            label = label[:-1] if label.endswith('*') else label
+            label = label[:-1] if label, self.unsaved_suffix)
             new_spike_object.setLabel(label)
 
             # compute old for undo
@@ -585,8 +587,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         elif row_type == 'Raws':
             chan_ID = meta_data['ID']
-            chan_ID = int(chan_ID[:-1]) \
-                if chan_ID.endswith('*') else int(chan_ID)
+            chan_ID = int(self.dropSuffix(chan_ID, self.unsaved_suffix))
 
             # add new spike row
             if self.current_raw_object.spikes == []:
@@ -599,8 +600,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
                 channel_items = [self.spike_group_item.child(row, 0)
                                  for row in range(num_row)]
-                channel_IDs = [int(item.text()[:-1])
-                               if item.text().endswith('*') else int(item.text())
+                channel_IDs = [int(self.dropSuffix(item.text(), self.unsaved_suffix))
                                for item in channel_items] + [chan_ID]
                 channel_IDs.sort()
                 new_row = channel_IDs.index(chan_ID)
@@ -707,7 +707,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
             ID_item = row_items[0]
             label_item = row_items[1]
 
-            label_item.setText(self.dropSuffix(label_item.text()))
+            label_item.setText(self.dropSuffix(
+                label_item.text(), self.unsaved_suffix))
             # font = label_item.font()
             # font.setStrikeOut(True)
             # label_item.setFont(font)
@@ -718,8 +719,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                 item.setForeground(QColor('darkGray'))
 
             # Check ID
-            if not ID_item.text().endswith('*'):
-                ID_item.setText(ID_item.text() + '*')
+            if not ID_item.text().endswith(self.unsaved_suffix):
+                ID_item.setText(ID_item.text() + self.unsaved_suffix)
             font = ID_item.font()
             font.setBold(True)
             ID_item.setFont(font)
@@ -768,7 +769,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         if row_items is None:
             return
         ID_item = row_items[0]
-        channel_ID = int(self.dropSuffix(ID_item.text()))
+        channel_ID = int(self.dropSuffix(ID_item.text(), self.unsaved_suffix))
         raw_object = self.current_data_object.getRaw(channel_ID)
         channel_row = ID_item.row()
 
@@ -783,7 +784,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                 self.setUnsavedChangeIndicator(row_items, raw_object)
             return
 
-        selecting_label = self.dropSuffix(row_items[1].text())
+        selecting_label = self.dropSuffix(
+            row_items[1].text(), self.unsaved_suffix)
         new_selecting_item = None  # To locate the selecting row
 
         old_labels = raw_object.spikes
@@ -889,8 +891,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         logger.info(f'Delete reference channel {channel_ID}.')
 
         ID_item = row_items[0]
-        if not ID_item.text().endswith('*'):
-            ID_item.setText(ID_item.text() + '*')
+        if not ID_item.text().endswith(self.unsaved_suffix):
+            ID_item.setText(ID_item.text() + self.unsaved_suffix)
             font = ID_item.font()
             font.setBold(True)
             ID_item.setFont(font)
@@ -1021,15 +1023,15 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         if isinstance(obj, ContinuousData):
             if obj._from_file:
-                if ID_item.text().endswith('*'):
+                if ID_item.text().endswith(self.unsaved_suffix):
                     ID_item.setText(ID_item.text()[:-1])
                 for item in row_items:
                     font = item.font()
                     font.setBold(False)
                     item.setFont(font)
             else:
-                if not ID_item.text().endswith('*'):
-                    ID_item.setText(ID_item.text() + '*')
+                if not ID_item.text().endswith(self.unsaved_suffix):
+                    ID_item.setText(ID_item.text() + self.unsaved_suffix)
                 for item in row_items:
                     font = item.font()
                     font.setBold(True)
@@ -1037,7 +1039,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
             return
 
         if obj._from_file:
-            if label_item.text().endswith('*'):
+            if label_item.text().endswith(self.unsaved_suffix):
                 label_item.setText(label_item.text()[:-1])
 
             for item in row_items[1:]:
@@ -1046,11 +1048,11 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                 item.setFont(font)
 
         else:
-            if not ID_item.text().endswith('*'):
-                ID_item.setText(ID_item.text() + '*')
+            if not ID_item.text().endswith(self.unsaved_suffix):
+                ID_item.setText(ID_item.text() + self.unsaved_suffix)
 
-            if not label_item.text().endswith('*'):
-                label_item.setText(label_item.text() + '*')
+            if not label_item.text().endswith(self.unsaved_suffix):
+                label_item.setText(label_item.text() + self.unsaved_suffix)
 
             for item in row_items:
                 font = item.font()
@@ -1061,15 +1063,15 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         channel_ID = obj.channel_ID
         raw_object = self.current_data_object.getRaw(channel_ID)
         if raw_object.allSaved():
-            if ID_item.text().endswith('*'):
+            if ID_item.text().endswith(self.unsaved_suffix):
                 ID_item.setText(ID_item.text()[:-1])
                 logger.debug(raw_object.allSaved())
             font = ID_item.font()
             font.setBold(False)
             ID_item.setFont(font)
         else:
-            if not ID_item.text().endswith('*'):
-                ID_item.setText(ID_item.text() + '*')
+            if not ID_item.text().endswith(self.unsaved_suffix):
+                ID_item.setText(ID_item.text() + self.unsaved_suffix)
             font = ID_item.font()
             font.setBold(True)
             ID_item.setFont(font)
