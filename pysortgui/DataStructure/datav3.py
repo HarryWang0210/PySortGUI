@@ -360,6 +360,7 @@ class SpikeSorterData(object):
         else:
             logger.info(
                 f'Can not export to {data_format} format! {new_filename}')
+            return
 
         logger.info(f'Export to {data_format} format complete! {new_filename}')
 
