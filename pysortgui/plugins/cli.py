@@ -6,13 +6,13 @@ from pysortgui.plugins.data_export import DataConvert
 # @click.version_option(version=__version_git__)
 @click.help_option('-h', '--help')
 @click.pass_context
-def pyephys(ctx, pdb=None, ipython=None, prof=None, lprof=None):
+def pysortgui_cli(ctx, pdb=None, ipython=None, prof=None, lprof=None):
     """
-    pyephys command line interface.
+    pysortgui command line interface.
 
     \b
     For help on entries listed below:
-    >>>pyephys `entry` --help"""
+    >>>pysortgui-cli `entry` --help"""
     pass
 
 
@@ -23,8 +23,8 @@ def pyephys(ctx, pdb=None, ipython=None, prof=None, lprof=None):
 #     print(f'Hello, {to or "stranger"}!')
 
 def launch_cli():
-    DataConvert().attach_to_cli(pyephys)
-    pyephys()
+    DataConvert().attach_to_cli(pysortgui_cli)
+    pysortgui_cli()
 
 
 if __name__ == '__main__':
