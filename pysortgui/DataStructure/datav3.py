@@ -200,7 +200,7 @@ class SpikeSorterData(object):
         raw_object._loadData()
 
     def getSpike(self, channel: int | str, label: str, load_data: bool = False) -> DiscreteData | None:
-        """_summary_
+        """Get spike DiscreteData
 
         Args:
             channel (int | str): channel ID or channel name.
@@ -239,6 +239,15 @@ class SpikeSorterData(object):
 
     @lru_cache(maxsize=32)
     def subtractReference(self, channel_ID: int, reference_ID: int) -> ContinuousData:
+        """Subtract raws signal with reference signal, to increase the signal-noise-ratio.
+
+        Args:
+            channel_ID (int): raws signal channel ID
+            reference_ID (int): reference signal channel ID. Input -1 means skip this step.
+
+        Returns:
+            ContinuousData: new filted ContinuousData 
+        """
         ch_object = self.getRaw(channel_ID, load_data=True)
         ref_object = self.getRaw(reference_ID, load_data=True)
 
@@ -466,6 +475,7 @@ class ContinuousData(object):
 
     @property
     def timestamps(self):
+        """Timestamps for correct time drift."""
         if self._timestamps is None:
             return None
         return self._timestamps
@@ -475,7 +485,15 @@ class ContinuousData(object):
         return self._data
 
     @property
-    def data_type(self):
+    def data_type(self) -> str:
+        """Data type of this ContinuousData.\n 
+        Raws: raws signal from file/folder\n 
+        Filted: processed signal(include subtract ref, filter, extract wavs...)\n 
+        Ref: reference signal create from raws signals
+
+        Returns:
+            str: Data type of
+        """
         return self._data_type
 
     @property
@@ -563,7 +581,16 @@ class ContinuousData(object):
         if isinstance(threshold, (int, float)):
             self._header['Threshold'] = threshold
 
-    def subtractReference(self, array: np.ndarray, reference: int) -> ContinuousData | None:
+    def subtractReference(self, array: np.ndarray, reference: int) -> ContinuousData:
+        """Subtract with given reference signal.
+
+        Args:
+            array (np.ndarray): reference signal
+            reference (int): reference channel ID
+
+        Returns:
+            ContinuousData: filted ContinuousData
+        """
         result = self.data - np.asarray(array)
 
         return self.createCopy(input_array=result, reference=reference)
@@ -572,7 +599,16 @@ class ContinuousData(object):
         #     return result
 
     @lru_cache(maxsize=4)
-    def bandpassFilter(self, low, high) -> ContinuousData | None:
+    def bandpassFilter(self, low: float, high: float) -> ContinuousData:
+        """Perform bandpass on this signal, Return filted ContinuousData
+
+        Args:
+            low (float): low cut off for bandpass
+            high (float): high cut off for bandpass
+
+        Returns:
+            ContinuousData: filted ContinuousData
+        """
         order = 4
         filter_family = 'Butterworth'
 
@@ -598,7 +634,15 @@ class ContinuousData(object):
         self._estimated_sd = float(np.median(np.abs(self._data) / 0.6745))
         return self.estimated_sd
 
-    def extractWaveforms(self, threshold=None) -> DiscreteData:
+    def extractWaveforms(self, threshold: float = None) -> DiscreteData:
+        """Detect spikes and create spike DiscreteData
+
+        Args:
+            threshold (float, optional): threshold for spike detection. Defaults to None.
+
+        Returns:
+            DiscreteData: spike DiscreteData
+        """
         if threshold is None:
             threshold = self.threshold
         waveforms, timestamps = extract_waveforms(
@@ -823,6 +867,13 @@ class DiscreteData(object):
 
     @property
     def data_type(self) -> str:
+        """Data type of this DiscreteData.\n
+        Spikes: spike data\n
+        Events: event data
+
+        Returns:
+            str: Data type of DiscreteData.
+        """
         return self._data_type
 
     def isLoaded(self) -> bool:
@@ -875,7 +926,19 @@ class DiscreteData(object):
         if not self._unit_IDs is None:
             self._header['NumUnits'] = len(np.unique(self._unit_IDs))
 
-    def setUnit(self, new_unit_IDs, new_unit_header: pd.DataFrame | None = None, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> DiscreteData | None:
+    def setUnit(self, new_unit_IDs, new_unit_header: pd.DataFrame | None = None,
+                unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> DiscreteData:
+        """Set unit ID array. Return a new DiscreteData.
+
+        Args:
+            new_unit_IDs (array-like): new unit IDs array
+            new_unit_header (pd.DataFrame | None, optional): new unit header. if None will generate automaticly. Defaults to None.
+            unsorted_unit_ID (int | None, optional): unsorted unit ID. Use to generate unit header. Defaults to None.
+            invalid_unit_ID (int | None, optional): invalid unit ID. Use to generate unit header. Defaults to None.
+
+        Returns:
+            DiscreteData: new spike DiscreteData with new unit IDs and header
+        """
         if self._data_type != 'Spikes':
             logger.warning('Not spike type data.')
             return
@@ -901,6 +964,16 @@ class DiscreteData(object):
                               waveforms=self._waveforms)
 
     def createUnitHeader(self, unit_IDs, unsorted_unit_ID: int | None = None, invalid_unit_ID: int | None = None) -> pd.DataFrame:
+        """Generate unit header.
+
+        Args:
+            unit_IDs (array-like): unit IDs array
+            unsorted_unit_ID (int | None, optional): unsorted unit ID. Defaults to None.
+            invalid_unit_ID (int | None, optional): invalid unit ID. Defaults to None.
+
+        Returns:
+            pd.DataFrame: unit header
+        """
         values, counts = np.unique(unit_IDs, return_counts=True)
 
         new_unit_header = pd.DataFrame({'ID': values,
@@ -909,6 +982,7 @@ class DiscreteData(object):
                                         })
         new_unit_header['UnitType'] = 'Unit'
 
+        # generate unsorted unit header
         if not unsorted_unit_ID is None:
             if unsorted_unit_ID in new_unit_header['ID'].to_list():
                 new_unit_header.loc[new_unit_header['ID'] == unsorted_unit_ID, ['Name', 'UnitType']] = [
@@ -921,6 +995,7 @@ class DiscreteData(object):
                 new_unit_header = pd.concat([new_unit_header, unsorted_unit_header],
                                             axis=0)
 
+        # generate invalid unit header
         if not invalid_unit_ID is None:
             if invalid_unit_ID in new_unit_header['ID'].to_list():
                 new_unit_header.loc[new_unit_header['ID'] == invalid_unit_ID, ['Name', 'UnitType']] = [
@@ -963,10 +1038,8 @@ class DiscreteData(object):
         return transformed_data
 
     def autosort(self):
-        """by default unsorted unit id is 0, and invalid unit id is the last.
-
-        Returns:
-            _type_: _description_
+        """Use Klustakwik to sort spikes.
+        By default unsorted unit id is 0, and invalid unit id is the last.
         """
         if self._data_type != 'Spikes':
             logger.warning('Not spike type data.')
