@@ -1,4 +1,4 @@
-
+# modified from pyephys.plugins.__init__.py
 """Plugin system.
 This module deals with the plugin system to add functionalities to the PyEphys package.
 The code used here is based upon:
