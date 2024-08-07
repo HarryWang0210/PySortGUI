@@ -1,3 +1,4 @@
+# modified from spikesortergl.proclib.lib_sort.py
 import numpy as np
 import os
 import platform

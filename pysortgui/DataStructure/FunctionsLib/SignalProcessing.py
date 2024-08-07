@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# modified from pyephys.FunctionsLib...
 """
 Created on Tue Oct 22 01:09:36 2013
 makes use of scipi.signal

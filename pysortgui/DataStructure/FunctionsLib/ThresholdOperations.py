@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# modified from pyephys.FunctionsLib...
 
 """
 Library for threshold operations on continuous signals

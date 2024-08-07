@@ -1,3 +1,4 @@
+# modified from pyephys.FunctionsLib...
 '''
 Created on Jul 16, 2014
 
