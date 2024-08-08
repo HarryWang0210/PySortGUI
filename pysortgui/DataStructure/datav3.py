@@ -757,8 +757,8 @@ class DiscreteData(object):
 
             # if _from_file and self._data_type in 'Spikes':
             #     pass
-            # elif _from_file and self._data_type == 'Events':
-            #     self._loadData()
+            elif _from_file and self._data_type == 'Events':
+                self._loadData()
             # else:
             #     self._data_loaded = True
             #     logger.critical('No data input!!!')
