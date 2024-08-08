@@ -644,7 +644,7 @@ def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
 
     # Events
     for ID in data_object.event_IDs:
-        events_object = data_object.getEvent(ID, )
+        events_object = data_object.getEvent(ID)
         events_header = EventsHeader.model_validate(events_object.header,
                                                     extra='allow')
         saveEvents(filename=new_filename, ID=ID,
