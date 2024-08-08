@@ -6,4 +6,4 @@ pandas
 PyQt5
 pyopengl
 pyqtgraph==0.13.3
-
+click
