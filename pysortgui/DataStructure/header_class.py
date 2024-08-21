@@ -152,21 +152,25 @@ class EventsHeader(BaseHeader):
             self.NumEvents = self.NumUnits
 
 
-def convertStringToBoolean(value: str):
+def convertStringAndNumToBoolean(value: str):
     try:
-        if value.lower() == 'true':
-            return True
-        if value.lower() == 'false':
-            return False
-
         return bool(int(value))
+    except:
+        pass
+
+    try:
+        v = value.decode()
+        if v.lower() == 'true':
+            return True
+        if v.lower() == 'false':
+            return False
     except:
         logger.warning(
             f"Can not convert value {value} to type Boolean, use False by default.")
         return False
 
 
-@convert_and_enforce_types(convert_types=[(bool, convertStringToBoolean)])
+@convert_and_enforce_types(convert_types=[(bool, convertStringAndNumToBoolean)])
 @dataclass
 class SpikesHeader(BaseHeader):
     Type: str = 'Spikes'
