@@ -5,19 +5,22 @@ Created on Dec 5, 2022
 
 @author: harry wang
 '''
+import argparse
 # This Python file uses the following encoding: utf-8
 import logging
 import sys
 
-from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QApplication
+
+# Load Widgets
+from pysortgui.MainWindowDocks import MainWindowDocks
+
 # Important:
 # You need to run the following command to generate the ui_form.py file
 #     pyside6-uic form.ui -o ui_form.py, or
 #     pyside2-uic form.ui -o ui_form.py
 
-# Load Widgets
-from pysortgui.MainWindowDocks import MainWindowDocks
 
 # logging.basicConfig(
 #     level=logging.DEBUG,
@@ -316,6 +319,18 @@ class PySortGUI(MainWindowDocks):
 def launch_app():
     """Start this gui app
     """
+    parser = argparse.ArgumentParser(description='Process some arguments.')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debug level logger')
+
+    args = parser.parse_args()
+
+    if args.debug:
+        root_logger = logging.getLogger('pysortgui')
+        for handler in root_logger.handlers:
+            handler.setLevel(logging.DEBUG)
+        logger.debug("Enable debug logger")
+
     app = QApplication(sys.argv)
     window = PySortGUI()
     window.show()
