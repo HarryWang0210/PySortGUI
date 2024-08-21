@@ -655,8 +655,9 @@ def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
 
 
 def dataframeToRecarry(df: pd.DataFrame):
-    object_cols = df.dtypes[df.dtypes == 'object'].index
-    string_len = df[object_cols].applymap(len)
+    object_cols = df.dtypes[(df.dtypes == 'object') |
+                            (df.dtypes == 'bool')].index
+    string_len = df[object_cols].applymap(lambda x: len(str(x)))
     max_length = string_len.max()
     max_length = max_length.apply(lambda x: f'S{x}' if x > 0 else 'S1')
     return df.to_records(index=False,
