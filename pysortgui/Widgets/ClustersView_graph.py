@@ -60,9 +60,6 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.current_wavs_mask: np.ndarray = None
         self.cache_global_pca: np.ndarray = None
 
-        self.snapshot_wavs_mask: np.ndarray = None
-        self.cache_selection_pca: np.ndarray = None
-
         self.current_showing_data: np.ndarray = None
         self.cache_unit_colors: np.ndarray = None
 
@@ -70,6 +67,10 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.current_showing_units: list = []
 
         self.nearest_point_index = None
+
+        self.feature_selection_max_abs_transformer = None
+        self.feature_selection_pca_transformer = None
+
         self.initPlotItem()
 
     def initPlotItem(self):
@@ -127,8 +128,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.current_wavs_mask: np.ndarray = None
         self.cache_global_pca: np.ndarray = None
 
-        self.snapshot_wavs_mask: np.ndarray = None
-        self.cache_selection_pca: np.ndarray = None
+        self.feature_selection_max_abs_transformer = None
+        self.feature_selection_pca_transformer = None
 
         self.current_showing_data: np.ndarray = None
         self.cache_unit_colors: np.ndarray = None
@@ -172,9 +173,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         if not self.current_spike_object._waveforms is last_spike_object._waveforms:
             # not same spikes orig
             self.cache_global_pca = None
-            self.snapshot_wavs_mask = None
-            self.cache_selection_pca = None
-
+            self.feature_selection_max_abs_transformer = None
+            self.feature_selection_pca_transformer = None
         # self.has_spikes = not self.current_spike_object is None
         # self.updatePlot()
 
@@ -227,8 +227,8 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
         self.feature_on_selection = state
         if not self.feature_on_selection:
             # reset cache
-            self.cache_selection_pca = None
-            self.snapshot_wavs_mask = None
+            self.feature_selection_pca_transformer = None
+            self.feature_selection_max_abs_transformer = None
 
         self.updatePlot()
 
@@ -244,17 +244,23 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                                          self.current_showing_units)
 
         if self.feature_on_selection:
-            if self.cache_selection_pca is None or np.any(np.logical_and(self.current_wavs_mask, np.logical_not(self.snapshot_wavs_mask))):
+            if self.feature_selection_pca_transformer is None:
                 # no cache
-                self.cache_selection_pca = self.current_spike_object.waveformsPCA(selected_unit_IDs=self.current_showing_units,
-                                                                                  n_components=3,
-                                                                                  ignore_invalid=False)
-                self.cache_selection_pca = MaxAbsScaler().fit_transform(self.cache_selection_pca)
-                new_pca = self.cache_selection_pca
-                self.snapshot_wavs_mask = self.current_wavs_mask
+                new_pca, self.feature_selection_pca_transformer = self.current_spike_object.waveformsPCA(selected_unit_IDs=self.current_showing_units,
+                                                                                                         n_components=3,
+                                                                                                         ignore_invalid=False,
+                                                                                                         return_transformer=True)
+                self.feature_selection_max_abs_transformer = MaxAbsScaler().fit(new_pca)
+                new_pca = self.feature_selection_max_abs_transformer.transform(
+                    new_pca)
 
             else:
-                new_pca = self.cache_selection_pca[self.current_wavs_mask[self.snapshot_wavs_mask]]
+                new_pca = self.current_spike_object.waveformsPCA(selected_unit_IDs=self.current_showing_units,
+                                                                 n_components=3,
+                                                                 ignore_invalid=False,
+                                                                 transformer=self.feature_selection_pca_transformer)
+                new_pca = self.feature_selection_max_abs_transformer.transform(
+                    new_pca)
 
         else:
             if self.cache_global_pca is None:
