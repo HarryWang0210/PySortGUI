@@ -359,6 +359,13 @@ class SpikeSorterData(object):
                              data=raw_object.data)
             raw_object._from_file = True
 
+    def saveAll(self):
+        """Save all changed by one step."""
+        for channel_ID in self.channel_IDs:
+            self.saveReference(channel_ID)
+            
+            self.saveChannel(channel_ID)
+
     def export(self, new_filename: str, data_format: str = 'pyephys'):
         if data_format == 'pyephys':
             if os.path.splitext(new_filename)[1] != '.h5':
