@@ -21,6 +21,7 @@ class DataConvert(IPlugin):
     def attach_to_cli(self, cli):
 
         @cli.group()
+        @click.help_option('-h', '--help')
         def data():
             '''
             Data convert group
