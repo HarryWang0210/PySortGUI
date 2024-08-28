@@ -363,7 +363,7 @@ class SpikeSorterData(object):
         """Save all changed by one step."""
         for channel_ID in self.channel_IDs:
             self.saveReference(channel_ID)
-            
+
             self.saveChannel(channel_ID)
 
     def export(self, new_filename: str, data_format: str = 'pyephys'):
@@ -1019,14 +1019,17 @@ class DiscreteData(object):
 
         return new_unit_header
 
-    def waveformsPCA(self, selected_unit_IDs: list = None, n_components: int = None, ignore_invalid: bool = False) -> np.ndarray:
+    def waveformsPCA(self, selected_unit_IDs: list = None, n_components: int = None,
+                     ignore_invalid: bool = False, return_transformer: bool = False,
+                     transformer=None):
         """Performing PCA on given units.
 
         Args:
             selected_unit_IDs (list, optional): The list of unit ids that want to perform PCA. If the value is None, use all unit. Defaults to None.
             n_components (int, optional): The arg for PCA. If the value is None, return all. Defaults to None.
-            ignore_invalid (bool, optional): If the value is True, excluding invalid unit before perform PCA . Defaults to False.
-
+            ignore_invalid (bool, optional): If the value is True, excluding invalid unit before perform PCA. Defaults to False.
+            return_transformer (bool, optional): Defaults to False.
+            transformer (optional): Defaults to None.
         Returns:
             np.ndarray: The finial PCA result.
         """
@@ -1040,8 +1043,14 @@ class DiscreteData(object):
                 selected_unit_IDs.remove(self.invalid_unit_ID)
 
         mask = np.isin(self._unit_IDs, selected_unit_IDs)
-        transformed_data = PCA(n_components).fit_transform(
+
+        if transformer is None:
+            transformer = PCA(n_components).fit(self.waveforms[mask])
+        transformed_data = transformer.transform(
             self.waveforms[mask])
+
+        if return_transformer:
+            return transformed_data, transformer
         return transformed_data
 
     def autosort(self):
