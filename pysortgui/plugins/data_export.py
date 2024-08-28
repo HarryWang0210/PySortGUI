@@ -55,3 +55,56 @@ class DataConvert(IPlugin):
 
                 data_object.export(new_filename=new_filename,
                                    data_format=output_format)
+
+        @data.command('create_ref')
+        @click.argument('channels', nargs=-1, type=click.INT)
+        @click.option('--path', 'path',
+                      type=click.Path(
+                          exists=True, file_okay=True, dir_okay=True),
+                      nargs=1, default='.',
+                      help='Path to the data file or folder. Uses the current path by default.')
+        @click.option('-i', '--input_format', 'input_format', type=click.STRING, nargs=1,
+                      default='pyephys', show_default=True,
+                      help='Input file/folder format. If the output format does not match the input format, the data will be exported in the output format.')
+        @click.option('-o', '--output_format', 'output_format', type=click.STRING, nargs=1,
+                      default='pyephys', show_default=True,
+                      help='Output file/folder format. If the output format does not match the input format, the data will be exported in the output format.')
+        @click.option('-n', '--name', 'name', type=click.STRING, nargs=1,
+                      help='New channel name.')
+        @click.option('--comment', type=click.STRING, nargs=1)
+        @click.option('-m', '--method', type=click.STRING, nargs=1,
+                      default='median', show_default=True)
+        @click.help_option('-h', '--help')
+        @click.pass_context
+        def create_reference(ctx, channels, path, input_format, output_format,
+                             name, comment, method):
+            """Create common reference channel by given channels."""
+
+            if method != 'median':
+                logger.error(
+                    f'Can not create reference channel by {method} method!')
+                return
+            channels = set(channels)
+            data_object = SpikeSorterData(file_or_folder=path,
+                                          data_format=input_format)
+            channel_text = ', '.join([str(i) for i in channels])
+            if name is None:
+                name = f'{method}Ref({channel_text})'
+
+            if comment is None:
+                comment = f'This channel is a {method.lower()} reference channel made from ' +\
+                    f'{channel_text}'
+
+            new_ref_object = data_object.createMedianReference(
+                list(channels), name, comment)
+
+            if output_format != input_format:
+                new_filename = data_object.path
+                if output_format == 'pyephys':
+                    new_filename = os.path.splitext(new_filename)[0] + '.h5'
+                    logger.info(f'Export and save result to {new_filename}...')
+                    data_object.export(new_filename=new_filename,
+                                       data_format=output_format)
+            else:
+                logger.info(f'Save result to {path}...')
+                data_object.saveChannel(new_ref_object.channel_ID)
