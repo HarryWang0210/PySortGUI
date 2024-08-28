@@ -1,6 +1,8 @@
 import logging
 
 import click
+
+from pysortgui.plugins.autosort import SortPlugin
 from pysortgui.plugins.data_export import DataConvert
 
 logger = logging.getLogger(__name__)
@@ -29,8 +31,11 @@ def pysortgui_cli(ctx, debug):
 #     '''Say hello to someone'''
 #     print(f'Hello, {to or "stranger"}!')
 
+
 def launch_cli():
     DataConvert().attach_to_cli(pysortgui_cli)
+    SortPlugin().attach_to_cli(pysortgui_cli)
+
     pysortgui_cli()
 
 
