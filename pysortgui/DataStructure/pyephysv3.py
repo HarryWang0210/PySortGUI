@@ -161,8 +161,10 @@ def loadSpikes(filename, path):
             spike_chan._f_get_child("UnitsHeader").read())
 
         # convert to string
-        df_units_header = df_units_header.applymap(lambda x: x.decode(
-            'utf-8') if isinstance(x, bytes) else x)
+        # df_units_header = df_units_header.applymap(lambda x: x.decode(
+        #     'utf-8') if isinstance(x, bytes) else x)
+        df_units_header = df_units_header.apply(lambda col: col.map(
+            lambda x: x.decode('utf-8') if isinstance(x, bytes) else x))
 
         if 'UnitType' not in df_units_header.columns:
             df_units_header['UnitType'] = 'Unit'
@@ -206,9 +208,10 @@ def loadEvents(filename, path):
             event_node._f_get_child("EventsHeader").read())
 
         # convert to string
-        df_units_header = df_units_header.applymap(lambda x: x.decode(
-            'utf-8') if isinstance(x, bytes) else x)
-
+        # df_units_header = df_units_header.applymap(lambda x: x.decode(
+        #     'utf-8') if isinstance(x, bytes) else x)
+        df_units_header = df_units_header.apply(lambda col: col.map(
+            lambda x: x.decode('utf-8') if isinstance(x, bytes) else x))
         # if 'UnitType' not in df_units_header.columns:
         #     df_units_header['UnitType'] = 'Unit'
 
@@ -657,7 +660,8 @@ def exportToPyephys(new_filename: str, data_object: SpikeSorterData):
 def dataframeToRecarry(df: pd.DataFrame):
     object_cols = df.dtypes[(df.dtypes == 'object') |
                             (df.dtypes == 'bool')].index
-    string_len = df[object_cols].applymap(lambda x: len(str(x)))
+    # string_len = df[object_cols].applymap(lambda x: len(str(x)))
+    string_len = df[object_cols].apply(lambda col: col.map(lambda x: len(str(x))))
     max_length = string_len.max()
     max_length = max_length.apply(lambda x: f'S{x}' if x > 0 else 'S1')
     return df.to_records(index=False,
