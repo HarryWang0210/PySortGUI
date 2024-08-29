@@ -177,7 +177,7 @@ class SortPlugin(IPlugin):
         @sorting.group()
         @click.help_option('-h', '--help')
         def pipeline():
-            """Processing pipeline group: Combine multiple steps to one step."""
+            """Processing pipeline group: Combine multiple steps into one step."""
             pass
 
         @pipeline.command('autosort')

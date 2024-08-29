@@ -24,7 +24,7 @@ class DataConvert(IPlugin):
         @click.help_option('-h', '--help')
         def data():
             '''
-            Data convert group
+            Data utilities group
             '''
             pass
         # import command
@@ -40,8 +40,8 @@ class DataConvert(IPlugin):
         @click.help_option('-h', '--help')
         @click.pass_context
         def convert_files(ctx, paths, input_format, output_format):
-            """Convert the file or folder from input_format to output_format.
-            Can convert multiple files."""
+            """Convert files or folders from input_format to output_format.
+            Supports conversion of multiple files."""
             if len(paths) == 0:
                 paths = '.'
 
@@ -78,7 +78,7 @@ class DataConvert(IPlugin):
         @click.pass_context
         def create_reference(ctx, channels, path, input_format, output_format,
                              name, comment, method):
-            """Create common reference channel by given channels."""
+            """Create a common reference channel from the given channels."""
 
             if method != 'median':
                 logger.error(
