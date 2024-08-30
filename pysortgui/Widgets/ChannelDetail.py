@@ -404,7 +404,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         if filename == "":
             filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Open file",
                                                                        self.default_root_folder,
-                                                                       ";;".join(self.file_type_dict.values()))  # start path
+                                                                       # start path
+                                                                       ";;".join(self.file_type_dict.values()))
         if filename == "":
             return
         if isinstance(self.current_data_object, SpikeSorterData):
@@ -815,13 +816,14 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         meta_data = self.rowItemsToMetadata(row_items)
         if meta_data['Type'] == 'Ref':
-            self.current_data_object.saveReference(channel_ID)
-            if raw_object == 'Removed':
-                self.raws_group_item.removeRow(channel_row)
-            else:
-                # self.current_data_object.saveReference(channel_ID)
-                # self.updataTreeView(row_items, raw_object)
-                self.setUnsavedChangeIndicator(row_items, raw_object)
+            # move to createReference and deleteReference
+            # self.current_data_object.saveReference(channel_ID)
+            # if raw_object == 'Removed':
+            #     self.raws_group_item.removeRow(channel_row)
+            # else:
+            #     # self.current_data_object.saveReference(channel_ID)
+            #     # self.updataTreeView(row_items, raw_object)
+            #     self.setUnsavedChangeIndicator(row_items, raw_object)
             return
 
         selecting_label = self.dropSuffix(
@@ -895,6 +897,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         #     ID_item.removeRow(label_item.row())
 
     def createReference(self):
+        """create reference and save changed"""
         if self.current_data_object is None:
             logger.warning('Not load data yet.')
 
@@ -910,7 +913,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
                                                                         new_comment=dialog.comment_lineEdit.text())
         new_row_items = self.createRowItems(new_raw_object.header)
         self.raws_group_item.appendRow(new_row_items)
-        self.setUnsavedChangeIndicator(new_row_items, new_raw_object)
+        self.current_data_object.saveReference(new_raw_object.channel_ID)
+        # self.setUnsavedChangeIndicator(new_row_items, new_raw_object)
 
         selection_model = self.treeView.selectionModel()
         selection_model.select(
@@ -918,6 +922,7 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         self.treeView.scrollTo(new_row_items[0].index())
 
     def deleteReference(self):
+        """delete reference and save changed"""
         row_items = self.getSelectedRowItems()
         meta_data = self.rowItemsToMetadata(row_items)
         row_type = meta_data['Type']
@@ -928,20 +933,24 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
 
         channel_ID = self.current_raw_object.channel_ID
         self.current_data_object.removeReference(channel_ID)
+        self.current_data_object.saveReference(channel_ID)
         logger.info(f'Delete reference channel {channel_ID}.')
 
         ID_item = row_items[0]
-        if not ID_item.text().endswith(self.unsaved_suffix):
-            ID_item.setText(ID_item.text() + self.unsaved_suffix)
-            font = ID_item.font()
-            font.setBold(True)
-            ID_item.setFont(font)
+        channel_row = ID_item.row()
+        self.raws_group_item.removeRow(channel_row)
 
-        for item in row_items[1:]:
-            font = ID_item.font()
-            font.setBold(False)
-            item.setFont(font)
-            item.setForeground(QColor('darkGray'))
+        # if not ID_item.text().endswith(self.unsaved_suffix):
+        #     ID_item.setText(ID_item.text() + self.unsaved_suffix)
+        #     font = ID_item.font()
+        #     font.setBold(True)
+        #     ID_item.setFont(font)
+
+        # for item in row_items[1:]:
+        #     font = ID_item.font()
+        #     font.setBold(False)
+        #     item.setFont(font)
+        #     item.setForeground(QColor('darkGray'))
 
         self.current_raw_object = None
         self.current_filted_object = None
@@ -960,7 +969,8 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         default_filename = os.path.splitext(
             self.current_data_object.path)[0] + '.h5'
         new_filename, filetype = QtWidgets.QFileDialog.getSaveFileName(self, "Export file", default_filename,
-                                                                       ";;".join(self.file_type_dict.values()))  # start path
+                                                                       # start path
+                                                                       ";;".join(self.file_type_dict.values()))
         if new_filename == "":
             return
 
