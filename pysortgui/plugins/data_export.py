@@ -107,4 +107,4 @@ class DataConvert(IPlugin):
                                        data_format=output_format)
             else:
                 logger.info(f'Save result to {path}...')
-                data_object.saveChannel(new_ref_object.channel_ID)
+                data_object.saveReference(new_ref_object.channel_ID)
