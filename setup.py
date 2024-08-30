@@ -13,7 +13,7 @@ long_description = pathlib.Path("README.md").read_text(encoding="utf8")
 
 setup(
     name="pysortgui",
-    version="0.3.1",
+    version="0.3.2",
     packages=find_packages(),
     entry_points={
         'console_scripts': [
