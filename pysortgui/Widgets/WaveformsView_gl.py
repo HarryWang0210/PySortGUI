@@ -114,6 +114,7 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         self.updatePlot()
 
     def showing_spike_data_changed(self, new_spike_object: DiscreteData | None):
+        last_spike_object = self.current_spike_object
         self.current_spike_object = new_spike_object
 
         # self.has_spikes = True
@@ -123,6 +124,21 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
             self.plot_visible = False
             self.updatePlot()
             return
+
+        if last_spike_object is None:
+            pass
+        elif (self.current_spike_object.channel_ID == last_spike_object.channel_ID) and \
+                (self.current_spike_object.label == last_spike_object.label):
+            logger.debug('same orgin')
+            self.updatePlot()
+            return
+
+        # if (not last_spike_object is None) and \
+        #         (self.current_spike_object._origin is last_spike_object._origin):
+        #     logger.debug('same orgin')
+        #     self.updatePlot()
+        #     return
+
         data_scale = np.max(np.abs(self.current_spike_object.waveforms)) / 2
         self._x_range = (0, self.current_spike_object.waveforms.shape[1] - 1)
         self._y_scale = (
