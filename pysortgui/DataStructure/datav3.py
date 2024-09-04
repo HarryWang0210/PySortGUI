@@ -280,6 +280,7 @@ class SpikeSorterData(object):
         return
 
     def saveChannel(self, channel_ID):
+        logger.info(f'Saving spike result to {self.path}...')
         if self._data_format != 'pyephys':
             logger.critical(f'Spikes save method do not support for {self._data_format} format.\n' +
                             'Please export to pyephys format.')
@@ -313,6 +314,7 @@ class SpikeSorterData(object):
                                    timestamps=spike_object.timestamps,
                                    waveforms=spike_object.waveforms)
                 spike_object._from_file = True
+        logger.info('Done!')
 
         # records = []
         # for ID in self.channel_IDs:
@@ -339,6 +341,7 @@ class SpikeSorterData(object):
         # logger.debug(self.spikes_header)
 
     def saveReference(self, channel_ID: int):
+        logger.info(f'Saving reference channel to {self.path}...')
         if self._data_format != 'pyephys':
             logger.critical(f'Reference save method do not support for {self._data_format} format.\n' +
                             'Please export to pyephys format.')
@@ -358,6 +361,7 @@ class SpikeSorterData(object):
                                                               extra='allow'),
                              data=raw_object.data)
             raw_object._from_file = True
+        logger.info('Done!')
 
     def saveAll(self):
         """Save all changed by one step."""
@@ -386,7 +390,7 @@ class SpikeSorterData(object):
         if data_format == 'pyephys':
             if os.path.splitext(new_filename)[1] != '.h5':
                 new_filename = os.path.splitext(new_filename)[0] + '.h5'
-
+            logger.info(f'Export and save result to {new_filename}...')
             pyephys.exportToPyephys(new_filename, self)
 
         else:
@@ -677,7 +681,8 @@ class ContinuousData(object):
         unit_IDs = np.zeros(len(timestamps), dtype=int)
 
         header = self.header
-        header['Comment'] = f'Extracted on {datetime.datetime.today().strftime("%Y-%b-%d")}'
+        header['Comment'] = f'Extracted on {
+            datetime.datetime.today().strftime("%Y-%b-%d")}'
         header['NumRecords'] = len(unit_IDs)
         header['Type'] = 'Spikes'
         header['ReferenceID'] = self.reference

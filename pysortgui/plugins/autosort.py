@@ -88,9 +88,7 @@ class SortPlugin(IPlugin):
             if output_format != input_format:
                 data_object.export(data_format=output_format)
             else:
-                logger.info(f'Save result to {path}...')
                 data_object.saveAll()
-                # logger.debug('Unimplemented')
 
         @sorting.command('autosort')
         @click.argument('spikes', nargs=-1, type=click.STRING)
@@ -161,7 +159,6 @@ class SortPlugin(IPlugin):
             if output_format != input_format:
                 data_object.export(data_format=output_format)
             else:
-                logger.info(f'Save result to {path}...')
                 data_object.saveAll()
 
         @sorting.group()
@@ -236,5 +233,4 @@ class SortPlugin(IPlugin):
             if output_format != input_format:
                 data_object.export(data_format=output_format)
             else:
-                logger.info(f'Save result to {path}...')
                 data_object.saveAll()
