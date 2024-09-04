@@ -201,7 +201,9 @@ class TimelineViewGraph(pg.PlotWidget):
         self.updatePlot()
 
     def continuous_data_changed(self, new_raw_object, new_filted_object):
+        last_raw_object = self.current_raw_object
         self.current_raw_object: ContinuousData | None = new_raw_object
+        last_filted_object = self.current_filted_object
         self.current_filted_object: ContinuousData | None = new_filted_object
         self.current_spike_object = None
 
@@ -227,9 +229,11 @@ class TimelineViewGraph(pg.PlotWidget):
             self.thr = self.current_filted_object.threshold
             self.redraw_thr = True
 
-        self.num_data_show = self.DEFAULT_DATA_SHOW
-        self._x_range = (0, self.num_data_show)
-        self._y_range = (-data_scale, data_scale)
+        if (last_raw_object is None) or \
+                (self.current_raw_object.channel_ID != last_raw_object.channel_ID):
+            self.num_data_show = self.DEFAULT_DATA_SHOW
+            self._x_range = (0, self.num_data_show)
+            self._y_range = (-data_scale, data_scale)
 
         self.redraw_bg = True
         self.redraw_spikes = True
