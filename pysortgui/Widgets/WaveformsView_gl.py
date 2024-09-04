@@ -74,15 +74,20 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         self.waveform_item.setGLOptions('opaque')  # not to mix color
         self.addItem(self.waveform_item)
 
-        self.thr_item = gl.GLLinePlotItem(width=2, mode='lines')
-        self.thr_item.setDepthValue(1)
+        self.y_baseline_item = gl.GLLinePlotItem(width=2, mode='lines')
+        self.y_baseline_item.setDepthValue(1)
+        self.y_baseline_item.setVisible(False)
+        self.addItem(self.y_baseline_item)
+
+        self.thr_item = gl.GLLinePlotItem(width=2, mode='lines', color='g')
+        self.thr_item.setDepthValue(2)
         self.thr_item.setVisible(False)
         self.addItem(self.thr_item)
 
         # self.select_point_item = SelectWaveformGLItem()
         self.select_point_item = gl.GLLinePlotItem(
             width=2, color='w', mode='line_strip')
-        self.select_point_item.setDepthValue(2)
+        self.select_point_item.setDepthValue(3)
         self.select_point_item.setVisible(False)
         self.addItem(self.select_point_item)
 
@@ -182,6 +187,7 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
             self.drawThreshold()
         self.waveform_item.setVisible(visible)
         self.thr_item.setVisible(visible)
+        self.y_baseline_item.setVisible(visible)
 
         # self.plot_item.getViewBox().setXRange(*self._x_range, padding=0)
         # self.plot_item.getViewBox().setYRange(*self._y_range, padding=0)
@@ -199,6 +205,10 @@ class WaveformsView(gl.GLViewWidget, WidgetsInterface):
         pos = np.vstack([x, y, z]).transpose()
 
         self.thr_item.setData(pos=pos)
+
+        y = np.zeros(len(x))
+        pos = np.vstack([x, y, z]).transpose()
+        self.y_baseline_item.setData(pos=pos)
 
     def drawWaveforms(self):
         # create elements
