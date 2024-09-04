@@ -46,9 +46,9 @@ class SortPlugin(IPlugin):
                       - For the "const" type, input the threshold directly as the value. \n\b
                       e.g. -t mad -3""")
         @click.option('-f', '--filter', 'filter_setting', type=(click.FLOAT, click.FLOAT), nargs=2,
-                      default=(250, 3000), show_default=True,
+                      default=(250, 6000), show_default=True,
                       help="""Bandpass filter values, including low cutoff and high cutoff. \n\b
-                      e.g. -f 250 3000""")
+                      e.g. -f 250 6000""")
         @click.help_option('-h', '--help')
         @click.pass_context
         def extract_waveforms(ctx, channels, path, input_format, output_format,
@@ -203,9 +203,9 @@ class SortPlugin(IPlugin):
                       - For the "const" type, input the threshold directly as the value. \n\b
                       e.g. -t mad -3""")
         @click.option('-f', '--filter', 'filter_setting', type=(click.FLOAT, click.FLOAT), nargs=2,
-                      default=(250, 3000), show_default=True,
+                      default=(250, 6000), show_default=True,
                       help="""Bandpass filter values, including low cutoff and high cutoff. \n\b
-                      e.g. -f 250 3000""")
+                      e.g. -f 250 6000""")
         @click.help_option('-h', '--help')
         @click.pass_context
         def autosort_pipeline(ctx, channels, path, input_format, output_format,
