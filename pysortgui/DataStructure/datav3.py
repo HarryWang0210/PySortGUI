@@ -366,7 +366,23 @@ class SpikeSorterData(object):
 
             self.saveChannel(channel_ID)
 
-    def export(self, new_filename: str, data_format: str = 'pyephys'):
+    def export(self, new_filename: str = '', data_format: str = 'pyephys'):
+        """Export data to other format. Currently only has pyephys format.
+
+        Args:
+            new_filename (str, optional): New filename to export. 
+            If is '', save it in a folder named after the file's basename (without the extension). 
+            If the folder does not exist, create it.Defaults to ''.
+            data_format (str, optional): _description_. Defaults to 'pyephys'.
+        """
+
+        if new_filename == '':
+            dirname = os.path.splitext(self.path)[0]
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+            first_basename = os.path.basename(dirname)
+            new_filename = os.path.join(dirname, first_basename)
+
         if data_format == 'pyephys':
             if os.path.splitext(new_filename)[1] != '.h5':
                 new_filename = os.path.splitext(new_filename)[0] + '.h5'

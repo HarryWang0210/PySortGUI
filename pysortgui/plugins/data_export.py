@@ -48,13 +48,7 @@ class DataConvert(IPlugin):
             for path in paths:
                 data_object = SpikeSorterData(file_or_folder=path,
                                               data_format=input_format)
-
-                new_filename = data_object.path
-                if output_format == 'pyephys':
-                    new_filename = os.path.splitext(new_filename)[0] + '.h5'
-
-                data_object.export(new_filename=new_filename,
-                                   data_format=output_format)
+                data_object.export(data_format=output_format)
 
         @data.command('create_ref')
         @click.argument('channels', nargs=-1, type=click.INT)
@@ -99,12 +93,7 @@ class DataConvert(IPlugin):
                 list(channels), name, comment)
 
             if output_format != input_format:
-                new_filename = data_object.path
-                if output_format == 'pyephys':
-                    new_filename = os.path.splitext(new_filename)[0] + '.h5'
-                    logger.info(f'Export and save result to {new_filename}...')
-                    data_object.export(new_filename=new_filename,
-                                       data_format=output_format)
+                data_object.export(data_format=output_format)
             else:
                 logger.info(f'Save result to {path}...')
                 data_object.saveReference(new_ref_object.channel_ID)

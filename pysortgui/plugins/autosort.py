@@ -86,12 +86,7 @@ class SortPlugin(IPlugin):
             logger.info(f'Waveforms extraction finish. ')
 
             if output_format != input_format:
-                new_filename = data_object.path
-                if output_format == 'pyephys':
-                    new_filename = os.path.splitext(new_filename)[0] + '.h5'
-                    logger.info(f'Export and save result to {new_filename}...')
-                    data_object.export(new_filename=new_filename,
-                                       data_format=output_format)
+                data_object.export(data_format=output_format)
             else:
                 logger.info(f'Save result to {path}...')
                 data_object.saveAll()
@@ -164,12 +159,7 @@ class SortPlugin(IPlugin):
             logger.info(f'Waveforms extraction finish. ')
 
             if output_format != input_format:
-                new_filename = data_object.path
-                if output_format == 'pyephys':
-                    new_filename = os.path.splitext(new_filename)[0] + '.h5'
-                    logger.info(f'Export and save result to {new_filename}...')
-                    data_object.export(new_filename=new_filename,
-                                       data_format=output_format)
+                data_object.export(data_format=output_format)
             else:
                 logger.info(f'Save result to {path}...')
                 data_object.saveAll()
@@ -244,12 +234,7 @@ class SortPlugin(IPlugin):
             logger.info(f'Waveforms extraction finish. ')
 
             if output_format != input_format:
-                new_filename = data_object.path
-                if output_format == 'pyephys':
-                    new_filename = os.path.splitext(new_filename)[0] + '.h5'
-                    logger.info(f'Export and save result to {new_filename}...')
-                    data_object.export(new_filename=new_filename,
-                                       data_format=output_format)
+                data_object.export(data_format=output_format)
             else:
                 logger.info(f'Save result to {path}...')
                 data_object.saveAll()
