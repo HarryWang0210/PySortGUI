@@ -68,6 +68,7 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
         # self.current_wav_units = []  # all waveform units (N,), int
         self.current_showing_units = []  # the unit id that are showing
         self.isi_result = None
+        self.isi_thr_doubleSpinBox.setValue(2)
         # store the table data(contain only units)
         # index: 'ID'
         # column: 'Name', 'NumRecords', 'UnitType', 'row'
@@ -471,7 +472,8 @@ class UnitOperateTools(QtWidgets.QWidget, Ui_UnitOperateTools):
             if target_unit_type in ['Unsorted', 'Invalid']:
                 warning_result = QMessageBox.warning(self,
                                                      "Warning",
-                                                     f"The target unit is {target_unit_type} unit.\nDo you want to continue?",
+                                                     f"The target unit is {
+                                                         target_unit_type} unit.\nDo you want to continue?",
                                                      QMessageBox.Yes | QMessageBox.No)
                 if warning_result != QMessageBox.Yes:
                     return
