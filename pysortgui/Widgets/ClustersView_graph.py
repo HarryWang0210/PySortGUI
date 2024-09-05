@@ -244,7 +244,11 @@ class ClustersView(gl.GLViewWidget, WidgetsInterface):
                                          self.current_showing_units)
 
         if self.feature_on_selection:
-            if self.feature_selection_pca_transformer is None:
+            # error handler: no showing spikes
+            if not np.any(self.current_wavs_mask):
+                new_pca = np.empty((0, 3))
+
+            elif self.feature_selection_pca_transformer is None:
                 # no cache
                 new_pca, self.feature_selection_pca_transformer = self.current_spike_object.waveformsPCA(selected_unit_IDs=self.current_showing_units,
                                                                                                          n_components=3,
