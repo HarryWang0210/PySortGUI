@@ -227,12 +227,12 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self.children_dict["Help"] = HelpAction
 
     def _initDocks(self):
-        self._generateDock(ChannelDetail)
-        self._generateDock(WaveformsView)
-        self._generateDock(ISIView)
-        self._generateDock(ClustersView)
+        self._generateDock(ChannelDetail, hide=False)
+        self._generateDock(WaveformsView, hide=False)
+        self._generateDock(ISIView, hide=False)
+        self._generateDock(ClustersView, hide=False)
+        self._generateDock(TimelineView, hide=False)
 
-        self._generateDock(TimelineView)
         self._generateRightToolWidget(UnitOperateTools)
 
     def _initLayout(self):
@@ -253,14 +253,14 @@ class MainWindowDocks(QtWidgets.QMainWindow):
                           self.children_dict["TimelineView_dock"]],
                          [int(geom.bottom() / 3) * 2, int(geom.bottom() / 3)], QtCore.Qt.Vertical)
 
-    def _generateDock(self, widget_class=None, name=None, attr_name=None, **kwargs):
+    def _generateDock(self, widget_class=None, name=None, attr_name=None, hide=True, **kwargs):
+        """Generate the dock object.
+        Args:
+            widget_class (_type_, optional): class name of widget. Defaults to None.
+            name (_type_, optional): dock title. Defaults to None.
+            attr_name (_type_, optional): key save in children_dict. Defaults to None.
+            hide (bool, optional): Hide after generate. Defaults to True.
         """
-        Generate the dock object.
-        :param widget_class: class name of widget
-        :param name: dock title
-        :param attr_name: key save in children_dict
-        """
-
         if widget_class is None:
             return
         obj: WidgetsInterface = widget_class(parent=self, **kwargs)
@@ -283,6 +283,9 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self.children_dict[attr_name + '_dock'] = dock
 
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock)
+
+        if hide:
+            dock.hide()
 
     def _generateRightToolWidget(self, widget_class=None, name=None, attr_name=None, **kwargs):
         """
