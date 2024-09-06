@@ -16,6 +16,7 @@ from pysortgui.Widgets.TimelineView_graph import TimelineView
 from pysortgui.Widgets.UnitOperateTools import UnitOperateTools
 from pysortgui.Widgets.WaveformsView_gl import WaveformsView
 from pysortgui.Widgets.WidgetsInterface import WidgetsInterface
+from pysortgui.Widgets.BackgroundChannelSetting import BackgroundChannelSetting
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +193,11 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         ViewMenu.addAction(ISIViewAction)
         ViewMenu_dict["ISIView"] = ISIViewAction
 
+        SetBgAction = self.children_dict['BackgroundChannelSetting_dock'].toggleViewAction(
+        )
+        ViewMenu.addAction(SetBgAction)
+        ViewMenu_dict["BackgroundChannelSetting"] = SetBgAction
+
         self.children_dict["ViewMenu"] = ViewMenu_dict
 
         ViewMenu.addSeparator()
@@ -232,6 +238,8 @@ class MainWindowDocks(QtWidgets.QMainWindow):
         self._generateDock(ISIView, hide=False)
         self._generateDock(ClustersView, hide=False)
         self._generateDock(TimelineView, hide=False)
+
+        self._generateDock(BackgroundChannelSetting)
 
         self._generateRightToolWidget(UnitOperateTools)
 

@@ -150,6 +150,8 @@ class PySortGUI(MainWindowDocks):
             self.children_dict["ClustersView"].data_file_name_changed)
         self.children_dict['ChannelDetail'].signal_data_file_name_changed.connect(
             self.children_dict["UnitOperateTools"].data_file_name_changed)
+        self.children_dict['ChannelDetail'].signal_data_file_name_changed.connect(
+            self.children_dict["BackgroundChannelSetting"].data_file_name_changed)
 
         # event_data_changed
         self.children_dict['ChannelDetail'].signal_event_data_changed.connect(
@@ -162,6 +164,9 @@ class PySortGUI(MainWindowDocks):
         # continuous_data_changed
         self.children_dict['ChannelDetail'].signal_continuous_data_changed.connect(
             self.children_dict["TimelineView"].continuous_data_changed)
+
+        self.children_dict['BackgroundChannelSetting'].signal_set_background_channel.connect(
+            self.children_dict["ChannelDetail"].set_background_channel)
 
         # background_continuous_data_changed
         self.children_dict['ChannelDetail'].signal_background_continuous_data_changed.connect(

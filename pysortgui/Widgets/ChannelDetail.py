@@ -296,6 +296,40 @@ class ChannelDetail(WidgetsInterface, Ui_ChannelDetail):
         self.current_spike_object = new_spike_object
         self.current_undo_stack.push(command)
 
+    def set_background_channel(self, setting):
+        if self.current_data_object is None:
+            mbox = QMessageBox(self)
+            mbox.warning(self, 'Warning',
+                         'Not load data yet.')
+            return
+
+        new_bg_object = None
+
+        if not setting['Show']:
+            self.signal_background_continuous_data_changed.emit(new_bg_object,
+                                                                setting['Color'],
+                                                                setting['ShowOnTop'])
+            return
+
+        new_bg_object = self.current_data_object.getRaw(
+            setting['BackgroundChannel'], load_data=True)
+
+        if setting['Reference'][0]:
+            new_bg_object = self.current_data_object.subtractReference(
+                channel_ID=setting['BackgroundChannel'],
+                reference_ID=setting['Reference'][1])
+        else:
+            new_bg_object = self.current_data_object.getRaw(
+                setting['BackgroundChannel'], load_data=True)
+
+        if setting['Filter'][0]:
+            new_bg_object = new_bg_object.bandpassFilter(low=setting['Filter'][1],
+                                                         high=setting['Filter'][2])
+
+        self.signal_background_continuous_data_changed.emit(new_bg_object,
+                                                            setting['Color'],
+                                                            setting['ShowOnTop'])
+
     def onSelectionChanged(self, selected, deselected):
         """Select action on data tree
 
