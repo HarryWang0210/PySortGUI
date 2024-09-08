@@ -113,6 +113,7 @@ class SpikeSorterData(object):
         return self._records_timestamps.copy()
 
     def _getTimestamps(self, filename):
+        logger.info(f'Getting global raw trace timestamps from {filename}...')
         self._records_timestamps = None
         try:
             if self._data_format == 'pyephys':
@@ -120,7 +121,11 @@ class SpikeSorterData(object):
             elif self._data_format == 'openephys':
                 self._records_timestamps = openephys.loadTimestamps(filename)
         except:
+            logger.info(
+                f'Failed to get global raw trace timestamps!')
             self._records_timestamps = None
+            return
+        logger.info('Got global raw trace timestamps!')
 
     def _createRawsData(self):
         raws_header = self._headers.get('RawsHeader')
@@ -129,7 +134,14 @@ class SpikeSorterData(object):
             return
 
         # try get timestamps
-        self._getTimestamps(raws_header[0][0])
+        # self._getTimestamps(raws_header[0][0])
+        for file_path, header in raws_header:
+            if not self._records_timestamps is None:
+                break
+            # get CH data timestamps as global
+            if 'CH' in header['Name']:
+                self._getTimestamps(file_path)
+        logger.debug(raws_header)
 
         for file_path, header in raws_header:
             self._raws_dict[header['ID']] = ContinuousData(timestamps=self._records_timestamps,
@@ -138,6 +150,7 @@ class SpikeSorterData(object):
                                                            header=header,
                                                            data_type=header['Type'],
                                                            _from_file=True)
+
             # self._channel_name_to_ID[header['Name']] = header['ID']
 
     def _createSpikesData(self):
@@ -147,8 +160,8 @@ class SpikeSorterData(object):
             return
 
         for file_path, header in spikes_header:
-            if not self._records_timestamps is None:
-                header['TimeDriftCorrected'] = True
+            # if not self._records_timestamps is None:
+            #     header['TimeDriftCorrected'] = True
 
             spike_object = DiscreteData(filename=file_path,
                                         data_format=self._data_format,
@@ -586,6 +599,17 @@ class ContinuousData(object):
         self._header['NumRecords'] = len(data)
         self._data = np.asarray(data)
         self._data_loaded = True
+
+        logger.debug('check timestamp')
+        # handle timestamp index mismatch
+        if self._timestamps is None:
+            logger.debug('no timestamps')
+            return
+        if self._header['NumRecords'] != len(self._timestamps):
+            logger.debug('mismatch')
+            logger.info('The length of global raw trace timestamps and the length of data mismatch. '
+                        'Can not use global raw trace timestamps to corret time drift.')
+            self._timestamps = None
 
     def setSpike(self, spike_object, label: str = 'default'):
         self._spikes[label] = spike_object
