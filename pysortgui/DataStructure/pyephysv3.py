@@ -12,7 +12,8 @@ import tables
 if TYPE_CHECKING:
     from .datav3 import ContinuousData, DiscreteData, SpikeSorterData
 
-from pysortgui.DataStructure.header_class import EventsHeader, FileHeader, RawsHeader, SpikesHeader
+from pysortgui.DataStructure.header_class import (EventsHeader, FileHeader,
+                                                  RawsHeader, SpikesHeader)
 
 logger = logging.getLogger(__name__)
 
@@ -67,18 +68,18 @@ def loadPyephysHeader(filename):
     spikes_header = recarrayToDictList(spikes_header)
     spikes_headers = [(filename, SpikesHeader.model_validate(header).model_dump())
                       for header in spikes_header]
-    if update_spikes_header:
-        records = []
-        for spike in spikes_headers:
-            records.append(spike[1])
-        new_spikes_header = pd.DataFrame.from_records(records)
-        with tables.open_file(filename, mode="a") as file:
-            file.remove_node("/SpikesHeader")
-            file.flush()
+    # if update_spikes_header:
+    #     records = []
+    #     for spike in spikes_headers:
+    #         records.append(spike[1])
+    #     new_spikes_header = pd.DataFrame.from_records(records)
+    #     with tables.open_file(filename, mode="a") as file:
+    #         file.remove_node("/SpikesHeader")
+    #         file.flush()
 
-            file.create_table('/', 'SpikesHeader',
-                              obj=dataframeToRecarry(new_spikes_header),
-                              createparents=True)
+    #         file.create_table('/', 'SpikesHeader',
+    #                           obj=dataframeToRecarry(new_spikes_header),
+    #                           createparents=True)
 
     events_header = recarrayToDictList(events_header)
     events_headers = [(filename, EventsHeader.model_validate(header).model_dump())
@@ -252,29 +253,39 @@ def _saveHeader(filename, path, ID,
     with tables.open_file(filename, mode='a', title=title, filters=filt) as file:
         if path in file.root:
             table = file.get_node(where=where, name=name)
-            if not 'ID' in table.colnames:
-                logger.error('Header missing ID field.')
-                return
-            if label != '':
-                if not 'Label' in table.colnames:
-                    logger.error('Header missing Label field.')
-                    return
+            # logger.debug(table.colnames)
+            # if not 'ID' in table.colnames:
+            #     logger.error('Header missing ID field.')
+            #     return
+            # if label != '':
+            #     if not 'Label' in table.colnames:
+            #         logger.error('Header missing Label field.')
+            #         return
 
             header_dict = header.model_dump(extra='append')
             header_df = pd.DataFrame(
                 {k: [v] for k, v in header_dict.items()}, index=[0])
             header_rec = dataframeToRecarry(header_df)
 
-            type_consist = True
+            update_all = False
+            # Col name check
+            if not set(header_rec.dtype.names).issubset(table.colnames):
+                update_all = True
+                logger.warning(f'Table column name in {path} '
+                               'not consist with header! Will try update later.')
+            # Col type check
             for k, v in table.coldtypes.items():
                 if not np.can_cast(header_rec[k].dtype, v):
-                    type_consist = False
+                    update_all = True
+                    logger.warning(f'Table column type in {path} '
+                                   'not consist with header! Will try update later.')
                     break
 
-            if type_consist:
+            if not update_all:
                 table.append([tuple(header.model_dump(extra='append')[col]
                                     for col in table.colnames)])
             else:
+                logger.info(f'Update the whole table in {path}')
                 new_headers = recarrayToDictList(table.read())
                 records = [header.__class__.model_validate(h, extra='allow').model_dump(extra='append')
                            for h in new_headers]
@@ -316,10 +327,14 @@ def _deleteHeader(filename, path, ID, label=''):
 
             if label != '':
                 if not 'Label' in table.colnames:
-                    logger.error('Header missing Label field.')
-                    return
-
-                condiction = f'({condiction}) & (Label == b"{label}")'
+                    # This will be enter when old data save by pysortgui first time
+                    logger.error(
+                        f'The header is missing the "Label" field in {path}. '
+                        'If this is the first time this error is caught for this data, '
+                        "it's acceptable.")
+                    pass
+                else:
+                    condiction = f'({condiction}) & (Label == b"{label}")'
 
             rows = table.get_where_list(condiction).tolist()
 
@@ -661,7 +676,8 @@ def dataframeToRecarry(df: pd.DataFrame):
     object_cols = df.dtypes[(df.dtypes == 'object') |
                             (df.dtypes == 'bool')].index
     # string_len = df[object_cols].applymap(lambda x: len(str(x)))
-    string_len = df[object_cols].apply(lambda col: col.map(lambda x: len(str(x))))
+    string_len = df[object_cols].apply(
+        lambda col: col.map(lambda x: len(str(x))))
     max_length = string_len.max()
     max_length = max_length.apply(lambda x: f'S{x}' if x > 0 else 'S1')
     return df.to_records(index=False,
