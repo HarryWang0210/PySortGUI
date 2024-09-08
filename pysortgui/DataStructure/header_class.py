@@ -3,7 +3,10 @@ import os
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from pysortgui.DataStructure.DataClasses import DataClass, convert_and_enforce_types
+import numpy as np
+
+from pysortgui.DataStructure.DataClasses import (DataClass,
+                                                 convert_and_enforce_types)
 
 # from pydantic import BaseModel, Field, computed_field, field_validator
 # from pydantic_core.core_schema import FieldValidationInfo
@@ -168,6 +171,14 @@ def convertStringAndNumToBoolean(value: str):
         logger.warning(
             f"Can not convert value {value} to type Boolean, use False by default.")
         return False
+
+
+def convertNaNReferenceIDToInt(value: float):
+    try:
+        if np.isnan(value):
+            return -1
+    except:
+        return value
 
 
 @convert_and_enforce_types(convert_types=[(bool, convertStringAndNumToBoolean)])
