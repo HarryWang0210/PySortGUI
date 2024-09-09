@@ -172,6 +172,9 @@ def convertStringAndNumToBoolean(value: str):
             f"Can not convert value {value} to type Boolean, use False by default.")
         return False
 
+    finally:
+        return False
+
 
 def convertNaNReferenceIDToInt(value: float):
     try:
@@ -180,8 +183,11 @@ def convertNaNReferenceIDToInt(value: float):
     except:
         return value
 
+    finally:
+        return value
 
-@convert_and_enforce_types(convert_types=[(bool, convertStringAndNumToBoolean)])
+
+@convert_and_enforce_types(convert_types=[(bool, convertStringAndNumToBoolean), (int, convertNaNReferenceIDToInt)])
 @dataclass
 class SpikesHeader(BaseHeader):
     Type: str = 'Spikes'
