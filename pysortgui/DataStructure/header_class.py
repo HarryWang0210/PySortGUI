@@ -167,24 +167,28 @@ def convertStringAndNumToBoolean(value: str):
             return True
         if v.lower() == 'false':
             return False
+        else:
+            return False
     except:
         logger.warning(
             f"Can not convert value {value} to type Boolean, use False by default.")
         return False
 
-    finally:
-        return False
+    # finally:
+    #     return False
 
 
 def convertNaNReferenceIDToInt(value: float):
     try:
         if np.isnan(value):
             return -1
+        else:
+            return value
     except:
         return value
 
-    finally:
-        return value
+    # finally:
+    #     return value
 
 
 @convert_and_enforce_types(convert_types=[(bool, convertStringAndNumToBoolean), (int, convertNaNReferenceIDToInt)])
